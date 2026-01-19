@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { FoldersList } from './FoldersList';
 import { ReceivedCardsList } from './ReceivedCardsList';
 import { ReceivedCardDetail } from './ReceivedCardDetail';
 import {
@@ -27,6 +26,8 @@ export function ContactsPage() {
   const [isGeneratingMock, setIsGeneratingMock] = useState(false);
   const [isClearingMock, setIsClearingMock] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'newest' | 'oldest'>('newest');
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   // 폴더 로드
   useEffect(() => {
@@ -133,6 +134,8 @@ export function ContactsPage() {
     try {
       const newFolder = await createFolder({ name });
       setFolders([...folders, newFolder]);
+      setNewFolderName('');
+      setIsCreatingFolder(false);
     } catch (err: any) {
       console.error('[ContactsPage] 폴더 생성 오류:', err);
       setError('폴더를 생성하지 못했습니다.');
@@ -245,7 +248,7 @@ export function ContactsPage() {
     <div className="space-y-6">
       {/* 테스트용 Mock 데이터 버튼 (개발 모드) */}
       {import.meta.env.DEV && (
-        <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+        <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-amber-900">🧪 테스트 모드</h3>
@@ -258,7 +261,7 @@ export function ContactsPage() {
                 type="button"
                 onClick={handleGenerateMockData}
                 disabled={isGeneratingMock || isClearingMock}
-                className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGeneratingMock ? '생성 중...' : 'Mock 데이터 생성'}
               </button>
@@ -266,7 +269,7 @@ export function ContactsPage() {
                 type="button"
                 onClick={handleClearMockData}
                 disabled={isGeneratingMock || isClearingMock}
-                className="rounded-lg border border-amber-300 bg-white px-4 py-2 text-xs font-medium text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isClearingMock ? '삭제 중...' : '모두 삭제'}
               </button>
@@ -275,28 +278,132 @@ export function ContactsPage() {
         </div>
       )}
 
+      {/* 폴더 탭/칩 필터 */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700">폴더</h3>
+          {!isCreatingFolder && (
+            <button
+              type="button"
+              onClick={() => setIsCreatingFolder(true)}
+              className="rounded-full bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700"
+            >
+              + 폴더 추가
+            </button>
+          )}
+        </div>
+
+        {isCreatingFolder ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (newFolderName.trim()) {
+                    void handleCreateFolder(newFolderName.trim());
+                  }
+                } else if (e.key === 'Escape') {
+                  setIsCreatingFolder(false);
+                  setNewFolderName('');
+                }
+              }}
+              placeholder="폴더 이름"
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (newFolderName.trim()) {
+                  void handleCreateFolder(newFolderName.trim());
+                }
+              }}
+              className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
+            >
+              만들기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreatingFolder(false);
+                setNewFolderName('');
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              취소
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId('all')}
+              className={[
+                'rounded-full px-4 py-2 text-sm font-semibold transition',
+                selectedFolderId === 'all'
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+              ].join(' ')}
+            >
+              전체
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId('unfolder')}
+              className={[
+                'rounded-full px-4 py-2 text-sm font-semibold transition',
+                selectedFolderId === 'unfolder'
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+              ].join(' ')}
+            >
+              폴더 없음
+            </button>
+            {folders.map((folder) => {
+              const isActive = selectedFolderId === folder.id;
+              return (
+                <div key={folder.id} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFolderId(folder.id)}
+                    className={[
+                      'rounded-full px-4 py-2 text-sm font-semibold transition',
+                      isActive
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                    ].join(' ')}
+                  >
+                    {folder.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFolder(folder.id)}
+                    className="ml-1.5 hidden items-center justify-center rounded-full bg-red-100 p-1 text-xs text-red-600 transition hover:bg-red-200 group-hover:inline-flex"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* 검색 바 */}
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="이름, 소속, 이메일, 전화번호, 메모, 태그로 검색..."
-          className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none"
+          className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
         />
       </div>
 
       {/* 메인 레이아웃 */}
-      <div className="grid gap-6 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.8fr)_minmax(0,1fr)]">
-        <FoldersList
-          folders={folders}
-          selectedFolderId={selectedFolderId}
-          loading={loading}
-          onCreateFolder={handleCreateFolder}
-          onSelectFolder={setSelectedFolderId}
-          onDeleteFolder={handleDeleteFolder}
-        />
-
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
         <ReceivedCardsList
           cards={filteredAndSortedCards}
           selectedId={selectedCardId}

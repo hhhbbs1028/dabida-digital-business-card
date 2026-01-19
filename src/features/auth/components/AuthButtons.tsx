@@ -12,14 +12,39 @@ export function AuthButtons() {
     setError(null);
 
     try {
+      // 현재 접속 주소에 맞게 자동으로 리다이렉트 URL 생성
+      // - PC 로컬: http://localhost:5173/auth/callback
+      // - 폰 로컬: http://172.30.1.50:5173/auth/callback
+      // - 프로덕션: https://dabida-digital-business-card.pages.dev/auth/callback
       const redirectTo = `${window.location.origin}/auth/callback`;
-      console.log(`[AuthButtons] ${provider} 로그인 시작, redirectTo:`, redirectTo);
+      
+      console.log(`[AuthButtons] ${provider} 로그인 시작`, {
+        origin: window.location.origin,
+        redirectTo,
+        fullUrl: window.location.href,
+      });
 
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
+      // redirectTo가 절대 URL인지 확인
+      if (!redirectTo.startsWith('http://') && !redirectTo.startsWith('https://')) {
+        throw new Error(`잘못된 리다이렉트 URL: ${redirectTo}`);
+      }
+
+      // Supabase OAuth 로그인
+      // redirectTo를 명시적으로 전달하여 현재 origin으로 리다이렉트되도록 함
+      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo,
+          redirectTo: redirectTo,
+          skipBrowserRedirect: false,
         },
+      });
+
+      // 디버깅: 실제 전달되는 URL 확인
+      console.log(`[AuthButtons] ${provider} OAuth 응답:`, {
+        data,
+        error: signInError,
+        redirectTo,
+        expectedUrl: redirectTo,
       });
 
       if (signInError) {
@@ -148,7 +173,7 @@ export function SignOutButton() {
       <button
         onClick={handleSignOut}
         disabled={loading}
-        className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? '로그아웃 중...' : '로그아웃'}
       </button>

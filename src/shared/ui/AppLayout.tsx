@@ -11,25 +11,36 @@ type Props = {
 };
 
 export function AppLayout({ user, profile, onNewCard, children }: Props) {
+  // 이니셜 생성 함수
+  const getInitials = (name: string) => {
+    if (!name) return '👤';
+    const names = name.trim().split(/\s+/);
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-base font-semibold text-slate-900">
-              Dabida · 디지털 명함 스튜디오
-            </h1>
-            <p className="mt-1 text-xs text-slate-500">
-              {profile?.name && (
-                <span className="font-medium">{profile.name}</span>
-              )}
-              {profile?.university && (
-                <span className="ml-2 text-slate-400">· {profile.university}</span>
-              )}
-              {profile?.major && (
-                <span className="ml-2 text-slate-400">· {profile.major}</span>
-              )}
-            </p>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
+          <div className="flex items-center gap-4">
+            {profile?.name && (
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 text-base font-semibold text-white shadow-md">
+                {getInitials(profile.name)}
+              </div>
+            )}
+            <div>
+              <h1 className="text-lg font-semibold text-slate-900">
+                {profile?.name || 'Dabida'}
+              </h1>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {profile?.university && profile?.major
+                  ? `${profile.university} · ${profile.major}`
+                  : '디지털 명함 스튜디오'}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {user && (
@@ -37,7 +48,7 @@ export function AppLayout({ user, profile, onNewCard, children }: Props) {
                 <button
                   type="button"
                   onClick={onNewCard}
-                  className="hidden items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 md:inline-flex"
+                  className="hidden items-center gap-1.5 rounded-full bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-primary-700 md:inline-flex"
                 >
                   <span className="text-base leading-none">＋</span>
                   새 명함 만들기
@@ -49,7 +60,7 @@ export function AppLayout({ user, profile, onNewCard, children }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-8">
         {children}
       </main>
     </div>

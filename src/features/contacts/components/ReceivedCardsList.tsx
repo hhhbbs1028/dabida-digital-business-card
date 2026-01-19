@@ -12,6 +12,16 @@ type Props = {
   onDelete: (id: string) => Promise<void>;
 };
 
+// 이니셜 생성 함수
+const getInitials = (name: string) => {
+  if (!name) return '👤';
+  const names = name.trim().split(/\s+/);
+  if (names.length >= 2) {
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 export function ReceivedCardsList({
   cards,
   selectedId,
@@ -24,24 +34,22 @@ export function ReceivedCardsList({
 }: Props) {
   return (
     <div className="flex-1">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            받은 명함
-          </h2>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <h2 className="text-base font-semibold text-slate-900">받은 명함</h2>
+          <p className="mt-1 text-xs text-slate-500">
             {cards.length}개의 명함이 저장되어 있습니다.
           </p>
         </div>
         {onSortChange && (
           <div className="flex items-center gap-2">
-            <label className="text-[11px] text-slate-500">정렬:</label>
+            <label className="text-xs text-slate-500">정렬:</label>
             <select
               value={sortBy}
               onChange={(e) =>
                 onSortChange(e.target.value as 'name' | 'newest' | 'oldest')
               }
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:border-slate-900 focus:outline-none"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
               <option value="newest">추가한 시간순</option>
               <option value="oldest">오래된 순</option>
@@ -51,69 +59,86 @@ export function ReceivedCardsList({
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
         {error && (
-          <div className="mb-3 rounded-lg border border-red-200 bg-red-50/80 px-3 py-2 text-[11px] text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
             {error}
           </div>
         )}
         {loading ? (
-          <div className="flex items-center justify-center py-6">
-            <p className="text-xs text-slate-500">명함을 불러오는 중입니다...</p>
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-slate-500">명함을 불러오는 중입니다...</p>
           </div>
         ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-slate-50 px-4 py-6 text-center">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-50 px-6 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-2xl">
               📇
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-slate-900">
+              <p className="text-sm font-semibold text-slate-900">
                 아직 받은 명함이 없어요
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 명함을 추가하면 여기에 표시됩니다.
               </p>
             </div>
           </div>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-3">
             {cards.map((card) => {
               const isActive = selectedId === card.id;
               const snapshot = card.snapshot;
+              const displayName = snapshot.display_name || '이름 없음';
+              const initials = getInitials(displayName);
               return (
                 <li key={card.id}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => onSelect(card.id)}
                       className={[
-                        'flex w-full flex-1 items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-xs shadow-sm transition',
+                        'flex min-h-[80px] w-full flex-1 items-center gap-4 rounded-2xl border px-5 py-4 text-left shadow-md transition-all touch-manipulation',
                         isActive
-                          ? 'border-slate-900 bg-slate-900 text-white'
-                          : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-slate-50',
+                          ? 'border-primary-500 bg-primary-50 text-slate-900 shadow-lg ring-2 ring-primary-200'
+                          : 'border-slate-200 bg-white text-slate-900 hover:border-primary-300 hover:shadow-lg active:bg-slate-50',
                       ].join(' ')}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold">
-                          {snapshot.display_name || '이름 없음'}
-                        </p>
-                        <p
-                          className={[
-                            'truncate text-[11px]',
-                            isActive ? 'text-slate-100/80' : 'text-slate-500',
-                          ].join(' ')}
-                        >
-                          {snapshot.headline || snapshot.organization || '설명 없음'}
-                        </p>
+                      {/* 프로필 이니셜 */}
+                      <div
+                        className={[
+                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold shadow-sm',
+                          isActive
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-slate-100 text-slate-700',
+                        ].join(' ')}
+                      >
+                        {initials}
+                      </div>
+
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">
+                            {displayName}
+                          </p>
+                          <p
+                            className={[
+                              'mt-0.5 text-sm',
+                              isActive ? 'text-slate-600' : 'text-slate-500',
+                            ].join(' ')}
+                          >
+                            {snapshot.headline || snapshot.organization || '설명 없음'}
+                          </p>
+                        </div>
+
                         {card.tags.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-1.5">
                             {card.tags.slice(0, 3).map((tag, idx) => (
                               <span
                                 key={idx}
                                 className={[
-                                  'inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                  'inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
                                   isActive
-                                    ? 'bg-white/20 text-slate-50'
+                                    ? 'bg-primary-100 text-primary-700'
                                     : 'bg-slate-100 text-slate-600',
                                 ].join(' ')}
                               >
@@ -123,9 +148,9 @@ export function ReceivedCardsList({
                             {card.tags.length > 3 && (
                               <span
                                 className={[
-                                  'inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                  'inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
                                   isActive
-                                    ? 'bg-white/20 text-slate-50'
+                                    ? 'bg-primary-100 text-primary-700'
                                     : 'bg-slate-100 text-slate-600',
                                 ].join(' ')}
                               >
@@ -134,11 +159,12 @@ export function ReceivedCardsList({
                             )}
                           </div>
                         )}
+
                         {card.memo && (
                           <p
                             className={[
-                              'mt-1 line-clamp-1 text-[10px]',
-                              isActive ? 'text-slate-200/70' : 'text-slate-400',
+                              'line-clamp-1 text-xs',
+                              isActive ? 'text-slate-500' : 'text-slate-400',
                             ].join(' ')}
                           >
                             {card.memo}
@@ -149,7 +175,7 @@ export function ReceivedCardsList({
                     <button
                       type="button"
                       onClick={() => onDelete(card.id)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-[11px] text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-slate-200 text-base text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 active:bg-red-100 touch-manipulation"
                     >
                       ×
                     </button>
