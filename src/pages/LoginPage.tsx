@@ -1,5 +1,5 @@
 import React from 'react';
-import { AuthButtons } from '../auth/AuthButtons';
+import { AuthButtons } from '../features/auth/components/AuthButtons';
 
 export function LoginPage() {
   return (

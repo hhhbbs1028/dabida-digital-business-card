@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { getMyProfile, upsertMyProfile, type Profile } from '../lib/profileApi';
+import { useAuth } from '../features/auth/hooks/useAuth';
+import { getMyProfile, upsertMyProfile, type Profile } from '../features/profile/api/profileApi';
 
 type FormState = {
   name: string;

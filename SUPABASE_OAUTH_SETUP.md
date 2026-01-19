@@ -129,10 +129,77 @@ npm run dev
 
 ---
 
-## 5. 프로덕션 배포 시
+## 5. 프로덕션 배포 시 (Cloudflare Pages 등)
 
-1. **Site URL**을 실제 도메인으로 변경
-2. **Redirect URLs**에 프로덕션 URL 추가
-3. 각 OAuth 제공자의 **Callback URL**도 프로덕션 URL로 업데이트
-4. `.env.local` 대신 환경 변수로 설정 (Vercel, Netlify 등)
+### ⚠️ 중요: localhost 오류 해결 방법
+
+프로덕션 배포 후 로그인 시 "localhost에서 연결을 거부했습니다" 오류가 발생하면, Supabase Dashboard 설정을 확인하세요.
+
+### 1. Supabase Dashboard 설정
+
+1. **Supabase Dashboard** → **Authentication** → **URL Configuration** 접속
+
+2. **Site URL**을 프로덕션 도메인으로 변경:
+   ```
+   https://your-app.pages.dev
+   ```
+   (Cloudflare Pages의 경우 `*.pages.dev` 도메인 또는 커스텀 도메인)
+
+3. **Redirect URLs**에 다음을 모두 추가 (각 줄마다 하나씩):
+   ```
+   http://localhost:5175
+   http://localhost:5175/auth/callback
+   https://your-app.pages.dev
+   https://your-app.pages.dev/auth/callback
+   ```
+   ⚠️ **중요**: 프로덕션 URL과 `/auth/callback` 경로를 모두 추가해야 합니다!
+
+### 2. OAuth 제공자 콜백 URL 업데이트
+
+#### Google
+- [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**
+- OAuth 2.0 Client ID 선택 → **Edit**
+- **Authorized redirect URIs**에 다음 추가:
+  ```
+  https://[your-project-ref].supabase.co/auth/v1/callback
+  ```
+  (이 URL은 Supabase 콜백 URL이므로 변경하지 않습니다)
+
+#### GitHub
+- GitHub → **Settings** → **Developer settings** → **OAuth Apps**
+- OAuth App 선택 → **Edit**
+- **Authorization callback URL**은 Supabase URL이므로 변경하지 않습니다:
+  ```
+  https://[your-project-ref].supabase.co/auth/v1/callback
+  ```
+
+### 3. Cloudflare Pages 환경 변수 설정
+
+Cloudflare Pages Dashboard에서 환경 변수 설정:
+
+1. **Cloudflare Dashboard** → **Pages** → 프로젝트 선택 → **Settings** → **Environment Variables**
+
+2. 다음 환경 변수 추가:
+   ```
+   VITE_SUPABASE_URL=https://[your-project-ref].supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+3. **Production** 환경에 설정하고, 필요시 **Preview** 환경에도 동일하게 설정
+
+### 4. 배포 후 확인
+
+1. 프로덕션 URL에서 로그인 시도
+2. 브라우저 개발자 도구 → **Console** 탭에서 다음 로그 확인:
+   ```
+   [AuthButtons] google 로그인 시작, redirectTo: https://your-app.pages.dev/auth/callback
+   ```
+3. 리다이렉트 URL이 프로덕션 도메인으로 설정되어 있는지 확인
+
+### 5. 문제 해결 체크리스트
+
+- ✅ Supabase Dashboard의 **Site URL**이 프로덕션 도메인인가?
+- ✅ Supabase Dashboard의 **Redirect URLs**에 프로덕션 URL과 `/auth/callback` 경로가 모두 추가되어 있는가?
+- ✅ Cloudflare Pages 환경 변수가 올바르게 설정되어 있는가?
+- ✅ 배포 후 브라우저 캐시를 지우고 다시 시도했는가?
 

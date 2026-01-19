@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
-import { getMyProfile } from '../lib/profileApi';
+import { supabase } from '../shared/infrastructure/supabaseClient';
+import { getMyProfile } from '../features/profile/api/profileApi';
 
 export function AuthCallback() {
   const navigate = useNavigate();

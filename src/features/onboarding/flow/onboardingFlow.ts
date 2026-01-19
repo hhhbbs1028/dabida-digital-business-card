@@ -1,6 +1,6 @@
-import type { Profile } from './profileApi';
-import { getMyProfile, upsertMyProfile } from './profileApi';
-import { supabase } from './supabaseClient';
+import type { Profile } from '../../profile/api/profileApi';
+import { getMyProfile, upsertMyProfile } from '../../profile/api/profileApi';
+import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 export type OnboardingStep = 'ONBOARDING' | 'AUTH' | 'PROFILE' | 'TEMPLATE' | 'DONE';
 

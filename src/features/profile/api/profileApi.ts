@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase } from '../../../shared/infrastructure/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 
 export type Profile = {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import type { Profile } from '../lib/profileApi';
-import { upsertMyProfile } from '../lib/profileApi';
+import type { Profile } from '../api/profileApi';
+import { upsertMyProfile } from '../api/profileApi';
 
 type Props = {
   userEmail?: string | null;

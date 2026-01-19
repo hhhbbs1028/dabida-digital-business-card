@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardPreview } from './CardPreview';
-import type { CardData, FontFamilyOption } from './types';
-import { StepTabs } from './components/StepTabs';
-import { OptionalFieldGroup } from './components/OptionalFieldGroup';
+import type { CardData, FontFamilyOption } from '../types';
+import { StepTabs } from './StepTabs';
+import { OptionalFieldGroup } from './OptionalFieldGroup';
 
 type Props = {
   initialValue?: CardData | null;
@@ -110,6 +110,21 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
     }));
   };
 
+  // 새 명함 모드에서 값이 비어있는지 확인하는 함수
+  const isEmptyCard = useMemo(() => {
+    return (
+      !initialValue &&
+      !value.display_name &&
+      !value.headline &&
+      !value.organization &&
+      !value.email &&
+      !value.phone &&
+      !value.links.instagram &&
+      !value.links.github &&
+      !value.links.website
+    );
+  }, [value, initialValue]);
+
   useEffect(() => {
     const serialized = JSON.stringify(value);
     if (!hydratedRef.current) {
@@ -118,6 +133,11 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
       return;
     }
     if (serialized === lastSavedRef.current) return;
+
+    // 새 명함 모드이고 값이 비어있으면 자동 저장하지 않음
+    if (isEmptyCard) {
+      return;
+    }
 
     if (saveTimer.current) {
       window.clearTimeout(saveTimer.current);
@@ -145,7 +165,7 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
         window.clearTimeout(saveTimer.current);
       }
     };
-  }, [value, currentId, onSave]);
+  }, [value, currentId, onSave, isEmptyCard]);
 
   const renderSection = (tab: TabKey) => {
     if (tab === 'basic') {

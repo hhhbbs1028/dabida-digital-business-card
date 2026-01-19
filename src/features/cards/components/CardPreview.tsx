@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CardData } from './types';
+import type { CardData } from '../types';
 
 type Props = {
   card: Omit<CardData, 'id'>;
