@@ -73,14 +73,19 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
     if (initialValue) {
       const { id: _id, ...rest } = initialValue;
       setCurrentId(initialValue.id);
-      setValue({
+      const newValue = {
         ...baseEmpty,
         ...rest,
         links: { ...baseEmpty.links, ...rest.links },
         style: { ...baseEmpty.style, ...rest.style },
-      });
+      };
+      setValue(newValue);
+      // initialValue가 변경될 때는 자동 저장을 하지 않도록 lastSavedRef 업데이트
+      lastSavedRef.current = JSON.stringify(newValue);
     } else {
       setValue(baseEmpty);
+      // 새 명함 모드로 전환될 때도 자동 저장 방지
+      lastSavedRef.current = JSON.stringify(baseEmpty);
     }
     setShowContact(!!(initialValue?.email || initialValue?.phone));
     setShowLinks(
@@ -90,6 +95,7 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
         initialValue?.links.website
       ),
     );
+    // initialValue가 변경될 때는 hydrated 상태를 리셋하지 않음 (이미 hydrated된 상태 유지)
   }, [initialValue, baseEmpty]);
 
   const update = (field: keyof Omit<CardData, 'id'>, v: any) => {

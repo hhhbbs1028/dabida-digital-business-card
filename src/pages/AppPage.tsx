@@ -16,6 +16,8 @@ import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import { BottomSheet } from '../shared/ui/BottomSheet';
 import { ReceivedCardDetail } from '../features/contacts/components/ReceivedCardDetail';
 import { ReceivedCardsList } from '../features/contacts/components/ReceivedCardsList';
+import { ShareCardModal } from '../features/share/components/ShareCardModal';
+import { QRScanner } from '../features/share/components/QRScanner';
 import {
   getReceivedCards,
   getFolders,
@@ -27,12 +29,16 @@ import {
   type Folder,
 } from '../features/contacts/api/contactsApi';
 import { generateMockData, clearMockData } from '../features/contacts/utils/mockData';
+import { SignOutButton } from '../features/auth/components/AuthButtons';
+import { useToast } from '../shared/ui/Toast';
 
-type Tab = 'home' | 'cards' | 'exchange' | 'profile';
+type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'profile';
+type ExchangeSubTab = 'give' | 'receive';
 
 export function AppPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [cards, setCards] = useState([] as CardData[]);
   const [selectedId, setSelectedId] = useState(null as string | null);
@@ -52,6 +58,10 @@ export function AppPage() {
   // 모달 상태
   const [showCardDetail, setShowCardDetail] = useState(false);
   const [showCardEditor, setShowCardEditor] = useState(false);
+  const [shareTargetCardId, setShareTargetCardId] = useState<string | null>(null);
+  const [showShareSelector, setShowShareSelector] = useState(false);
+  const [exchangeSubTab, setExchangeSubTab] = useState<ExchangeSubTab>('give');
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // 로그인 체크
   useEffect(() => {
@@ -320,43 +330,57 @@ export function AppPage() {
         {/* 홈 탭 */}
         {activeTab === 'home' && (
           <div className="space-y-6">
-      {profile && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-slate-900">안녕하세요 👋</h2>
-                </div>
-                <p className="text-sm text-slate-600">
-                  오늘 새로운 인연을 만나보세요
-                </p>
-              </div>
-            )}
+            {/* 간단한 인사 */}
+            <div>
+              <h2 className="text-2xl font-semibold leading-tight text-slate-900">👋 안녕하세요</h2>
+              <p className="mt-2 text-base leading-relaxed text-slate-500">
+                오늘 받은 명함
+              </p>
+            </div>
 
             <div>
-              <h3 className="mb-3 text-base font-semibold text-slate-900">최근 받은 명함</h3>
               {filteredAndSortedCards.slice(0, 5).length > 0 ? (
-                <div className="space-y-3">
-                  {filteredAndSortedCards.slice(0, 5).map((card) => (
+                <div className="space-y-2">
+                  {filteredAndSortedCards.slice(0, 5).map((card) => {
+                    const displayName = card.snapshot.display_name || '이름 없음';
+                    const initials = displayName.substring(0, 2).toUpperCase();
+                    return (
           <button
-                      key={card.id}
+                        key={card.id}
             type="button"
-                      onClick={() => {
-                        setSelectedCardId(card.id);
-                        setShowCardDetail(true);
-                      }}
-                      className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-md transition hover:shadow-lg"
+                        onClick={() => {
+                          setSelectedCardId(card.id);
+                          setShowCardDetail(true);
+                        }}
+                      className="flex w-full min-h-[84px] items-center gap-4 rounded-2xl bg-white px-6 py-5 text-left transition active:bg-slate-50 touch-manipulation"
                     >
-                      <p className="font-semibold text-slate-900">
-                        {card.snapshot.display_name || '이름 없음'}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {card.snapshot.headline || card.snapshot.organization || '설명 없음'}
-                      </p>
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-700">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xl font-semibold leading-tight text-slate-900">
+                          {displayName}
+                        </p>
+                        <p className="mt-1.5 text-base leading-relaxed text-slate-500">
+                          {card.snapshot.headline || card.snapshot.organization || '설명 없음'}
+                        </p>
+                      </div>
           </button>
-                  ))}
+                    );
+                  })}
+                  {filteredAndSortedCards.length > 5 && (
+          <button
+            type="button"
+                      onClick={() => setActiveTab('received')}
+                      className="w-full rounded-2xl bg-slate-50 px-6 py-4 text-base font-medium text-slate-600 transition active:bg-slate-100 touch-manipulation"
+          >
+                      전체보기 →
+          </button>
+                  )}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                  <p className="text-sm text-slate-500">아직 받은 명함이 없어요</p>
+                <div className="rounded-2xl bg-white p-12 text-center">
+                  <p className="text-base text-slate-500">아직 받은 명함이 없어요</p>
                 </div>
               )}
             </div>
@@ -372,22 +396,22 @@ export function AppPage() {
             selectedId={selectedId}
             loading={cardsLoading}
             error={error}
-                onSelect={(id) => {
-                  setSelectedId(id);
-                  setShowCardEditor(true);
-                }}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setShowCardEditor(true);
+            }}
             onDelete={handleDelete}
+            onShare={(id) => {
+              setShareTargetCardId(id);
+            }}
           />
 
               {/* 데스크탑: 우측 패널 */}
               <section className="hidden space-y-4 md:block">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
+                <div className="rounded-2xl bg-white p-6">
                   <CardEditor
                     initialValue={selected}
-                    onSave={async (card) => {
-                      await handleSave(card);
-                      setShowCardEditor(false);
-                    }}
+                    onSave={handleSave}
                     defaultStyle={defaultStyle}
                   />
               </div>
@@ -396,35 +420,249 @@ export function AppPage() {
           </div>
         )}
 
-        {/* 받은 명함 전체 보기 (홈에서 더보기) */}
-        {activeTab === 'home' && filteredAndSortedCards.length > 5 && (
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => {
-                // 받은 명함 전체를 보는 별도 뷰로 이동 (임시로 cards 탭 사용)
-                // TODO: 받은 명함 전용 탭 추가
+        {/* 받은 명함 전체보기 탭 */}
+        {activeTab === 'received' && (
+          <div className="space-y-5">
+            {/* 리스트 헤더 - 한 줄 통합 */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-slate-900">받은 명함</h2>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                  {filteredAndSortedCards.length}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const options = ['newest', 'oldest', 'name'];
+                  const currentIndex = options.indexOf(sortBy);
+                  const nextIndex = (currentIndex + 1) % options.length;
+                  setSortBy(options[nextIndex] as 'name' | 'newest' | 'oldest');
+                }}
+                className="rounded-full bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                {sortBy === 'newest' ? '최신순 ▾' : sortBy === 'oldest' ? '오래된순 ▾' : '가나다순 ▾'}
+              </button>
+            </div>
+
+            {/* 폴더 필터 - 칩 + 편집 패턴 */}
+            <div className="rounded-2xl bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">폴더</h3>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const name = prompt('폴더 이름을 입력하세요:');
+                    if (name?.trim()) {
+                      try {
+                        const newFolder = await createFolder({ name: name.trim() });
+                        setFolders([...folders, newFolder]);
+                      } catch (err) {
+                        alert('폴더 생성에 실패했습니다.');
+                      }
+                    }
+                  }}
+                  className="text-base font-medium text-primary-600 transition hover:text-primary-700"
+                >
+                  + 추가
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolderId('all')}
+                  className={[
+                    'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition',
+                    selectedFolderId === 'all'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-100 text-slate-700',
+                  ].join(' ')}
+                >
+                  전체
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolderId('unfolder')}
+                  className={[
+                    'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition',
+                    selectedFolderId === 'unfolder'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-100 text-slate-700',
+                  ].join(' ')}
+                >
+                  폴더 없음
+                </button>
+                {folders.map((folder) => {
+                  const isActive = selectedFolderId === folder.id;
+                  return (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => setSelectedFolderId(folder.id)}
+                      className={[
+                        'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition',
+                        isActive
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-slate-100 text-slate-700',
+                      ].join(' ')}
+                    >
+                      {folder.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 검색 바 - 토스 스타일 */}
+            <div className="rounded-2xl bg-white p-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="이름/소속/태그 검색"
+                className="h-12 w-full rounded-2xl border-none bg-slate-50 px-5 text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+              />
+            </div>
+
+            <ReceivedCardsList
+              cards={filteredAndSortedCards}
+              selectedId={selectedCardId}
+              loading={false}
+              error={null}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              onSelect={(id) => {
+                setSelectedCardId(id);
+                setShowCardDetail(true);
               }}
-              className="w-full rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
-            >
-              모든 받은 명함 보기 →
-            </button>
+              onDelete={handleDeleteReceivedCard}
+            />
           </div>
         )}
 
         {/* 교환 탭 */}
         {activeTab === 'exchange' && (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-md">
-              <div className="mb-4 text-4xl">📲</div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">명함 교환</h3>
-              <p className="text-sm text-slate-500">
-                QR 코드나 NFC로 명함을 교환할 수 있어요
-              </p>
-              <p className="mt-4 text-xs text-slate-400">
-                (준비 중입니다)
-              </p>
+            {/* 서브 탭 */}
+            <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white p-2">
+              <button
+                type="button"
+                onClick={() => setExchangeSubTab('give')}
+                className={[
+                  'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
+                  exchangeSubTab === 'give'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-transparent text-slate-600 hover:bg-slate-50',
+                ].join(' ')}
+              >
+                명함 주기
+              </button>
+              <button
+                type="button"
+                onClick={() => setExchangeSubTab('receive')}
+                className={[
+                  'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
+                  exchangeSubTab === 'receive'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-transparent text-slate-600 hover:bg-slate-50',
+                ].join(' ')}
+              >
+                명함 받기
+              </button>
             </div>
+
+            {/* 명함 주기 탭 */}
+            {exchangeSubTab === 'give' && (
+              <div className="rounded-2xl bg-white p-8 text-center md:p-12">
+                <div className="mb-4 text-4xl md:mb-6 md:text-5xl">📤</div>
+                <h3 className="mb-2 text-xl font-semibold text-slate-900 md:mb-3 md:text-2xl">
+                  명함 주기
+                </h3>
+                <p className="text-sm leading-relaxed text-slate-500 md:text-base">
+                  내 명함 중 어떤 걸 줄지 선택하고, QR 코드로 바로 공유해 보세요.
+                </p>
+
+                {cards.length === 0 ? (
+                  <div className="mt-8 space-y-4">
+                    <p className="text-sm text-slate-500">
+                      먼저 내 명함을 하나 만들어야 QR 코드를 보여줄 수 있어요.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('cards');
+                        setSelectedId(null);
+                        setShowCardEditor(true);
+                      }}
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                    >
+                      내 명함 만들러 가기
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-8 space-y-4">
+                    <p className="text-sm text-slate-500">
+                      여러 장의 명함 중에서 지금 공유할 명함을 선택한 뒤 QR 코드를 열어요.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cards.length === 1) {
+                          setShareTargetCardId(cards[0].id);
+                        } else {
+                          setShowShareSelector(true);
+                        }
+                      }}
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                    >
+                      내 명함 QR 열기
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 명함 받기 탭 */}
+            {exchangeSubTab === 'receive' && (
+              <div className="rounded-2xl bg-white p-6">
+                {showQRScanner ? (
+                  <QRScanner
+                    onScanSuccess={(url) => {
+                      console.log('[AppPage] QR 스캔 성공:', url);
+                      // URL에서 cardId 추출 (/c/:cardId 형식)
+                      const match = url.match(/\/c\/([a-f0-9-]+)/i);
+                      if (match && match[1]) {
+                        const cardId = match[1];
+                        // PublicCardPage로 이동 (자동 저장 플로우)
+                        navigate(`/c/${cardId}?intent=saveReceived&sourceCardId=${cardId}`);
+                      } else {
+                        // 유효하지 않은 URL
+                        showToast('유효하지 않은 명함 링크입니다.', 'error');
+                        setShowQRScanner(false);
+                      }
+                    }}
+                    onClose={() => setShowQRScanner(false)}
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="mb-4 text-4xl md:mb-6 md:text-5xl">📥</div>
+                    <h3 className="mb-2 text-xl font-semibold text-slate-900 md:mb-3 md:text-2xl">
+                      명함 받기
+                    </h3>
+                    <p className="mb-6 text-sm leading-relaxed text-slate-500 md:text-base">
+                      상대방의 명함 QR 코드를 카메라로 스캔하면 받은 명함에 자동으로 저장됩니다.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowQRScanner(true)}
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                    >
+                      📷 QR 코드 스캔 시작
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -437,6 +675,12 @@ export function AppPage() {
                 onEditClick={() => setShowProfileEdit(true)}
               />
             )}
+            {/* 모바일용 로그아웃 버튼 */}
+            <div className="md:hidden">
+              <div className="rounded-2xl bg-white p-6">
+                <SignOutButton />
+              </div>
+            </div>
           </div>
         )}
         </div>
@@ -465,10 +709,7 @@ export function AppPage() {
       >
         <CardEditor
           initialValue={selected}
-          onSave={async (card) => {
-            await handleSave(card);
-            setShowCardEditor(false);
-          }}
+          onSave={handleSave}
           defaultStyle={defaultStyle}
         />
       </FullScreenModal>
@@ -488,7 +729,7 @@ export function AppPage() {
             folders={folders}
             onUpdate={handleUpdateReceivedCard}
           />
-        )}
+      )}
       </BottomSheet>
 
       {/* 프로필 수정 모달 */}
@@ -509,6 +750,62 @@ export function AppPage() {
             />
         </FullScreenModal>
       )}
+
+      {/* 명함 공유 모달 */}
+      <FullScreenModal
+        isOpen={!!shareTargetCardId}
+        onClose={() => setShareTargetCardId(null)}
+        title="명함 공유"
+      >
+        {shareTargetCardId && (
+          <ShareCardModal cardId={shareTargetCardId} onClose={() => setShareTargetCardId(null)} />
+        )}
+      </FullScreenModal>
+
+      {/* 교환 탭: 공유할 명함 선택 모달 */}
+      <FullScreenModal
+        isOpen={showShareSelector}
+        onClose={() => setShowShareSelector(false)}
+        title="공유할 명함 선택"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            지금 상대방에게 보여줄 명함을 선택하세요. 선택한 명함으로 QR 코드를 생성합니다.
+          </p>
+          <div className="space-y-3">
+            {cards.map((card) => {
+              const isActive = shareTargetCardId === card.id;
+              const displayName = card.display_name || '이름 없음';
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => {
+                    setShareTargetCardId(card.id);
+                    setShowShareSelector(false);
+                  }}
+                  className={[
+                    'flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition',
+                    isActive
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50',
+                  ].join(' ')}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{displayName}</p>
+                    <p className="mt-1 truncate text-xs text-inherit opacity-80">
+                      {card.headline || card.organization || '설명 없음'}
+                    </p>
+                  </div>
+                  <span className="ml-3 text-xs font-semibold">
+                    {isActive ? '선택됨' : '선택'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </FullScreenModal>
     </AppLayout>
   );
 }

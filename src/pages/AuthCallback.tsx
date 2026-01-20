@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../shared/infrastructure/supabaseClient';
 import { getMyProfile } from '../features/profile/api/profileApi';
 
 export function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'checking' | 'redirecting' | 'error'>('checking');
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +51,19 @@ export function AuthCallback() {
 
         console.log('[AuthCallback] 로그인 성공:', session.user.email);
 
+        // returnUrl 확인 (쿼리 파라미터 또는 세션 스토리지에서)
+        const returnUrl = searchParams.get('returnUrl') || sessionStorage.getItem('authReturnUrl');
+        if (returnUrl) {
+          sessionStorage.removeItem('authReturnUrl');
+          console.log('[AuthCallback] returnUrl로 이동:', returnUrl);
+          if (mounted) {
+            setStatus('redirecting');
+            // returnUrl에 이미 쿼리 파라미터가 있으면 그대로 사용, 없으면 추가
+            navigate(returnUrl);
+          }
+          return;
+        }
+
         // 프로필 확인
         const profile = await getMyProfile();
         console.log('[AuthCallback] 프로필 확인:', profile ? '있음' : '없음');
@@ -79,7 +93,7 @@ export function AuthCallback() {
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   if (status === 'checking' || status === 'redirecting') {
     return (

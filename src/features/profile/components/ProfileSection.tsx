@@ -8,18 +8,18 @@ type Props = {
 
 export function ProfileSection({ profile, onEditClick }: Props) {
   return (
-    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-md">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-slate-900">내 프로필</h2>
+    <div className="mb-6 rounded-2xl bg-white p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-slate-900">내 프로필</h2>
         <button
           type="button"
           onClick={onEditClick}
-          className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          className="inline-flex items-center rounded-2xl border-none bg-slate-100 px-5 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-200"
         >
           수정
         </button>
       </div>
-      <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 text-base text-slate-600 md:grid-cols-2 lg:grid-cols-3">
         {profile.email && (
           <div>
             <span className="font-semibold text-slate-700">이메일:</span>{' '}
@@ -70,13 +70,13 @@ export function ProfileSection({ profile, onEditClick }: Props) {
         )}
       </div>
       {profile.skill_tags && profile.skill_tags.length > 0 && (
-        <div className="mt-4">
-          <span className="text-sm font-semibold text-slate-700">스킬 태그:</span>
-          <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-6 border-t border-slate-100 pt-6">
+          <span className="text-base font-semibold text-slate-700">스킬 태그</span>
+          <div className="mt-3 flex flex-wrap gap-2">
             {profile.skill_tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-700"
+                className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500"
               >
                 {tag}
               </span>

@@ -32,34 +32,11 @@ export function ReceivedCardsList({
   onSelect,
   onDelete,
 }: Props) {
+  const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
+
   return (
     <div className="flex-1">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">받은 명함</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {cards.length}개의 명함이 저장되어 있습니다.
-          </p>
-        </div>
-        {onSortChange && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-500">정렬:</label>
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                onSortChange(e.target.value as 'name' | 'newest' | 'oldest')
-              }
-              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            >
-              <option value="newest">추가한 시간순</option>
-              <option value="oldest">오래된 순</option>
-              <option value="name">가나다순</option>
-            </select>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+      <div className="space-y-4">
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
             {error}
@@ -90,23 +67,24 @@ export function ReceivedCardsList({
               const snapshot = card.snapshot;
               const displayName = snapshot.display_name || '이름 없음';
               const initials = getInitials(displayName);
+              const isMenuOpen = menuOpenId === card.id;
               return (
-                <li key={card.id}>
+                <li key={card.id} className="relative">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => onSelect(card.id)}
                       className={[
-                        'flex min-h-[80px] w-full flex-1 items-center gap-4 rounded-2xl border px-5 py-4 text-left shadow-md transition-all touch-manipulation',
+                        'flex min-h-[92px] w-full flex-1 items-center gap-4 rounded-2xl bg-white px-4 py-4 text-left shadow-sm transition-all touch-manipulation',
                         isActive
-                          ? 'border-primary-500 bg-primary-50 text-slate-900 shadow-lg ring-2 ring-primary-200'
-                          : 'border-slate-200 bg-white text-slate-900 hover:border-primary-300 hover:shadow-lg active:bg-slate-50',
+                          ? 'ring-2 ring-primary-200'
+                          : 'hover:shadow-md active:bg-slate-50',
                       ].join(' ')}
                     >
                       {/* 프로필 이니셜 */}
                       <div
                         className={[
-                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold shadow-sm',
+                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold',
                           isActive
                             ? 'bg-primary-600 text-white'
                             : 'bg-slate-100 text-slate-700',
@@ -115,71 +93,62 @@ export function ReceivedCardsList({
                         {initials}
                       </div>
 
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div>
-                          <p className="text-base font-semibold text-slate-900">
-                            {displayName}
-                          </p>
-                          <p
-                            className={[
-                              'mt-0.5 text-sm',
-                              isActive ? 'text-slate-600' : 'text-slate-500',
-                            ].join(' ')}
-                          >
-                            {snapshot.headline || snapshot.organization || '설명 없음'}
-                          </p>
-                        </div>
-
-                        {card.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {card.tags.slice(0, 3).map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className={[
-                                  'inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
-                                  isActive
-                                    ? 'bg-primary-100 text-primary-700'
-                                    : 'bg-slate-100 text-slate-600',
-                                ].join(' ')}
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                            {card.tags.length > 3 && (
-                              <span
-                                className={[
-                                  'inline-block rounded-full px-2 py-0.5 text-[11px] font-medium',
-                                  isActive
-                                    ? 'bg-primary-100 text-primary-700'
-                                    : 'bg-slate-100 text-slate-600',
-                                ].join(' ')}
-                              >
-                                +{card.tags.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {card.memo && (
-                          <p
-                            className={[
-                              'line-clamp-1 text-xs',
-                              isActive ? 'text-slate-500' : 'text-slate-400',
-                            ].join(' ')}
-                          >
-                            {card.memo}
-                          </p>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        {/* Primary: 이름 - 1줄 ellipsis */}
+                        <p className="truncate text-lg font-semibold leading-tight text-slate-900">
+                          {displayName}
+                        </p>
+                        {/* Secondary: 직무/한 줄 소개 - 1줄 ellipsis */}
+                        <p className="mt-1 truncate text-sm leading-relaxed text-slate-500">
+                          {snapshot.headline || snapshot.organization || '설명 없음'}
+                        </p>
                       </div>
                     </button>
+                    {/* ⋯ 메뉴 버튼 */}
                     <button
                       type="button"
-                      onClick={() => onDelete(card.id)}
-                      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-slate-200 text-base text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500 active:bg-red-100 touch-manipulation"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(isMenuOpen ? null : card.id);
+                      }}
+                      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-xl text-slate-400 transition hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
                     >
-                      ×
+                      ⋯
                     </button>
                   </div>
+                  {/* 메뉴 드롭다운 */}
+                  {isMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setMenuOpenId(null)}
+                      />
+                      <div className="absolute right-0 top-12 z-20 rounded-2xl bg-white p-2 shadow-lg">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect(card.id);
+                            setMenuOpenId(null);
+                          }}
+                          className="w-full rounded-xl px-4 py-3 text-left text-base text-slate-700 transition hover:bg-slate-50"
+                        >
+                          상세보기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(card.id);
+                            setMenuOpenId(null);
+                          }}
+                          className="w-full rounded-xl px-4 py-3 text-left text-base text-red-600 transition hover:bg-red-50"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               );
             })}

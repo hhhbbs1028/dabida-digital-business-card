@@ -12,15 +12,28 @@ export function AuthButtons() {
     setError(null);
 
     try {
-      // 현재 접속 주소에 맞게 자동으로 리다이렉트 URL 생성
-      // - PC 로컬: http://localhost:5173/auth/callback
-      // - 폰 로컬: http://172.30.1.50:5173/auth/callback
+      // 환경변수로 강제된 origin이 있으면 우선 사용 (프로덕션 배포용)
+      // 없으면 현재 origin 사용 (로컬 개발용)
+      const envOrigin = import.meta.env.VITE_PUBLIC_APP_ORIGIN as string | undefined;
+      const appOrigin = envOrigin && typeof envOrigin === 'string' && envOrigin.trim().length > 0
+        ? envOrigin.replace(/\/+$/, '')
+        : window.location.origin;
+      
+      // 리다이렉트 URL 생성
       // - 프로덕션: https://dabida-digital-business-card.pages.dev/auth/callback
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      // - 로컬: http://localhost:5173/auth/callback
+      const baseRedirectTo = `${appOrigin}/auth/callback`;
+      
+      // returnUrl이 있으면 콜백 URL에 쿼리 파라미터로 전달
+      const returnUrl = sessionStorage.getItem('authReturnUrl');
+      const redirectTo = returnUrl
+        ? `${baseRedirectTo}?returnUrl=${encodeURIComponent(returnUrl)}`
+        : baseRedirectTo;
       
       console.log(`[AuthButtons] ${provider} 로그인 시작`, {
         origin: window.location.origin,
         redirectTo,
+        returnUrl,
         fullUrl: window.location.href,
       });
 
@@ -173,11 +186,11 @@ export function SignOutButton() {
       <button
         onClick={handleSignOut}
         disabled={loading}
-        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-2xl border-none bg-slate-100 px-5 py-4 text-base font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? '로그아웃 중...' : '로그아웃'}
       </button>
-      {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+      {error && <p className="text-sm text-red-500 text-center">{error}</p>}
     </div>
   );
 }

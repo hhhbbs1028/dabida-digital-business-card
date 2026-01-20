@@ -1,7 +1,18 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AuthButtons } from '../features/auth/components/AuthButtons';
 
 export function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
+
+  // returnUrl이 있으면 세션 스토리지에 저장 (OAuth 리다이렉트 후 복구용)
+  React.useEffect(() => {
+    if (returnUrl) {
+      sessionStorage.setItem('authReturnUrl', returnUrl);
+    }
+  }, [returnUrl]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">

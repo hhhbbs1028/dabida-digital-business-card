@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { ToastProvider } from './shared/ui/Toast';
 
 // 초기화 로그
 console.log('[main] 앱 시작', {
@@ -14,7 +15,9 @@ console.log('[main] 앱 시작', {
 try {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </React.StrictMode>,
   );
   console.log('[main] 앱 렌더링 완료');

@@ -70,95 +70,85 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
 
   return (
     <div className="w-full md:w-80">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">상세 정보</h3>
-          {isEditing ? (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleSave}
-                className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700"
-              >
-                저장
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditing(false);
-                  setMemo(card.memo ?? '');
-                  setTags(card.tags ?? []);
-                  setFolderId(card.folder_id);
-                }}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                취소
-              </button>
-            </div>
-          ) : (
+      {/* 데스크탑용 헤더 */}
+      <div className="mb-6 hidden items-center justify-between md:flex">
+        <h3 className="text-xl font-semibold text-slate-900">상세 정보</h3>
+        {isEditing ? (
+          <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              onClick={handleSave}
+              className="rounded-2xl bg-primary-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-primary-700"
             >
-              편집
+              저장
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setMemo(card.memo ?? '');
+                setTags(card.tags ?? []);
+                setFolderId(card.folder_id);
+              }}
+              className="rounded-2xl border-none bg-slate-100 px-5 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-200"
+            >
+              취소
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="rounded-2xl border-none bg-slate-100 px-5 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-200"
+          >
+            편집
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-8">
+        {/* Primary: 이름 + 직무 */}
+        <div>
+          <p className="text-2xl font-semibold leading-tight text-slate-900">
+            {snapshot.display_name || '이름 없음'}
+          </p>
+          {snapshot.headline && (
+            <p className="mt-2 text-base leading-relaxed text-slate-500">{snapshot.headline}</p>
+          )}
+          {snapshot.organization && (
+            <p className="mt-1 text-base leading-relaxed text-slate-500">{snapshot.organization}</p>
           )}
         </div>
 
-        <div className="space-y-5">
-          {/* 명함 정보 */}
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-slate-500">이름</p>
-              <p className="mt-1.5 text-base font-semibold text-slate-900">
-                {snapshot.display_name || '이름 없음'}
-              </p>
-            </div>
-            {snapshot.headline && (
-              <div>
-                <p className="text-xs font-medium text-slate-500">한 줄 소개</p>
-                <p className="mt-1.5 text-sm text-slate-700">{snapshot.headline}</p>
-              </div>
-            )}
-            {snapshot.organization && (
-              <div>
-                <p className="text-xs font-medium text-slate-500">소속</p>
-                <p className="mt-1.5 text-sm text-slate-700">{snapshot.organization}</p>
-              </div>
-            )}
-            {snapshot.email && (
-              <div>
-                <p className="text-xs font-medium text-slate-500">이메일</p>
+        {/* 연락처 섹션 */}
+        {(snapshot.email || snapshot.phone || snapshot.links) && (
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <p className="text-sm font-medium text-slate-400">연락처</p>
+            <div className="space-y-2">
+              {snapshot.email && (
                 <a
                   href={`mailto:${snapshot.email}`}
-                  className="mt-1.5 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                  className="flex min-h-[48px] items-center rounded-2xl bg-slate-50 px-4 text-base text-primary-600 transition hover:bg-slate-100"
                 >
                   {snapshot.email}
                 </a>
-              </div>
-            )}
-            {snapshot.phone && (
-              <div>
-                <p className="text-xs font-medium text-slate-500">전화번호</p>
+              )}
+              {snapshot.phone && (
                 <a
                   href={`tel:${snapshot.phone}`}
-                  className="mt-1.5 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                  className="flex min-h-[48px] items-center rounded-2xl bg-slate-50 px-4 text-base text-primary-600 transition hover:bg-slate-100"
                 >
                   {snapshot.phone}
                 </a>
-              </div>
-            )}
-            {snapshot.links && (
-              <div>
-                <p className="text-xs font-medium text-slate-500">링크</p>
-                <div className="mt-1.5 flex flex-wrap gap-2">
+              )}
+              {snapshot.links && (
+                <div className="space-y-2">
                   {snapshot.links.instagram && (
                     <a
                       href={snapshot.links.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-100"
+                      className="flex min-h-[48px] items-center rounded-2xl bg-slate-50 px-4 text-base font-medium text-slate-700 transition hover:bg-slate-100"
                     >
                       Instagram
                     </a>
@@ -168,7 +158,7 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
                       href={snapshot.links.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-100"
+                      className="flex min-h-[48px] items-center rounded-2xl bg-slate-50 px-4 text-base font-medium text-slate-700 transition hover:bg-slate-100"
                     >
                       GitHub
                     </a>
@@ -178,24 +168,26 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
                       href={snapshot.links.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:bg-primary-100"
+                      className="flex min-h-[48px] items-center rounded-2xl bg-slate-50 px-4 text-base font-medium text-slate-700 transition hover:bg-slate-100"
                     >
                       Website
                     </a>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+        )}
 
-          {/* 폴더 */}
+        {/* 폴더 & 태그 섹션 */}
+        <div className="space-y-4 border-t border-slate-100 pt-6">
           <div>
-            <p className="text-xs font-medium text-slate-500">폴더</p>
+            <p className="text-sm font-medium text-slate-400">폴더</p>
             {isEditing ? (
               <select
                 value={folderId || ''}
                 onChange={(e) => setFolderId(e.target.value || null)}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                className="mt-3 w-full rounded-2xl border-none bg-slate-50 px-5 py-4 text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
               >
                 <option value="">폴더 없음</option>
                 {folders.map((folder) => (
@@ -205,7 +197,7 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
                 ))}
               </select>
             ) : (
-              <p className="mt-1.5 text-sm font-medium text-slate-700">
+              <p className="mt-3 text-base text-slate-700">
                 {folderId
                   ? folders.find((f) => f.id === folderId)?.name || '알 수 없음'
                   : '폴더 없음'}
@@ -213,29 +205,28 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
             )}
           </div>
 
-          {/* 태그 */}
           <div>
-            <p className="text-xs font-medium text-slate-500">태그</p>
+            <p className="text-sm font-medium text-slate-400">태그</p>
             {isEditing ? (
-              <div className="mt-2 space-y-3">
-                <div className="flex flex-wrap gap-1.5">
+              <div className="mt-3 space-y-4">
+                <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 px-3 py-1.5 text-xs font-medium text-primary-700"
+                      className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500"
                     >
                       {tag}
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="text-primary-400 transition hover:text-red-500"
+                        className="text-slate-400 transition hover:text-red-500"
                       >
                         ×
                       </button>
                     </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                   <input
                     type="text"
                     value={newTag}
@@ -247,54 +238,89 @@ export function ReceivedCardDetail({ card, folders, onUpdate }: Props) {
                       }
                     }}
                     placeholder="태그 추가"
-                    className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    className="flex-1 rounded-2xl border-none bg-slate-50 px-5 py-4 text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
                   />
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
+                    className="rounded-2xl bg-primary-600 px-5 py-4 text-base font-semibold text-white transition hover:bg-primary-700"
                   >
                     추가
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {tags.length > 0 ? (
                   tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-block rounded-full bg-primary-100 px-3 py-1.5 text-xs font-medium text-primary-700"
+                      className="inline-block rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500"
                     >
                       {tag}
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-400">태그 없음</p>
+                  <p className="text-sm text-slate-400">태그 없음</p>
                 )}
               </div>
             )}
           </div>
+        </div>
 
-          {/* 메모 */}
-          <div>
-            <p className="text-xs font-medium text-slate-500">메모</p>
-            {isEditing ? (
-              <textarea
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                placeholder="이 사람과 어떤 인연이었나요?"
-                rows={4}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-              />
-            ) : (
-              <p className="mt-1.5 whitespace-pre-wrap text-sm text-slate-700">
-                {memo || (
-                  <span className="text-slate-400">이 사람과 어떤 인연이었나요?</span>
-                )}
-              </p>
-            )}
-          </div>
+        {/* 메모 섹션 */}
+        <div className="border-t border-slate-100 pt-6">
+          <p className="text-sm font-medium text-slate-400">메모</p>
+          {isEditing ? (
+            <textarea
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="이 사람과 어떤 인연이었나요?"
+              rows={5}
+              className="mt-3 w-full rounded-2xl border-none bg-slate-50 px-5 py-4 text-base leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+            />
+          ) : (
+            <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-slate-700">
+              {memo || (
+                <span className="text-slate-400">이 사람과 어떤 인연이었나요?</span>
+              )}
+            </p>
+          )}
+        </div>
+
+        {/* 모바일용 편집 버튼 */}
+        <div className="flex gap-3 border-t border-slate-100 pt-6 md:hidden">
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="flex-1 rounded-2xl bg-primary-600 px-5 py-4 text-base font-semibold text-white transition hover:bg-primary-700"
+              >
+                저장
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setMemo(card.memo ?? '');
+                  setTags(card.tags ?? []);
+                  setFolderId(card.folder_id);
+                }}
+                className="flex-1 rounded-2xl border-none bg-slate-100 px-5 py-4 text-base font-medium text-slate-700 transition hover:bg-slate-200"
+              >
+                취소
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="w-full rounded-2xl border-none bg-slate-100 px-5 py-4 text-base font-semibold text-slate-700 transition hover:bg-slate-200"
+            >
+              편집
+            </button>
+          )}
         </div>
       </div>
     </div>
