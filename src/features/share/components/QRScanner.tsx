@@ -40,12 +40,24 @@ export function QRScanner({ onScanSuccess, onClose }: Props) {
         html5QrCodeRef.current = html5QrCode;
 
         // 카메라 시작
+        // 모바일 친화적인 설정: qrbox를 화면 크기에 맞게 조정
+        const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdgePercentage = 0.7; // 화면의 70% 크기
+          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize,
+          };
+        };
+
         await html5QrCode.start(
           { facingMode: 'environment' }, // 후면 카메라 우선
           {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
+            qrbox: qrboxFunction, // 동적 크기 조정
             aspectRatio: 1.0,
+            supportedScanTypes: ['qr'],
           },
           (decodedText) => {
             // QR 코드 스캔 성공
@@ -61,6 +73,22 @@ export function QRScanner({ onScanSuccess, onClose }: Props) {
             // console.debug('[QRScanner] 스캔 중:', errorMessage);
           },
         );
+
+        // 카메라 시작 후 비디오 요소 확인
+        setTimeout(() => {
+          if (scannerRef.current) {
+            const video = scannerRef.current.querySelector('video');
+            if (video) {
+              console.log('[QRScanner] 비디오 요소 발견:', {
+                width: video.videoWidth,
+                height: video.videoHeight,
+                playing: !video.paused,
+              });
+            } else {
+              console.warn('[QRScanner] 비디오 요소를 찾을 수 없습니다.');
+            }
+          }
+        }, 1000);
 
         if (mounted) {
           setIsScanning(true);
@@ -120,10 +148,14 @@ export function QRScanner({ onScanSuccess, onClose }: Props) {
           <div
             ref={scannerRef}
             className="relative overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-900"
-            style={{ minHeight: '300px' }}
+            style={{ 
+              minHeight: '300px',
+              width: '100%',
+              position: 'relative',
+            }}
           >
             {!isScanning && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-800">
                 <div className="text-center text-white">
                   <div className="mb-2 text-2xl">📷</div>
                   <p className="text-sm">카메라 시작 중...</p>
