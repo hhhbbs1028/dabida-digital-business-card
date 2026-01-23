@@ -1,6 +1,6 @@
 import React from 'react';
 
-type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'profile';
+type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 
 type Props = {
   activeTab: Tab;
@@ -13,12 +13,13 @@ export function BottomTabNavigation({ activeTab, onTabChange }: Props) {
     { id: 'cards', label: '명함', icon: '💳' },
     { id: 'received', label: '받은 명함', icon: '📇' },
     { id: 'exchange', label: '교환', icon: '📲' },
+    { id: 'community', label: '커뮤니티', icon: '👥' },
     { id: 'profile', label: '내정보', icon: '👤' },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/95 backdrop-blur md:hidden">
-      <div className="flex h-14 items-stretch justify-around">
+      <div className="flex h-14 items-stretch overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -27,19 +28,28 @@ export function BottomTabNavigation({ activeTab, onTabChange }: Props) {
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={[
-                'relative flex min-h-[40px] min-w-[44px] flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[11px] transition touch-manipulation',
+                'relative flex shrink-0 min-w-[60px] min-h-[40px] flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] transition touch-manipulation',
                 isActive ? 'text-primary-600' : 'text-slate-500',
               ].join(' ')}
             >
-              <span className="text-xl leading-none">{tab.icon}</span>
-              <span className="text-[10px] font-semibold leading-tight">{tab.label}</span>
+              <span className="text-lg leading-none">{tab.icon}</span>
+              <span className="text-[9px] font-semibold leading-tight whitespace-nowrap">{tab.label}</span>
               {isActive && (
-                <div className="absolute inset-x-3 bottom-0 h-0.5 rounded-t-full bg-primary-600" />
+                <div className="absolute inset-x-2 bottom-0 h-0.5 rounded-t-full bg-primary-600" />
               )}
             </button>
           );
         })}
       </div>
+      <style>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </nav>
   );
 }

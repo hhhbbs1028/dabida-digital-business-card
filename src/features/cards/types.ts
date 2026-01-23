@@ -18,6 +18,9 @@ export type CardData = {
     font_family: FontFamilyOption;
     orientation: 'horizontal' | 'vertical';
   };
+  // 이미지 URL (Supabase Storage에 저장된 이미지의 URL)
+  logo_url?: string | null;
+  card_image_url?: string | null;
 };
 
 

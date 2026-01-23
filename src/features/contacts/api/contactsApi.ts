@@ -99,18 +99,59 @@ export async function getReceivedCard(id: string): Promise<ReceivedCard | null> 
 export async function createReceivedCard(input: ReceivedCardInput): Promise<ReceivedCard> {
   const user = await getCurrentUser();
 
+  // 자동 분류 로직 (폴더가 지정되지 않은 경우에만)
+  let folderId = input.folder_id ?? null;
+  if (!folderId) {
+    const { suggestFolderName } = await import('../utils/autoCategorize');
+    const suggestedFolderName = suggestFolderName(input.snapshot);
+    
+    if (suggestedFolderName) {
+      // 기존 폴더 찾기
+      const { data: existingFolders } = await supabase
+        .from('folders')
+        .select('id, name')
+        .eq('owner_id', user.id)
+        .ilike('name', suggestedFolderName);
+      
+      if (existingFolders && existingFolders.length > 0) {
+        // 기존 폴더 사용
+        folderId = (existingFolders[0] as any).id;
+      } else {
+        // 새 폴더 생성
+        const { data: newFolder, error: folderError } = await supabase
+          .from('folders')
+          .insert({
+            owner_id: user.id,
+            name: suggestedFolderName,
+          } as any)
+          .select('*')
+          .single();
+        
+        if (!folderError && newFolder) {
+          folderId = (newFolder as any).id;
+        }
+      }
+    }
+  }
+
+  // 자동 태그 추가 (기존 태그와 병합)
+  let tags = input.tags ?? [];
+  const { suggestTags } = await import('../utils/autoCategorize');
+  const suggestedTags = suggestTags(input.snapshot);
+  const mergedTags = [...new Set([...tags, ...suggestedTags])]; // 중복 제거
+
   const record = {
     owner_id: user.id,
     source_card_id: input.source_card_id ?? null,
     snapshot: input.snapshot ?? {},
-    tags: input.tags ?? [],
-    folder_id: input.folder_id ?? null,
+    tags: mergedTags,
+    folder_id: folderId,
     memo: input.memo ?? null,
   };
 
   const { data, error } = await supabase
     .from('received_cards')
-    .insert(record)
+    .insert(record as any)
     .select('*')
     .single();
 
@@ -128,13 +169,14 @@ export async function updateReceivedCard(
 ): Promise<ReceivedCard> {
   const user = await getCurrentUser();
 
+  const updateData: any = {};
+  if (update.tags !== undefined) updateData.tags = update.tags;
+  if (update.folder_id !== undefined) updateData.folder_id = update.folder_id;
+  if (update.memo !== undefined) updateData.memo = update.memo;
+
   const { data, error } = await supabase
     .from('received_cards')
-    .update({
-      tags: update.tags !== undefined ? update.tags : undefined,
-      folder_id: update.folder_id !== undefined ? update.folder_id : undefined,
-      memo: update.memo !== undefined ? update.memo : undefined,
-    })
+    .update(updateData as any)
     .eq('id', id)
     .eq('owner_id', user.id)
     .select('*')
@@ -208,7 +250,7 @@ export async function createFolder(input: FolderInput): Promise<Folder> {
     .insert({
       owner_id: user.id,
       name: input.name,
-    })
+    } as any)
     .select('*')
     .single();
 
@@ -225,7 +267,7 @@ export async function updateFolder(id: string, input: FolderInput): Promise<Fold
 
   const { data, error } = await supabase
     .from('folders')
-    .update({ name: input.name })
+    .update({ name: input.name } as any)
     .eq('id', id)
     .eq('owner_id', user.id)
     .select('*')
@@ -245,7 +287,7 @@ export async function deleteFolder(id: string): Promise<void> {
   // 먼저 해당 폴더에 속한 received_cards의 folder_id를 null로 설정
   await supabase
     .from('received_cards')
-    .update({ folder_id: null })
+    .update({ folder_id: null } as any)
     .eq('folder_id', id)
     .eq('owner_id', user.id);
 

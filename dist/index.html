@@ -2,13 +2,47 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>디지털 명함 생성기 MVP</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script type="module" crossorigin src="/assets/index-C3Hyj9HW.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DMGjua8o.css">
+    <meta name="description" content="디지털 명함을 만들고 교환하는 서비스 - Dabida" />
+    <meta name="theme-color" content="#6366f1" />
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Dabida" />
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/AppImages/ios/180.png" sizes="180x180" />
+    <link rel="apple-touch-icon" href="/AppImages/ios/167.png" sizes="167x167" />
+    <link rel="apple-touch-icon" href="/AppImages/ios/152.png" sizes="152x152" />
+    <link rel="apple-touch-icon" href="/AppImages/ios/120.png" sizes="120x120" />
+    <link rel="apple-touch-icon" href="/AppImages/ios/114.png" sizes="114x114" />
+    <link rel="apple-touch-icon" href="/AppImages/ios/1024.png" sizes="1024x1024" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/AppImages/ios/32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/AppImages/ios/16.png" />
+    
+    <title>Dabida - 디지털 명함 스튜디오</title>
+    <script type="module" crossorigin src="/assets/index-ByqOIf_0.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cn-8YN92.css">
   </head>
   <body class="bg-gray-50">
     <div id="root"></div>
+    <script>
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
 

@@ -31,8 +31,9 @@ import {
 import { generateMockData, clearMockData } from '../features/contacts/utils/mockData';
 import { SignOutButton } from '../features/auth/components/AuthButtons';
 import { useToast } from '../shared/ui/Toast';
+import { CommunityPage } from '../features/community/pages/CommunityPage';
 
-type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'profile';
+type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 type ExchangeSubTab = 'give' | 'receive';
 
 export function AppPage() {
@@ -665,6 +666,9 @@ export function AppPage() {
             )}
           </div>
         )}
+
+        {/* 커뮤니티 탭 */}
+        {activeTab === 'community' && <CommunityPage />}
 
         {/* 내정보 탭 */}
         {activeTab === 'profile' && (

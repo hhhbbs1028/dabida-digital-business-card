@@ -17,6 +17,9 @@ module.exports = {
           900: '#312e81',
         },
       },
+      fontSize: {
+        base: ['16px', { lineHeight: '1.6' }],
+      },
     },
   },
   plugins: [],
