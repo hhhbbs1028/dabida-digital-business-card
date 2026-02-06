@@ -25,12 +25,12 @@ export function BottomSheet({ isOpen, onClose, title, children }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm"
         onClick={onClose}
       />
       
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] rounded-t-3xl bg-white transition-transform">
+      <div className="fixed inset-x-0 bottom-0 z-[60] max-h-[90vh] rounded-t-3xl bg-white transition-transform pb-14 md:pb-0">
         {/* Handle */}
         <div className="sticky top-0 z-10 flex cursor-grab active:cursor-grabbing items-center justify-center bg-white pt-3 pb-2">
           <div className="h-1.5 w-16 rounded-full bg-slate-300" />

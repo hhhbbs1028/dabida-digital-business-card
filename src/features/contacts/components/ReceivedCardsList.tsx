@@ -10,6 +10,7 @@ type Props = {
   onSortChange?: (sortBy: 'name' | 'newest' | 'oldest') => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => Promise<void>;
+  onChat?: (card: ReceivedCard) => void;
 };
 
 // 이니셜 생성 함수
@@ -31,6 +32,7 @@ export function ReceivedCardsList({
   onSortChange,
   onSelect,
   onDelete,
+  onChat,
 }: Props) {
   const [menuOpenId, setMenuOpenId] = React.useState<string | null>(null);
 
@@ -38,36 +40,37 @@ export function ReceivedCardsList({
     <div className="flex-1">
       <div className="space-y-4">
         {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          <div className="mb-4 rounded-toss border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600">
             {error}
           </div>
         )}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-slate-500">명함을 불러오는 중입니다...</p>
+            <p className="text-sm text-text-secondary">명함을 불러오는 중입니다...</p>
           </div>
         ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-50 px-6 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-2xl">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-toss-xl bg-bg-gray px-6 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-toss-xl bg-primary-50 text-2xl">
               📇
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-bold text-text-primary">
                 아직 받은 명함이 없어요
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-text-tertiary">
                 명함을 추가하면 여기에 표시됩니다.
               </p>
             </div>
           </div>
         ) : (
-          <ul className="space-y-3">
-            {cards.map((card) => {
+          <ul className="divide-y divide-gray-100">
+            {cards.map((card, index) => {
               const isActive = selectedId === card.id;
               const snapshot = card.snapshot;
               const displayName = snapshot.display_name || '이름 없음';
               const initials = getInitials(displayName);
               const isMenuOpen = menuOpenId === card.id;
+              const canChat = !!card.source_card_id && !!onChat;
               return (
                 <li key={card.id} className="relative">
                   <div className="flex items-center gap-3">
@@ -75,19 +78,19 @@ export function ReceivedCardsList({
                       type="button"
                       onClick={() => onSelect(card.id)}
                       className={[
-                        'flex min-h-[92px] w-full flex-1 items-center gap-4 rounded-2xl bg-white px-4 py-4 text-left shadow-sm transition-all touch-manipulation',
+                        'flex min-h-[72px] w-full flex-1 items-center gap-4 px-4 py-4 text-left transition-all touch-manipulation',
                         isActive
-                          ? 'ring-2 ring-primary-200'
-                          : 'hover:shadow-md active:bg-slate-50',
+                          ? 'bg-primary-50'
+                          : 'hover:bg-bg-gray-light active:bg-gray-50',
                       ].join(' ')}
                     >
                       {/* 프로필 이니셜 */}
                       <div
                         className={[
-                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold',
+                          'flex h-12 w-12 shrink-0 items-center justify-center rounded-toss text-sm font-bold',
                           isActive
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-slate-100 text-slate-700',
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-200 text-text-secondary',
                         ].join(' ')}
                       >
                         {initials}
@@ -95,15 +98,34 @@ export function ReceivedCardsList({
 
                       <div className="min-w-0 flex-1">
                         {/* Primary: 이름 - 1줄 ellipsis */}
-                        <p className="truncate text-lg font-semibold leading-tight text-slate-900">
+                        <p className={[
+                          'truncate text-base font-bold leading-tight',
+                          isActive ? 'text-primary-500' : 'text-text-primary',
+                        ].join(' ')}>
                           {displayName}
                         </p>
                         {/* Secondary: 직무/한 줄 소개 - 1줄 ellipsis */}
-                        <p className="mt-1 truncate text-sm leading-relaxed text-slate-500">
+                        <p className="mt-0.5 truncate text-sm leading-relaxed text-text-secondary">
                           {snapshot.headline || snapshot.organization || '설명 없음'}
                         </p>
                       </div>
                     </button>
+                    {/* 채팅 버튼 */}
+                    {canChat && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChat(card);
+                        }}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-toss bg-primary-50 text-primary-500 transition hover:bg-primary-100 active:bg-primary-200 touch-manipulation"
+                        title="채팅하기"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </button>
+                    )}
                     {/* ⋯ 메뉴 버튼 */}
                     <button
                       type="button"
@@ -111,9 +133,13 @@ export function ReceivedCardsList({
                         e.stopPropagation();
                         setMenuOpenId(isMenuOpen ? null : card.id);
                       }}
-                      className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-xl text-slate-400 transition hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-toss text-text-tertiary transition hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
                     >
-                      ⋯
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="1" />
+                        <circle cx="12" cy="5" r="1" />
+                        <circle cx="12" cy="19" r="1" />
+                      </svg>
                     </button>
                   </div>
                   {/* 메뉴 드롭다운 */}
@@ -123,7 +149,7 @@ export function ReceivedCardsList({
                         className="fixed inset-0 z-10"
                         onClick={() => setMenuOpenId(null)}
                       />
-                      <div className="absolute right-0 top-12 z-20 rounded-2xl bg-white p-2 shadow-lg">
+                      <div className="absolute right-0 top-14 z-20 rounded-toss-xl bg-bg-white p-1 shadow-toss-md border border-gray-100">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -131,7 +157,7 @@ export function ReceivedCardsList({
                             onSelect(card.id);
                             setMenuOpenId(null);
                           }}
-                          className="w-full rounded-xl px-4 py-3 text-left text-base text-slate-700 transition hover:bg-slate-50"
+                          className="w-full rounded-toss px-4 py-3 text-left text-sm font-medium text-text-primary transition hover:bg-gray-50"
                         >
                           상세보기
                         </button>
@@ -142,7 +168,7 @@ export function ReceivedCardsList({
                             onDelete(card.id);
                             setMenuOpenId(null);
                           }}
-                          className="w-full rounded-xl px-4 py-3 text-left text-base text-red-600 transition hover:bg-red-50"
+                          className="w-full rounded-toss px-4 py-3 text-left text-sm font-medium text-red-500 transition hover:bg-red-50"
                         >
                           삭제
                         </button>

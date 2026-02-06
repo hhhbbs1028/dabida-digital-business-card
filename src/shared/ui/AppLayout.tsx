@@ -11,7 +11,7 @@ type Props = {
 
 export function AppLayout({ children }: Props) {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-bg-gray">
       <main className="mx-auto max-w-6xl px-5 py-6 md:px-4 md:py-8">
         {children}
       </main>

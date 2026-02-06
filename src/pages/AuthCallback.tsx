@@ -28,14 +28,41 @@ export function AuthCallback() {
           return;
         }
 
-        // 세션 확인
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        // 세션 확인 (타임아웃 추가)
+        let session = null;
+        let sessionError = null;
+        
+        try {
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => {
+            setTimeout(() => {
+              console.warn('[AuthCallback] 세션 확인 타임아웃 (5초)');
+              resolve({
+                data: { session: null },
+                error: new Error('세션 확인 타임아웃'),
+              });
+            }, 5000);
+          });
+          
+          const result = await Promise.race([sessionPromise, timeoutPromise]);
+          session = result.data.session;
+          sessionError = result.error;
+        } catch (err: any) {
+          console.error('[AuthCallback] 세션 확인 중 오류:', err);
+          sessionError = err;
+        }
 
         if (sessionError) {
           console.error('[AuthCallback] 세션 확인 오류:', sessionError);
+          // 네트워크 오류는 무시하고 계속 진행
+          if (sessionError.message?.includes('타임아웃') || 
+              sessionError.message?.includes('Failed to fetch')) {
+            console.warn('[AuthCallback] 네트워크 오류 무시하고 로그인 페이지로 이동');
+            if (mounted) {
+              navigate('/login');
+            }
+            return;
+          }
           setError(`세션 확인 실패: ${sessionError.message}`);
           setStatus('error');
           return;
@@ -64,9 +91,24 @@ export function AuthCallback() {
           return;
         }
 
-        // 프로필 확인
-        const profile = await getMyProfile();
-        console.log('[AuthCallback] 프로필 확인:', profile ? '있음' : '없음');
+        // 프로필 확인 (타임아웃 추가)
+        let profile = null;
+        try {
+          const profilePromise = getMyProfile();
+          const timeoutPromise = new Promise<null>((resolve) => {
+            setTimeout(() => {
+              console.warn('[AuthCallback] 프로필 조회 타임아웃 (5초)');
+              resolve(null);
+            }, 5000);
+          });
+          
+          profile = await Promise.race([profilePromise, timeoutPromise]);
+          console.log('[AuthCallback] 프로필 확인:', profile ? '있음' : '없음');
+        } catch (profileError: any) {
+          console.error('[AuthCallback] 프로필 조회 오류:', profileError);
+          // 프로필 조회 실패해도 계속 진행 (프로필 없음으로 처리)
+          profile = null;
+        }
 
         if (mounted) {
           setStatus('redirecting');

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CardEditor } from '../features/cards/components/CardEditor';
 import type { CardData } from '../features/cards/types';
@@ -25,13 +25,14 @@ import {
   updateReceivedCard,
   deleteReceivedCard,
   deleteFolder,
-  type ReceivedCard,
-  type Folder,
 } from '../features/contacts/api/contactsApi';
-import { generateMockData, clearMockData } from '../features/contacts/utils/mockData';
+import type { ReceivedCard, Folder } from '../features/contacts/types';
 import { SignOutButton } from '../features/auth/components/AuthButtons';
 import { useToast } from '../shared/ui/Toast';
 import { CommunityPage } from '../features/community/pages/CommunityPage';
+import { createOrGetDm } from '../features/community/api/chatsApi';
+import { ChatTab } from '../features/community/components/ChatTab';
+import { supabase } from '../shared/infrastructure/supabaseClient';
 
 type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 type ExchangeSubTab = 'give' | 'receive';
@@ -63,6 +64,10 @@ export function AppPage() {
   const [showShareSelector, setShowShareSelector] = useState(false);
   const [exchangeSubTab, setExchangeSubTab] = useState<ExchangeSubTab>('give');
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+  const [processingLink, setProcessingLink] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null);
 
   // 로그인 체크
   useEffect(() => {
@@ -168,6 +173,12 @@ export function AppPage() {
     };
   }, [user]);
 
+  // 탭 변경 핸들러 (QR 스캐너 자동 닫기)
+  const handleTabChange = (tab: Tab) => {
+    setShowQRScanner(false); // 항상 카메라 닫기
+    setActiveTab(tab);
+  };
+
   const defaultStyle = useMemo(() => {
     if (!profile) return undefined;
     if (!profile.selected_template_id) return undefined;
@@ -214,6 +225,56 @@ export function AppPage() {
 
     return sorted;
   }, [receivedCards, searchQuery, sortBy]);
+
+  // URL에서 cardId 추출 함수
+  const extractCardIdFromUrl = (url: string): string | null => {
+    // /c/:cardId 형식 매칭
+    const match = url.match(/\/c\/([a-f0-9-]+)/i);
+    if (match && match[1]) {
+      return match[1];
+    }
+    return null;
+  };
+
+  // QR 스캔 성공 핸들러
+  const handleQRScanSuccess = useCallback((url: string) => {
+    console.log('[AppPage] QR 스캔 성공:', url);
+    const cardId = extractCardIdFromUrl(url);
+    if (cardId) {
+      // PublicCardPage로 이동 (자동 저장 플로우)
+      navigate(`/c/${cardId}?intent=saveReceived&sourceCardId=${cardId}`);
+    } else {
+      // 유효하지 않은 URL
+      showToast('유효하지 않은 명함 링크입니다.', 'error');
+      setShowQRScanner(false);
+    }
+  }, [navigate, showToast]);
+
+  // 링크 붙여넣기 처리
+  const handleLinkSubmit = async () => {
+    if (!linkInput.trim()) {
+      showToast('링크를 입력해주세요.', 'error');
+      return;
+    }
+
+    setProcessingLink(true);
+    try {
+      const cardId = extractCardIdFromUrl(linkInput.trim());
+      if (!cardId) {
+        showToast('유효하지 않은 명함 링크입니다. /c/카드ID 형식의 링크를 입력해주세요.', 'error');
+        return;
+      }
+
+      // PublicCardPage로 이동 (자동 저장 플로우)
+      navigate(`/c/${cardId}?intent=saveReceived&sourceCardId=${cardId}`);
+      setLinkInput('');
+    } catch (err: any) {
+      console.error('[AppPage] 링크 처리 오류:', err);
+      showToast('링크 처리 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setProcessingLink(false);
+    }
+  };
 
   const handleSave = async (card: CardData) => {
     if (!user) {
@@ -305,6 +366,44 @@ export function AppPage() {
     }
   };
 
+  const handleStartChat = async (card: ReceivedCard) => {
+    try {
+      // source_card_id가 있으면 cards 테이블에서 user_id 조회
+      if (!card.source_card_id) {
+        showToast('이 명함으로는 채팅할 수 없습니다. (명함 교환이 필요합니다)', 'error');
+        return;
+      }
+
+      const { data: cardData, error: cardError } = await supabase
+        .from('cards')
+        .select('user_id')
+        .eq('id', card.source_card_id)
+        .single();
+
+      if (cardError || !cardData) {
+        console.error('[AppPage] 명함 조회 오류:', cardError);
+        showToast('명함 정보를 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      const targetUserId = (cardData as { user_id: string }).user_id;
+      
+      // UUID 형식 검증
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetUserId)) {
+        showToast('채팅할 수 없는 사용자입니다.', 'error');
+        return;
+      }
+
+      // 대화방 생성 또는 조회
+      const conversation = await createOrGetDm(targetUserId);
+      setChatConversationId(conversation.id);
+      setShowChatModal(true);
+    } catch (err: any) {
+      console.error('[AppPage] 채팅 시작 오류:', err);
+      showToast(err.message || '채팅을 시작할 수 없습니다.', 'error');
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -345,28 +444,43 @@ export function AppPage() {
                   {filteredAndSortedCards.slice(0, 5).map((card) => {
                     const displayName = card.snapshot.display_name || '이름 없음';
                     const initials = displayName.substring(0, 2).toUpperCase();
+                    const canChat = !!card.source_card_id;
                     return (
-          <button
-                        key={card.id}
-            type="button"
-                        onClick={() => {
-                          setSelectedCardId(card.id);
-                          setShowCardDetail(true);
-                        }}
-                      className="flex w-full min-h-[84px] items-center gap-4 rounded-2xl bg-white px-6 py-5 text-left transition active:bg-slate-50 touch-manipulation"
-                    >
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-700">
-                        {initials}
+                      <div key={card.id} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCardId(card.id);
+                            setShowCardDetail(true);
+                          }}
+                          className="flex flex-1 min-h-[84px] items-center gap-4 rounded-2xl bg-white px-6 py-5 text-left transition active:bg-slate-50 touch-manipulation"
+                        >
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-700">
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xl font-semibold leading-tight text-slate-900">
+                              {displayName}
+                            </p>
+                            <p className="mt-1.5 text-base leading-relaxed text-slate-500">
+                              {card.snapshot.headline || card.snapshot.organization || '설명 없음'}
+                            </p>
+                          </div>
+                        </button>
+                        {canChat && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartChat(card);
+                            }}
+                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-600 transition hover:bg-primary-200 active:bg-primary-300 touch-manipulation"
+                            title="채팅하기"
+                          >
+                            💬
+                          </button>
+                        )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xl font-semibold leading-tight text-slate-900">
-                          {displayName}
-                        </p>
-                        <p className="mt-1.5 text-base leading-relaxed text-slate-500">
-                          {card.snapshot.headline || card.snapshot.organization || '설명 없음'}
-                        </p>
-                      </div>
-          </button>
                     );
                   })}
                   {filteredAndSortedCards.length > 5 && (
@@ -526,6 +640,7 @@ export function AppPage() {
             </div>
 
             <ReceivedCardsList
+              onChat={handleStartChat}
               cards={filteredAndSortedCards}
               selectedId={selectedCardId}
               loading={false}
@@ -548,7 +663,10 @@ export function AppPage() {
             <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white p-2">
               <button
                 type="button"
-                onClick={() => setExchangeSubTab('give')}
+                onClick={() => {
+                  setShowQRScanner(false); // 카메라 즉시 닫기
+                  setExchangeSubTab('give');
+                }}
                 className={[
                   'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
                   exchangeSubTab === 'give'
@@ -560,7 +678,10 @@ export function AppPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setExchangeSubTab('receive')}
+                onClick={() => {
+                  setShowQRScanner(false); // 카메라 즉시 닫기
+                  setExchangeSubTab('receive');
+                }}
                 className={[
                   'flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
                   exchangeSubTab === 'receive'
@@ -625,30 +746,22 @@ export function AppPage() {
 
             {/* 명함 받기 탭 */}
             {exchangeSubTab === 'receive' && (
-              <div className="rounded-2xl bg-white p-6">
-                {showQRScanner ? (
-                  <QRScanner
-                    onScanSuccess={(url) => {
-                      console.log('[AppPage] QR 스캔 성공:', url);
-                      // URL에서 cardId 추출 (/c/:cardId 형식)
-                      const match = url.match(/\/c\/([a-f0-9-]+)/i);
-                      if (match && match[1]) {
-                        const cardId = match[1];
-                        // PublicCardPage로 이동 (자동 저장 플로우)
-                        navigate(`/c/${cardId}?intent=saveReceived&sourceCardId=${cardId}`);
-                      } else {
-                        // 유효하지 않은 URL
-                        showToast('유효하지 않은 명함 링크입니다.', 'error');
-                        setShowQRScanner(false);
-                      }
-                    }}
-                    onClose={() => setShowQRScanner(false)}
-                  />
+              <div className="space-y-6">
+                {showQRScanner && exchangeSubTab === 'receive' ? (
+                  <div key={`qr-scanner-${showQRScanner}`} className="rounded-2xl bg-white p-6">
+                    <QRScanner
+                      onScanSuccess={handleQRScanSuccess}
+                      onClose={() => setShowQRScanner(false)}
+                    />
+                  </div>
                 ) : (
+                  <>
+                    {/* QR 스캔 섹션 */}
+                    <div className="rounded-2xl bg-white p-6">
                   <div className="text-center">
-                    <div className="mb-4 text-4xl md:mb-6 md:text-5xl">📥</div>
+                        <div className="mb-4 text-4xl md:mb-6 md:text-5xl">📷</div>
                     <h3 className="mb-2 text-xl font-semibold text-slate-900 md:mb-3 md:text-2xl">
-                      명함 받기
+                          QR 코드 스캔
                     </h3>
                     <p className="mb-6 text-sm leading-relaxed text-slate-500 md:text-base">
                       상대방의 명함 QR 코드를 카메라로 스캔하면 받은 명함에 자동으로 저장됩니다.
@@ -661,6 +774,50 @@ export function AppPage() {
                       📷 QR 코드 스캔 시작
                     </button>
                   </div>
+                    </div>
+
+                    {/* 링크 붙여넣기 섹션 */}
+                    <div className="rounded-2xl bg-white p-6">
+                      <div className="text-center">
+                        <div className="mb-4 text-4xl md:mb-6 md:text-5xl">🔗</div>
+                        <h3 className="mb-2 text-xl font-semibold text-slate-900 md:mb-3 md:text-2xl">
+                          링크로 받기
+                        </h3>
+                        <p className="mb-4 text-sm leading-relaxed text-slate-500 md:text-base">
+                          상대방이 공유한 명함 링크를 붙여넣어 받은 명함에 저장할 수 있습니다.
+                        </p>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={linkInput}
+                              onChange={(e) => setLinkInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleLinkSubmit();
+                                }
+                              }}
+                              placeholder="https://... 또는 /c/카드ID 형식의 링크"
+                              className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+                              disabled={processingLink}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleLinkSubmit}
+                              disabled={!linkInput.trim() || processingLink}
+                              className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {processingLink ? '처리 중...' : '받기'}
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            예: https://yourdomain.com/c/abc-123-def-456 또는 /c/abc-123-def-456
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -690,7 +847,7 @@ export function AppPage() {
         </div>
 
       {/* 모바일: 하단 탭 네비게이션 */}
-      <BottomTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomTabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* 모바일: FAB */}
       {activeTab === 'cards' && (
@@ -810,6 +967,20 @@ export function AppPage() {
           </div>
         </div>
       </FullScreenModal>
+
+      {/* 채팅 모달 */}
+      {showChatModal && chatConversationId && (
+        <FullScreenModal
+          isOpen={showChatModal}
+          onClose={() => {
+            setShowChatModal(false);
+            setChatConversationId(null);
+          }}
+          title="채팅"
+        >
+          <ChatTab initialConversationId={chatConversationId} />
+        </FullScreenModal>
+      )}
     </AppLayout>
   );
 }

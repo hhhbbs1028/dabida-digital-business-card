@@ -1,4 +1,5 @@
 import { createReceivedCard, createFolder, type ReceivedCardInput } from '../api/contactsApi';
+import { generateCommunityMockData } from '../../community/utils/mockData';
 
 /**
  * 테스트용 mock 데이터 생성 함수
@@ -184,6 +185,15 @@ export async function generateMockData() {
     console.log(`[MockData] 테스트 데이터 생성 완료!`);
     console.log(`[MockData] - 폴더: ${[folder1, folder2, folder3].length}개`);
     console.log(`[MockData] - 명함: ${createdCards.length}개`);
+
+    // 커뮤니티 mock 데이터도 함께 생성
+    console.log('[MockData] 커뮤니티 데이터 생성 시작...');
+    try {
+      await generateCommunityMockData();
+      console.log('[MockData] 커뮤니티 데이터 생성 완료!');
+    } catch (err) {
+      console.warn('[MockData] 커뮤니티 데이터 생성 실패 (무시):', err);
+    }
 
     return {
       folders: [folder1, folder2, folder3],

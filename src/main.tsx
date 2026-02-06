@@ -4,6 +4,17 @@ import App from './App';
 import './index.css';
 import { ToastProvider } from './shared/ui/Toast';
 
+// vConsole 추가 (iOS 디버깅용)
+if (typeof window !== 'undefined') {
+  // 개발 모드에서만 활성화
+  if (import.meta.env.DEV) {
+    import('vconsole').then((VConsole) => {
+      new VConsole.default();
+      console.log('[main] vConsole 활성화됨');
+    });
+  }
+}
+
 // 초기화 로그
 console.log('[main] 앱 시작', {
   location: window.location.href,

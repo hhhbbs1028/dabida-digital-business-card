@@ -99,6 +99,26 @@ export async function getReceivedCard(id: string): Promise<ReceivedCard | null> 
 export async function createReceivedCard(input: ReceivedCardInput): Promise<ReceivedCard> {
   const user = await getCurrentUser();
 
+  // 자기 자신의 명함인지 확인
+  if (input.source_card_id) {
+    const { data: sourceCard, error: cardCheckError } = await supabase
+      .from('cards')
+      .select('user_id')
+      .eq('id', input.source_card_id)
+      .maybeSingle();
+
+    if (cardCheckError && cardCheckError.code !== 'PGRST116') {
+      console.error('[contactsApi] 명함 확인 오류:', cardCheckError);
+      throw cardCheckError;
+    }
+
+    if (sourceCard && sourceCard.user_id === user.id) {
+      const err = new Error('자기 자신의 명함은 추가할 수 없습니다.');
+      (err as any).code = 'SELF_CARD_NOT_ALLOWED';
+      throw err;
+    }
+  }
+
   // 자동 분류 로직 (폴더가 지정되지 않은 경우에만)
   let folderId = input.folder_id ?? null;
   if (!folderId) {

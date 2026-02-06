@@ -33,35 +33,35 @@ export function CardsList({
   return (
     <aside>
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-slate-900">내 명함</h2>
+        <h2 className="text-lg font-bold text-text-primary">내 명함</h2>
       </div>
 
-      <div className="rounded-2xl bg-white p-4">
+      <div className="rounded-toss-xl bg-bg-white p-4">
         {error && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          <div className="mb-4 rounded-toss border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600">
             {error}
           </div>
         )}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-slate-500">명함을 불러오는 중입니다...</p>
+            <p className="text-sm text-text-secondary">명함을 불러오는 중입니다...</p>
           </div>
         ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-50 px-6 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-2xl">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-toss-xl bg-bg-gray px-6 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-toss-xl bg-primary-50 text-2xl">
               💳
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-bold text-text-primary">
                 아직 저장된 명함이 없어요
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-text-tertiary">
                 오른쪽에서 첫 번째 명함을 만들어보세요.
               </p>
             </div>
           </div>
         ) : (
-          <ul className="space-y-5">
+          <ul className="divide-y divide-gray-100">
             {cards.map((card) => {
               const isActive = selectedId === card.id;
               const displayName = card.display_name || '이름 없음';
@@ -74,19 +74,19 @@ export function CardsList({
                     type="button"
                     onClick={() => onSelect(card.id)}
                     className={[
-                      'flex min-h-[96px] w-full items-center gap-4 rounded-2xl bg-white px-4 py-4 text-left shadow-sm transition-all touch-manipulation',
+                      'flex min-h-[72px] w-full items-center gap-4 px-4 py-4 text-left transition-all touch-manipulation',
                       isActive
-                        ? 'ring-2 ring-primary-200'
-                        : 'hover:shadow-md active:bg-slate-50',
+                        ? 'bg-primary-50'
+                        : 'hover:bg-bg-gray-light active:bg-gray-50',
                     ].join(' ')}
                   >
                     {/* 프로필 이니셜 */}
                     <div
                       className={[
-                        'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold',
+                        'flex h-12 w-12 shrink-0 items-center justify-center rounded-toss text-sm font-bold',
                         isActive
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-slate-100 text-slate-700',
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-gray-200 text-text-secondary',
                       ].join(' ')}
                     >
                       {initials}
@@ -94,11 +94,14 @@ export function CardsList({
 
                     <div className="min-w-0 flex-1">
                       {/* Primary: 이름 - 1줄 ellipsis 강제 */}
-                      <p className="truncate text-lg font-semibold leading-tight text-slate-900">
+                      <p className={[
+                        'truncate text-base font-bold leading-tight',
+                        isActive ? 'text-primary-500' : 'text-text-primary',
+                      ].join(' ')}>
                         {displayName}
                       </p>
                       {/* Secondary: 직무/한 줄 소개 - 1줄 ellipsis 강제 */}
-                      <p className="mt-1 truncate text-sm leading-relaxed text-slate-500">
+                      <p className="mt-0.5 truncate text-sm leading-relaxed text-text-secondary">
                         {secondary}
                       </p>
                     </div>

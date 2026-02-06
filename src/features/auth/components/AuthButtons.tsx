@@ -22,6 +22,7 @@ export function AuthButtons() {
       // 리다이렉트 URL 생성
       // - 프로덕션: https://dabida-digital-business-card.pages.dev/auth/callback
       // - 로컬: http://localhost:5173/auth/callback
+      // - 로컬 IP: http://192.168.x.x:5173/auth/callback (Supabase 대시보드에 추가 필요)
       const baseRedirectTo = `${appOrigin}/auth/callback`;
       
       // returnUrl이 있으면 콜백 URL에 쿼리 파라미터로 전달
