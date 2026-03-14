@@ -48,3 +48,5 @@ Thumbs.db
 *.temp
 .cache/
 
+# claude
+claude/
