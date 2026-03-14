@@ -20,14 +20,13 @@ export function BoardTab() {
 
   useEffect(() => {
     loadPosts();
-  }, [searchQuery, selectedTag]);
+  }, [searchQuery]);
 
   const loadPosts = async () => {
     setLoading(true);
     try {
       const params: any = {};
       if (searchQuery.trim()) params.q = searchQuery.trim();
-      if (selectedTag) params.tag = selectedTag;
 
       const data = await listPosts(params);
       setPosts(data);
@@ -105,6 +104,9 @@ export function BoardTab() {
   };
 
   const allTags = Array.from(new Set(posts.flatMap((p) => p.tags)));
+  const visiblePosts = selectedTag
+    ? posts.filter((p) => p.tags.includes(selectedTag))
+    : posts;
 
   return (
     <div className="space-y-5">
@@ -168,13 +170,13 @@ export function BoardTab() {
         <div className="rounded-2xl bg-white p-12 text-center">
           <p className="text-base text-slate-500">불러오는 중...</p>
         </div>
-      ) : posts.length === 0 ? (
+      ) : visiblePosts.length === 0 ? (
         <div className="rounded-2xl bg-white p-12 text-center">
           <p className="text-base text-slate-500">게시글이 없습니다</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {posts.map((post) => (
+          {visiblePosts.map((post) => (
             <div
               key={post.id}
               className="rounded-2xl bg-white p-6 transition hover:shadow-md"

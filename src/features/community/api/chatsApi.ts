@@ -160,151 +160,34 @@ function isValidUUID(str: string): boolean {
   return uuidRegex.test(str);
 }
 
-// 1:1 DM 생성 또는 조회
+// 1:1 DM 조회 또는 생성 (find-or-create)
+// RPC `create_conversation_with_members`가 기존 1:1 대화방을 먼저 탐색하고
+// 없을 때만 새로 생성하므로, 앱에서는 RPC만 호출하면 됩니다.
+// (conversation_members에 SELECT RLS 정책이 없어 앱에서 직접 조회 불가)
 export async function createOrGetDm(targetUserId: string): Promise<ConversationWithMembers> {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:113',message:'createOrGetDm 시작',data:{targetUserId,isValidUUID:isValidUUID(targetUserId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
-  // UUID 형식 검증
   if (!isValidUUID(targetUserId)) {
-    const errorMsg = `유효하지 않은 사용자 ID입니다. Mock 데이터의 user_id는 실제 사용자와 채팅할 수 없습니다. (받은 ID: ${targetUserId})`;
-    console.error('[chatsApi] UUID 검증 실패:', { targetUserId, errorMsg });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:120',message:'UUID 검증 실패',data:{targetUserId,errorMsg},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    throw new Error(errorMsg);
+    throw new Error(`유효하지 않은 사용자 ID입니다. (받은 ID: ${targetUserId})`);
   }
-  
+
   const user = await getCurrentUser();
-  console.log('[chatsApi] 현재 사용자:', { userId: user.id, targetUserId });
 
   if (user.id === targetUserId) {
     throw new Error('자기 자신과는 대화할 수 없습니다.');
   }
 
-  // 기존 대화방 찾기 (1:1이므로 멤버가 2명인 대화방)
-  const { data: existingMembers } = await supabase
-    .from('conversation_members')
-    .select('conversation_id')
-    .eq('user_id', user.id);
-
-  if (existingMembers && existingMembers.length > 0) {
-    const conversationIds = existingMembers.map((m) => m.conversation_id);
-
-    // 해당 대화방들 중 targetUserId가 멤버인 것 찾기
-    const { data: targetMembers } = await supabase
-      .from('conversation_members')
-      .select('conversation_id')
-      .eq('user_id', targetUserId)
-      .in('conversation_id', conversationIds);
-
-    if (targetMembers && targetMembers.length > 0) {
-      // 기존 대화방 반환
-      const existingConvId = targetMembers[0].conversation_id;
-
-      const { data: conv } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', existingConvId)
-        .single();
-
-      if (conv) {
-        // conversation_members 조회는 RPC 함수 사용
-        const { data: convMembersData } = await supabase.rpc('get_conversation_members', {
-          p_conversation_id: existingConvId,
-        });
-        
-        // RPC 함수가 없으면 직접 조회 시도
-        let convMembers: any[] = [];
-        if (!convMembersData) {
-          const { data: directMembers } = await supabase
-            .from('conversation_members')
-            .select('*')
-            .eq('conversation_id', existingConvId);
-          convMembers = directMembers ?? [];
-        } else {
-          convMembers = convMembersData;
-        }
-
-        const { data: lastMessage } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', existingConvId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        return {
-          ...normalizeConversation(conv),
-          members: convMembers.map((m: any) => ({
-            conversation_id: m.conversation_id,
-            user_id: m.user_id,
-            joined_at: m.joined_at,
-          })),
-          last_message: lastMessage ? normalizeMessage(lastMessage) : null,
-        };
-      }
-    }
-  }
-
-  // 새 대화방 생성 (SECURITY DEFINER 함수만 사용 - RLS 우회)
-  console.log('[chatsApi] 새 대화방 생성 시작:', { 
-    currentUserId: user.id, 
-    targetUserId,
-    userIds: [user.id, targetUserId],
-    allValidUUIDs: [user.id, targetUserId].every(id => isValidUUID(id))
-  });
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:174',message:'대화방 생성 시작 (RPC 함수 사용)',data:{targetUserId,userIds:[user.id,targetUserId],allValidUUIDs:[user.id,targetUserId].every(id=>isValidUUID(id))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
-  // RPC 함수로 대화방 생성 및 멤버 추가 (RLS 우회)
-  // 직접 INSERT는 시도하지 않음 - RLS 정책 때문에 실패함
-  console.log('[chatsApi] RPC 함수 호출 전:', { 
-    functionName: 'create_conversation_with_members',
-    params: { p_user_ids: [user.id, targetUserId] }
-  });
-  
-  const { data: conversationId, error: rpcError } = await supabase.rpc('create_conversation_with_members', {
-    p_user_ids: [user.id, targetUserId],
-  });
-
-  console.log('[chatsApi] RPC 함수 호출 후:', { 
-    conversationId, 
-    error: rpcError ? {
-      message: rpcError.message,
-      code: rpcError.code,
-      details: rpcError.details,
-      hint: rpcError.hint
-    } : null
-  });
+  // RPC: 기존 1:1 대화방 반환 or 신규 생성 (SECURITY DEFINER로 RLS 우회)
+  const { data: conversationId, error: rpcError } = await supabase.rpc(
+    'create_conversation_with_members',
+    { p_user_ids: [user.id, targetUserId] },
+  );
 
   if (rpcError) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:180',message:'RPC 함수 실패',data:{error:rpcError.message,code:rpcError.code,details:rpcError.details,hint:rpcError.hint,fullError:JSON.stringify(rpcError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    console.error('[chatsApi] 대화방 생성 RPC 함수 오류:', {
-      error: rpcError,
-      targetUserId,
-      currentUserId: user.id,
-      userIds: [user.id, targetUserId]
-    });
-    throw new Error(`대화방 생성 실패: ${rpcError.message}. 데이터베이스 함수가 올바르게 설정되었는지 확인하세요.`);
+    throw new Error(`대화방 생성 실패: ${rpcError.message}`);
   }
 
   if (!conversationId) {
-    console.error('[chatsApi] 대화방 ID가 null입니다:', { conversationId, rpcError });
     throw new Error('대화방 ID를 받지 못했습니다.');
   }
-  
-  console.log('[chatsApi] 대화방 생성 성공:', { conversationId });
-
-  // RPC 함수 성공 - 대화방 정보 조회
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:220',message:'RPC 함수 성공, 대화방 정보 조회',data:{conversationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   const { data: conv } = await supabase
     .from('conversations')
@@ -316,36 +199,28 @@ export async function createOrGetDm(targetUserId: string): Promise<ConversationW
     throw new Error('대화방을 찾을 수 없습니다.');
   }
 
-  // conversation_members 조회는 RPC 함수 사용 (SELECT 정책이 없으므로)
-  const { data: convMembersData, error: membersError } = await supabase.rpc('get_conversation_members', {
+  const { data: convMembersData } = await supabase.rpc('get_conversation_members', {
     p_conversation_id: conversationId,
   });
 
-  // RPC 함수가 없으면 직접 조회 시도 (실패할 수 있음)
-  let convMembers: any[] = [];
-  if (membersError) {
-    console.warn('[chatsApi] get_conversation_members 함수 실패, 직접 조회 시도:', membersError);
-    const { data: directMembers } = await supabase
-      .from('conversation_members')
-      .select('*')
-      .eq('conversation_id', conversationId);
-    convMembers = directMembers ?? [];
-  } else {
-    convMembers = convMembersData ?? [];
-  }
+  const convMembers: any[] = convMembersData ?? [];
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/38073a1c-5724-42d5-8104-b1a59577e942',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatsApi.ts:237',message:'대화방 생성 완료',data:{conversationId:conv.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
+  const { data: lastMessage } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return {
     ...normalizeConversation(conv),
-    members: (convMembers ?? []).map((m: any) => ({
+    members: convMembers.map((m: any) => ({
       conversation_id: m.conversation_id,
       user_id: m.user_id,
       joined_at: m.joined_at,
     })),
-    last_message: null,
+    last_message: lastMessage ? normalizeMessage(lastMessage) : null,
   };
 }
 

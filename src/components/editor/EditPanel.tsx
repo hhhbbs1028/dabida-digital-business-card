@@ -12,14 +12,16 @@
 
 import React from 'react';
 import { BottomSheet } from '../../shared/ui/BottomSheet';
-import type { CardTheme, ThemePresetId, ColorPaletteId, FontSetId, ProfileShape } from '../../theme/types';
+import type { CardTheme, ThemePresetId, ColorPaletteId, FontSetId, ProfileShape, CardContentTokens } from '../../theme/types';
 import { THEME_PRESETS, COLOR_PALETTES, FONT_SETS, GRADIENT_PRESETS, PATTERN_PRESETS } from '../../theme/presets';
 import { getLayoutCapabilities } from '../../theme/capabilities';
+import { BusinessCard } from '../business-card/BusinessCard';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   theme: CardTheme;
+  data?: CardContentTokens;
   onChange: (partial: Partial<CardTheme>) => void;
 };
 
@@ -477,9 +479,29 @@ function ProfileSection({ theme, onChange }: { theme: CardTheme; onChange: (part
 /**
  * EditPanel 메인 컴포넌트
  */
-export function EditPanel({ isOpen, onClose, theme, onChange }: Props) {
+export function EditPanel({ isOpen, onClose, theme, data, onChange }: Props) {
+  const previewSlot = data ? (
+    <div className="px-4 py-3">
+      <p className="mb-2 text-center text-[10px] font-medium text-slate-400 uppercase tracking-wide">
+        실시간 미리보기
+      </p>
+      <div className="relative overflow-hidden" style={{ height: '108px' }}>
+        <div
+          style={{
+            transform: 'scale(0.58)',
+            transformOrigin: 'top center',
+            position: 'absolute',
+            inset: 0,
+          }}
+        >
+          <BusinessCard theme={theme} data={data} />
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="스타일 커스터마이징">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="스타일 커스터마이징" stickyPreview={previewSlot}>
       <div className="space-y-8 pb-6">
         <PresetSection theme={theme} onChange={onChange} />
         <ColorSection theme={theme} onChange={onChange} />

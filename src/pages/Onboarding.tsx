@@ -29,6 +29,28 @@ const emptyForm: FormState = {
   skill_tags: [],
 };
 
+function formatKoreanPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.startsWith('02')) {
+    if (digits.length <= 5) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length <= 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+const inputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40';
+
+const OptionalBadge = () => (
+  <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+    선택
+  </span>
+);
+
 export function Onboarding() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -145,25 +167,29 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-lg">
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-2xl font-bold text-slate-900">프로필 설정</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-500">
             기본 정보를 입력하면 다른 사용자에게 공유될 프로필이 완성됩니다.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <div className="space-y-6">
-            {/* 이름 (필수) */}
+          {/* 필수 정보 */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="h-4 w-1 rounded-full bg-slate-900" />
+              <h2 className="text-sm font-semibold text-slate-900">필수 정보</h2>
+            </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
+              <label className="mb-1 block text-xs font-medium text-slate-700">
                 이름 <span className="text-red-500">*</span>
               </label>
               <input
@@ -171,138 +197,148 @@ export function Onboarding() {
                 value={form.name}
                 onChange={(e) => update('name', e.target.value)}
                 required
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
+                className={inputClass}
                 placeholder="홍길동"
               />
             </div>
+          </div>
 
-            {/* 대학교 / 전공 */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">대학교</label>
-                <input
-                  type="text"
-                  value={form.university}
-                  onChange={(e) => update('university', e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-                  placeholder="Dabida University"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">전공</label>
-                <input
-                  type="text"
-                  value={form.major}
-                  onChange={(e) => update('major', e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-                  placeholder="Computer Science"
-                />
-              </div>
+          {/* 선택 정보 */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="h-4 w-1 rounded-full bg-slate-300" />
+              <h2 className="text-sm font-semibold text-slate-500">선택 정보</h2>
+              <span className="text-xs text-slate-400">입력하지 않아도 됩니다</span>
             </div>
-
-            {/* 전화번호 */}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">전화번호</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-                placeholder="010-0000-0000"
-              />
-            </div>
-
-            {/* SNS */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">SNS</label>
-              <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    대학교 <OptionalBadge />
+                  </label>
+                  <input
+                    type="text"
+                    value={form.university}
+                    onChange={(e) => update('university', e.target.value)}
+                    className={inputClass}
+                    placeholder="Dabida University"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    전공 <OptionalBadge />
+                  </label>
+                  <input
+                    type="text"
+                    value={form.major}
+                    onChange={(e) => update('major', e.target.value)}
+                    className={inputClass}
+                    placeholder="Computer Science"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  전화번호 <OptionalBadge />
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => update('phone', formatKoreanPhone(e.target.value))}
+                  className={inputClass}
+                  placeholder="010-0000-0000"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-600">
+                  SNS <OptionalBadge />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-3">
                   <input
                     type="text"
                     value={form.sns.instagram}
                     onChange={(e) => updateSns('instagram', e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
+                    className={inputClass}
                     placeholder="Instagram @username"
                   />
-                </div>
-                <div>
                   <input
                     type="text"
                     value={form.sns.github}
                     onChange={(e) => updateSns('github', e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
+                    className={inputClass}
                     placeholder="GitHub username"
                   />
-                </div>
-                <div>
                   <input
                     type="url"
                     value={form.sns.website}
                     onChange={(e) => updateSns('website', e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
+                    className={inputClass}
                     placeholder="https://example.com"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* 스킬 태그 */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">스킬 태그</label>
-              <div className="mb-2 flex flex-wrap gap-2">
-                {form.skill_tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="text-slate-400 hover:text-slate-600"
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-600">
+                  스킬 태그 <OptionalBadge />
+                </label>
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {form.skill_tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700"
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addTag();
-                    }
-                  }}
-                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-                  placeholder="예: React, TypeScript"
-                />
-                <button
-                  type="button"
-                  onClick={addTag}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-                >
-                  추가
-                </button>
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag();
+                      }
+                    }}
+                    className={inputClass}
+                    placeholder="예: React, TypeScript"
+                  />
+                  <button
+                    type="button"
+                    onClick={addTag}
+                    className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-600 shadow-xs transition hover:bg-slate-50"
+                  >
+                    추가
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"
               onClick={() => navigate('/app')}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-xs transition hover:bg-slate-50"
             >
               나중에
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? '저장 중...' : '저장하고 시작하기'}
             </button>
@@ -312,4 +348,3 @@ export function Onboarding() {
     </div>
   );
 }
-

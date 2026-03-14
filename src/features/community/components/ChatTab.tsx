@@ -168,6 +168,7 @@ export function ChatTab({ onStartChat, initialConversationId }: Props) {
     try {
       const data = await listConversations();
       
+      // TODO : 채팅방 중복 오류
       // 중복 제거: 같은 conversation_id가 여러 번 나올 수 있으므로 Map 사용
       const conversationMap = new Map<string, ConversationWithMembers>();
       data.forEach((conv) => {

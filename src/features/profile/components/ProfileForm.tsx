@@ -43,6 +43,42 @@ const emptyState: FormState = {
   skill_tags: [],
 };
 
+function formatKoreanPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.startsWith('02')) {
+    if (digits.length <= 5) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length <= 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+const inputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40';
+
+const OptionalBadge = () => (
+  <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+    선택
+  </span>
+);
+
+function SectionHeader({ required }: { required: boolean }) {
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <span className={`h-4 w-1 rounded-full ${required ? 'bg-slate-900' : 'bg-slate-300'}`} />
+      <h3 className={`text-xs font-semibold ${required ? 'text-slate-900' : 'text-slate-500'}`}>
+        {required ? '필수 정보' : '선택 정보'}
+      </h3>
+      {!required && (
+        <span className="text-[11px] text-slate-400">입력하지 않아도 됩니다</span>
+      )}
+    </div>
+  );
+}
+
 export function ProfileForm({
   userEmail,
   initialProfile,
@@ -107,9 +143,7 @@ export function ProfileForm({
   };
 
   const validate = () => {
-    if (!values.name.trim()) {
-      return '이름은 필수입니다.';
-    }
+    if (!values.name.trim()) return '이름은 필수입니다.';
     return null;
   };
 
@@ -147,7 +181,7 @@ export function ProfileForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-slate-900">
@@ -173,139 +207,162 @@ export function ProfileForm({
           {success}
         </div>
       )}
-
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">이메일</label>
-          <input
-            type="email"
-            value={values.email}
-            readOnly
-            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm text-slate-500"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">이름 *</label>
-          <input
-            value={values.name}
-            onChange={(e) => update('name', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="홍길동"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">대학교</label>
-          <input
-            value={values.university}
-            onChange={(e) => update('university', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="Dabida University"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">전공</label>
-          <input
-            value={values.major}
-            onChange={(e) => update('major', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="Computer Science"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">학번/학년</label>
-          <input
-            value={values.student_id}
-            onChange={(e) => update('student_id', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="2024 / 3학년"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">전화번호</label>
-          <input
-            value={values.phone}
-            onChange={(e) => update('phone', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="010-0000-0000"
-          />
+      {/* 필수 정보 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <SectionHeader required />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-700">
+              이메일
+            </label>
+            <input
+              type="email"
+              value={values.email}
+              readOnly
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-400"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-700">
+              이름 <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={values.name}
+              onChange={(e) => update('name', e.target.value)}
+              className={inputClass}
+              placeholder="홍길동"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">Instagram</label>
-          <input
-            value={values.sns.instagram}
-            onChange={(e) => updateSns('instagram', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="@username"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">GitHub</label>
-          <input
-            value={values.sns.github}
-            onChange={(e) => updateSns('github', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="github.com/username"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">Website</label>
-          <input
-            value={values.sns.website}
-            onChange={(e) => updateSns('website', e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="https://example.com"
-          />
-        </div>
-      </div>
+      {/* 선택 정보 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <SectionHeader required={false} />
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                대학교 <OptionalBadge />
+              </label>
+              <input
+                value={values.university}
+                onChange={(e) => update('university', e.target.value)}
+                className={inputClass}
+                placeholder="Dabida University"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                전공 <OptionalBadge />
+              </label>
+              <input
+                value={values.major}
+                onChange={(e) => update('major', e.target.value)}
+                className={inputClass}
+                placeholder="Computer Science"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                학번/학년 <OptionalBadge />
+              </label>
+              <input
+                value={values.student_id}
+                onChange={(e) => update('student_id', e.target.value)}
+                className={inputClass}
+                placeholder="2024 / 3학년"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                전화번호 <OptionalBadge />
+              </label>
+              <input
+                type="tel"
+                value={values.phone}
+                onChange={(e) => update('phone', formatKoreanPhone(e.target.value))}
+                className={inputClass}
+                placeholder="010-0000-0000"
+              />
+            </div>
+          </div>
 
-      <div>
-        <label className="mb-2 block text-xs font-medium text-slate-700">스킬 태그</label>
-        <div className="flex flex-wrap gap-2">
-          {values.skill_tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700"
-            >
-              {tag}
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-600">
+              SNS <OptionalBadge />
+            </label>
+            <div className="grid gap-3 md:grid-cols-3">
+              <input
+                value={values.sns.instagram}
+                onChange={(e) => updateSns('instagram', e.target.value)}
+                className={inputClass}
+                placeholder="Instagram @username"
+              />
+              <input
+                value={values.sns.github}
+                onChange={(e) => updateSns('github', e.target.value)}
+                className={inputClass}
+                placeholder="GitHub username"
+              />
+              <input
+                value={values.sns.website}
+                onChange={(e) => updateSns('website', e.target.value)}
+                className={inputClass}
+                placeholder="https://example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-600">
+              스킬 태그 <OptionalBadge />
+            </label>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {values.skill_tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                className={inputClass}
+                placeholder="예: React"
+              />
               <button
                 type="button"
-                onClick={() => removeTag(tag)}
-                className="text-slate-400 hover:text-slate-600"
+                onClick={addTag}
+                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-xs hover:border-slate-300"
               >
-                ×
+                추가
               </button>
-            </span>
-          ))}
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addTag();
-              }
-            }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
-            placeholder="예: React"
-          />
-          <button
-            type="button"
-            onClick={addTag}
-            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm hover:border-slate-300"
-          >
-            추가
-          </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -330,5 +387,3 @@ export function ProfileForm({
     </form>
   );
 }
-
-

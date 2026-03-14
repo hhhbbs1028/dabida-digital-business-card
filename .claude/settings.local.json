@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/JH/coding/dabida-digital-business-card/src -name \"storageApi*\" 2>/dev/null; find /c/Users/JH/coding/dabida-digital-business-card/src -name \"*.ts\" | xargs grep -l \"storage\\\\|upload\" 2>/dev/null | head -5)",
+      "Bash(npm run:*)",
+      "Bash(grep -rn \"create_conversation_with_members\" /c/Users/JH/coding/dabida-digital-business-card/*.sql)"
+    ]
+  }
+}

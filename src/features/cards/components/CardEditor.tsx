@@ -3,6 +3,11 @@ import { CardPreview } from './CardPreview';
 import type { CardData, FontFamilyOption } from '../types';
 import { StepTabs } from './StepTabs';
 import { OptionalFieldGroup } from './OptionalFieldGroup';
+import { BusinessCard } from '../../../components/business-card/BusinessCard';
+import { EditPanel } from '../../../components/editor/EditPanel';
+import type { CardTheme, CardContentTokens } from '../../../theme/types';
+import { mergeTheme } from '../../../theme/mergeTheme';
+import { AiLogoGenerator } from './AiLogoGenerator';
 
 type Props = {
   initialValue?: CardData | null;
@@ -54,6 +59,10 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
   const [currentId, setCurrentId] = useState(
     initialValue?.id ?? (crypto as any).randomUUID?.() ?? String(Date.now()),
   );
+  const [theme, setTheme] = useState<CardTheme>(
+    () => (initialValue?.theme as CardTheme | undefined) ?? mergeTheme('minimal_light'),
+  );
+  const [showEditPanel, setShowEditPanel] = useState(false);
 
   // 디버깅 로그: value 변경 추적
   useEffect(() => {
@@ -79,13 +88,17 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
         links: { ...baseEmpty.links, ...rest.links },
         style: { ...baseEmpty.style, ...rest.style },
       };
+      const restoredTheme = (rest.theme as CardTheme | undefined) ?? mergeTheme('minimal_light');
       setValue(newValue);
+      setTheme(restoredTheme);
       // initialValue가 변경될 때는 자동 저장을 하지 않도록 lastSavedRef 업데이트
-      lastSavedRef.current = JSON.stringify(newValue);
+      lastSavedRef.current = JSON.stringify({ v: newValue, t: restoredTheme });
     } else {
+      const defaultTheme = mergeTheme('minimal_light');
       setValue(baseEmpty);
+      setTheme(defaultTheme);
       // 새 명함 모드로 전환될 때도 자동 저장 방지
-      lastSavedRef.current = JSON.stringify(baseEmpty);
+      lastSavedRef.current = JSON.stringify({ v: baseEmpty, t: defaultTheme });
     }
     setShowContact(!!(initialValue?.email || initialValue?.phone));
     setShowLinks(
@@ -131,8 +144,21 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
     );
   }, [value, initialValue]);
 
+  const themePreviewData = useMemo<CardContentTokens>(() => ({
+    name: value.display_name,
+    major: value.organization || undefined,
+    tagline: value.headline || undefined,
+    email: value.email || undefined,
+    phone: value.phone || undefined,
+    links: {
+      instagram: value.links.instagram || undefined,
+      github: value.links.github || undefined,
+      website: value.links.website || undefined,
+    },
+  }), [value]);
+
   useEffect(() => {
-    const serialized = JSON.stringify(value);
+    const serialized = JSON.stringify({ v: value, t: theme });
     if (!hydratedRef.current) {
       hydratedRef.current = true;
       lastSavedRef.current = serialized;
@@ -154,8 +180,8 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
 
     saveTimer.current = window.setTimeout(async () => {
       try {
-        await onSave({ id: currentId, ...value });
-        lastSavedRef.current = JSON.stringify(value);
+        await onSave({ id: currentId, ...value, theme });
+        lastSavedRef.current = JSON.stringify({ v: value, t: theme });
         setSaveStatus('saved');
         setSaveMessage('저장됨 (방금)');
       } catch (err: any) {
@@ -171,7 +197,7 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
         window.clearTimeout(saveTimer.current);
       }
     };
-  }, [value, currentId, onSave, isEmptyCard]);
+  }, [value, theme, currentId, onSave, isEmptyCard]);
 
   const renderSection = (tab: TabKey) => {
     if (tab === 'basic') {
@@ -308,140 +334,32 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
     }
 
     if (tab === 'style') {
-      const templateSwatches: { id: 1 | 2; label: string; color: string }[] = [
-        { id: 1, label: 'Template 1', color: '#dbeafe' },
-        { id: 2, label: 'Template 2', color: '#dcfce7' },
-      ];
-
-      const accentColors = ['#0f766e', '#2563eb', '#7c3aed', '#f97316', '#ef4444', '#6366f1'];
-
       return (
         <>
           <div>
             <h2 className="text-xs font-semibold text-slate-900">스타일</h2>
             <p className="mt-1 text-[11px] text-slate-500">
-              템플릿과 테마를 선택하세요.
+              테마와 색상을 자유롭게 커스터마이징 하세요.
             </p>
           </div>
-
-          <div className="mt-4 grid gap-5 md:grid-cols-[170px,minmax(0,1fr)]">
-            <div className="space-y-4 rounded-2xl bg-white/80 p-3 shadow-sm">
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-slate-600">템플릿</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {templateSwatches.map((tpl) => {
-                    const isActive = value.style.template_id === tpl.id;
-                    return (
-                      <button
-                        key={tpl.id}
-                        type="button"
-                        onClick={() => {
-                          updateStyle('template_id', tpl.id);
-                          updateStyle('theme_color', tpl.color);
-                        }}
-                        className={[
-                          'flex h-12 items-center justify-center rounded-xl border text-[11px] font-medium transition',
-                          isActive
-                            ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300',
-                        ].join(' ')}
-                      >
-                        <span
-                          className="mr-2 h-6 w-6 rounded-md"
-                          style={{ backgroundColor: tpl.color }}
-                        />
-                        {tpl.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-slate-600">색상</p>
-                <div className="flex flex-wrap gap-2">
-                  {accentColors.map((c) => {
-                    const isActive = value.style.theme_color === c;
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => updateStyle('theme_color', c)}
-                        className={[
-                          'flex h-7 w-7 items-center justify-center rounded-full border-2 transition',
-                          isActive ? 'border-slate-900' : 'border-transparent hover:border-slate-300',
-                        ].join(' ')}
-                      >
-                        <span className="h-5 w-5 rounded-full" style={{ backgroundColor: c }} />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-slate-600">폰트</p>
-                <div className="space-y-1.5">
-                  {(['sans', 'serif', 'mono'] as FontFamilyOption[]).map((ff) => {
-                    const isActive = value.style.font_family === ff;
-                    return (
-                      <button
-                        key={ff}
-                        type="button"
-                        onClick={() => updateStyle('font_family', ff)}
-                        className={[
-                          'flex w-full items-center justify-between rounded-xl border px-3 py-2 text-[11px] transition',
-                          isActive
-                            ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-                        ].join(' ')}
-                      >
-                        <span>
-                          {ff === 'sans' && 'Sans'}
-                          {ff === 'serif' && 'Serif'}
-                          {ff === 'mono' && 'Mono'}
-                        </span>
-                        <span
-                          className={[
-                            'rounded-full px-2 py-0.5 text-[10px]',
-                            isActive
-                              ? 'bg-white/10 text-slate-100'
-                              : 'bg-slate-100 text-slate-500',
-                          ].join(' ')}
-                        >
-                          선택
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium text-slate-600">카드 방향</p>
-                <div className="flex gap-2">
-                  {(['horizontal', 'vertical'] as const).map((ori) => (
-                    <button
-                      key={ori}
-                      type="button"
-                      onClick={() => updateStyle('orientation', ori)}
-                      className={[
-                        'flex-1 rounded-xl border px-3 py-2 text-[11px] transition',
-                        value.style.orientation === ori
-                          ? 'border-slate-900 bg-slate-900 text-white'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-                      ].join(' ')}
-                    >
-                      {ori === 'horizontal' ? '가로형' : '세로형'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-[11px] text-slate-500 md:flex">
-              선택한 스타일은 오른쪽 미리보기에 즉시 반영됩니다.
-            </div>
+          <div className="mt-4 space-y-3">
+            <BusinessCard theme={theme} data={themePreviewData} />
+            <button
+              type="button"
+              onClick={() => setShowEditPanel(true)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              스타일 편집
+            </button>
+            <AiLogoGenerator
+              currentLogoUrl={value.logo_url}
+              cardInfo={{
+                name: value.display_name,
+                headline: value.headline || undefined,
+                organization: value.organization || undefined,
+              }}
+              onLogoGenerated={(url) => update('logo_url', url)}
+            />
           </div>
         </>
       );
@@ -533,9 +451,17 @@ export function CardEditor({ initialValue, onSave, defaultStyle }: Props) {
           </p>
         </div>
         <div className="sticky top-6 block w-full">
-          <CardPreview card={value} />
+          <CardPreview card={{ ...value, theme }} />
         </div>
       </div>
+
+      <EditPanel
+        isOpen={showEditPanel}
+        onClose={() => setShowEditPanel(false)}
+        theme={theme}
+        data={themePreviewData}
+        onChange={(partial) => setTheme((prev) => ({ ...prev, ...partial }))}
+      />
     </div>
   );
 }

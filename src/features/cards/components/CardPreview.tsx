@@ -1,11 +1,31 @@
 import React from 'react';
 import type { CardData } from '../types';
+import { BusinessCard } from '../../../components/business-card/BusinessCard';
+import type { CardContentTokens } from '../../../theme/types';
 
 type Props = {
   card: Omit<CardData, 'id'>;
 };
 
 export function CardPreview({ card }: Props) {
+  // 고급 테마가 있으면 BusinessCard 렌더링
+  if (card.theme) {
+    const contentTokens: CardContentTokens = {
+      name: card.display_name,
+      major: card.organization,
+      tagline: card.headline,
+      email: card.email || undefined,
+      phone: card.phone || undefined,
+      links: {
+        instagram: card.links.instagram || undefined,
+        github: card.links.github || undefined,
+        website: card.links.website || undefined,
+      },
+      logoUrl: card.logo_url || undefined,
+    };
+    return <BusinessCard theme={card.theme} data={contentTokens} />;
+  }
+
   // 방어 코드: style이 없거나 불완전한 경우 기본값 사용
   const safeStyle = {
     template_id: card.style?.template_id ?? 1,
