@@ -50,6 +50,7 @@ Thumbs.db
 
 # claude
 claude/
+*.sql
 
 # env
 .env*
