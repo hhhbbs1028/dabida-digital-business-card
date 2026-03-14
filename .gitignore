@@ -50,3 +50,6 @@ Thumbs.db
 
 # claude
 claude/
+
+# env
+.env.local
