@@ -13,6 +13,7 @@ import type {
   ThemePresetId,
   ColorPaletteId,
   FontSetId,
+  LayoutId,
   CardStyleTokens,
   BackgroundToken,
 } from './types';
@@ -29,7 +30,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
   secondary: string;
   accent: string;
   text: string;
-  muted: string;
+  textMuted: string;
   border: string;
 }> = {
   slate: {
@@ -37,7 +38,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#334155',
     accent: '#64748b',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#e2e8f0',
   },
   blue: {
@@ -45,7 +46,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#3b82f6',
     accent: '#60a5fa',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#dbeafe',
   },
   purple: {
@@ -53,7 +54,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#9333ea',
     accent: '#a855f7',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#f3e8ff',
   },
   emerald: {
@@ -61,7 +62,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#10b981',
     accent: '#34d399',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#d1fae5',
   },
   orange: {
@@ -69,7 +70,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#f97316',
     accent: '#fb923c',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#fed7aa',
   },
   rose: {
@@ -77,7 +78,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#f43f5e',
     accent: '#fb7185',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#ffe4e6',
   },
   indigo: {
@@ -85,7 +86,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#6366f1',
     accent: '#818cf8',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#e0e7ff',
   },
   teal: {
@@ -93,7 +94,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#14b8a6',
     accent: '#5eead4',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#ccfbf1',
   },
   amber: {
@@ -101,7 +102,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#f59e0b',
     accent: '#fbbf24',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#fef3c7',
   },
   pink: {
@@ -109,7 +110,7 @@ export const COLOR_PALETTES: Record<ColorPaletteId, {
     secondary: '#ec4899',
     accent: '#f472b6',
     text: '#1e293b',
-    muted: '#64748b',
+    textMuted: '#64748b',
     border: '#fce7f3',
   },
 };
@@ -204,7 +205,7 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     secondary: '#cbd5e1',
     accent: '#94a3b8',
     text: '#f1f5f9',
-    textMuted: '#cbd5e1',
+    textMuted: '#94a3b8',
     border: '#334155',
     ...FONT_SETS.gothic,
     background: { type: 'solid', color: '#0f172a' },
@@ -328,6 +329,75 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
       element: '0.75rem',
     },
   },
+
+  // 자유 설정 (사용자 커스텀 - minimal_light와 동일한 기본값)
+  custom: {
+    ...COLOR_PALETTES.slate,
+    ...FONT_SETS.gothic,
+    background: { type: 'solid', color: '#ffffff' },
+    profileShape: 'none',
+    borderRadius: '1rem',
+    spacing: {
+      card: '1.5rem',
+      section: '1rem',
+      element: '0.75rem',
+    },
+  },
+};
+
+// ============================================================================
+// Preset Metadata Maps
+// ============================================================================
+/**
+ * 프리셋별 레이아웃 ID 매핑
+ * minimal_ 접두사 프리셋 → minimal_01, 그 외 → split_01
+ */
+export const PRESET_LAYOUT_MAP: Record<ThemePresetId, LayoutId> = {
+  minimal_light:     'minimal_01',
+  minimal_dark:      'minimal_01',
+  cool_minimal:      'minimal_01',
+  custom:            'minimal_01',
+  modern_gradient:   'split_01',
+  campus_vibrant:    'split_01',
+  tech_blue:         'split_01',
+  elegant_serif:     'split_01',
+  creative_colorful: 'split_01',
+  corporate_neutral: 'split_01',
+  warm_autumn:       'split_01',
+};
+
+/**
+ * 프리셋별 기본 팔레트 ID 매핑
+ */
+export const PRESET_PALETTE_MAP: Record<ThemePresetId, ColorPaletteId> = {
+  minimal_light:     'slate',
+  minimal_dark:      'slate',
+  modern_gradient:   'blue',
+  campus_vibrant:    'orange',
+  tech_blue:         'indigo',
+  elegant_serif:     'slate',
+  creative_colorful: 'pink',
+  corporate_neutral: 'slate',
+  warm_autumn:       'amber',
+  cool_minimal:      'teal',
+  custom:            'slate',
+};
+
+/**
+ * 프리셋별 기본 폰트 세트 ID 매핑
+ */
+export const PRESET_FONT_MAP: Record<ThemePresetId, FontSetId> = {
+  minimal_light:     'gothic',
+  minimal_dark:      'gothic',
+  modern_gradient:   'gothic',
+  campus_vibrant:    'round',
+  tech_blue:         'gothic',
+  elegant_serif:     'myeongjo',
+  creative_colorful: 'round',
+  corporate_neutral: 'gothic',
+  warm_autumn:       'round',
+  cool_minimal:      'gothic',
+  custom:            'gothic',
 };
 
 // ============================================================================

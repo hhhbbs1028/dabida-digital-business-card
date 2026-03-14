@@ -118,8 +118,8 @@ export function CardPreview({ card }: Props) {
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
             {card.email && <span>{card.email}</span>}
             {card.phone && <span>{card.phone}</span>}
-            {card.links.github && <span>GitHub</span>}
-            {card.links.instagram && <span>Instagram</span>}
+            {card.links.github && <span>{card.links.github}</span>}
+            {card.links.instagram && <span>{card.links.instagram}</span>}
             {card.links.website && <span>{card.links.website}</span>}
           </div>
         </div>

@@ -33,7 +33,8 @@ export type ThemePresetId =
   | 'creative_colorful'
   | 'corporate_neutral'
   | 'warm_autumn'
-  | 'cool_minimal';
+  | 'cool_minimal'
+  | 'custom';
 
 // ============================================================================
 // Color Palette ID

@@ -11,6 +11,7 @@
  */
 
 import React from 'react';
+import { Instagram, Github, Globe } from "lucide-react";
 import type { CardTheme, CardContentTokens, LayoutId } from '../../theme/types';
 import { applyThemeToStyle } from '../../theme/applyTheme';
 
@@ -93,7 +94,7 @@ function MinimalLayout({ theme, data }: Props) {
           style={{
             fontFamily: 'var(--card-title-font)',
             fontWeight: 'var(--card-title-weight)',
-            color: 'var(--card-text)',
+            color: 'var(--card-primary)',
             fontSize: '1.5rem',
             lineHeight: '1.75rem',
           }}
@@ -108,7 +109,7 @@ function MinimalLayout({ theme, data }: Props) {
             style={{
               fontFamily: 'var(--card-body-font)',
               fontWeight: 'var(--card-body-weight)',
-              color: 'var(--card-text-muted)',
+              color: 'var(--card-secondary)',
               fontSize: '0.875rem',
               lineHeight: '1.25rem',
             }}
@@ -138,11 +139,12 @@ function MinimalLayout({ theme, data }: Props) {
         {/* 연락처 */}
         {(data.email || data.phone) && (
           <div
-            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+            // className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+            className='flex flex-col items-center gap-y-1'
             style={{
               fontFamily: 'var(--card-body-font)',
               fontWeight: 'var(--card-body-weight)',
-              color: 'var(--card-text-muted)',
+              color: 'var(--card-border)',
               fontSize: '0.75rem',
               lineHeight: '1rem',
             }}
@@ -155,18 +157,36 @@ function MinimalLayout({ theme, data }: Props) {
         {/* 링크 */}
         {data.links && (data.links.instagram || data.links.github || data.links.website) && (
           <div
-            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+            // className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+            className='flex flex-col items-center gap-y-1'
             style={{
               fontFamily: 'var(--card-body-font)',
               fontWeight: 'var(--card-body-weight)',
-              color: 'var(--card-text-muted)',
+              color: 'var(--card-border)',
               fontSize: '0.75rem',
               lineHeight: '1rem',
             }}
           >
-            {data.links.instagram && <span>Instagram</span>}
-            {data.links.github && <span>GitHub</span>}
-            {data.links.website && <span>{data.links.website}</span>}
+              {data.links.instagram && (
+                <div className="flex items-center gap-1">
+                  <Instagram size={12} />
+                  <span>{data.links.instagram}</span>
+                </div>
+              )}
+
+              {data.links.github && (
+                <div className="flex items-center gap-1">
+                  <Github size={12} />
+                  <span>{data.links.github}</span>
+                </div>
+              )}
+
+              {data.links.website && (
+                <div className="flex items-center gap-1">
+                  <Globe size={12} />
+                  <span>{data.links.website}</span>
+                </div>
+              )}
           </div>
         )}
       </div>
@@ -248,7 +268,7 @@ function SplitLayout({ theme, data }: Props) {
             style={{
               fontFamily: 'var(--card-title-font)',
               fontWeight: 'var(--card-title-weight)',
-              color: 'var(--card-text)',
+              color: 'var(--card-primary)',
               fontSize: '0.875rem',
               lineHeight: '1.25rem',
             }}
@@ -262,7 +282,7 @@ function SplitLayout({ theme, data }: Props) {
               style={{
                 fontFamily: 'var(--card-body-font)',
                 fontWeight: 'var(--card-body-weight)',
-                color: 'var(--card-text-muted)',
+                color: 'var(--card-accent)',
                 fontSize: '0.75rem',
                 lineHeight: '1rem',
               }}
@@ -274,11 +294,12 @@ function SplitLayout({ theme, data }: Props) {
           {/* 연락처 */}
           {(data.email || data.phone) && (
             <div
-              className="flex flex-wrap gap-x-3 gap-y-1"
+              // className="flex flex-wrap gap-x-3 gap-y-1"
+              className='flex flex-col items-center gap-y-1'
               style={{
                 fontFamily: 'var(--card-body-font)',
                 fontWeight: 'var(--card-body-weight)',
-                color: 'var(--card-text-muted)',
+                color: 'var(--card-secondary)',
                 fontSize: '0.625rem',
                 lineHeight: '0.875rem',
               }}
@@ -291,18 +312,36 @@ function SplitLayout({ theme, data }: Props) {
           {/* 링크 */}
           {data.links && (data.links.instagram || data.links.github || data.links.website) && (
             <div
-              className="flex flex-wrap gap-x-3 gap-y-1"
+              // className="flex flex-wrap gap-x-3 gap-y-1"
+              className='flex flex-col items-center gap-y-1'
               style={{
                 fontFamily: 'var(--card-body-font)',
                 fontWeight: 'var(--card-body-weight)',
-                color: 'var(--card-text-muted)',
+                color: 'var(--card-accent)',
                 fontSize: '0.625rem',
                 lineHeight: '0.875rem',
               }}
             >
-              {data.links.instagram && <span>Instagram</span>}
-              {data.links.github && <span>GitHub</span>}
-              {data.links.website && <span>{data.links.website}</span>}
+              {data.links.instagram && (
+                <div className="flex items-center gap-1">
+                  <Instagram size={12} />
+                  <span>{data.links.instagram}</span>
+                </div>
+              )}
+
+              {data.links.github && (
+                <div className="flex items-center gap-1">
+                  <Github size={12} />
+                  <span>{data.links.github}</span>
+                </div>
+              )}
+
+              {data.links.website && (
+                <div className="flex items-center gap-1">
+                  <Globe size={12} />
+                  <span>{data.links.website}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

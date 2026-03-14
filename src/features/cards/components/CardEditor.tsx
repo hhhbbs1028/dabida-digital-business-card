@@ -136,7 +136,11 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
         links: { ...baseEmpty.links, ...rest.links },
         style: { ...baseEmpty.style, ...rest.style },
       };
-      const restoredTheme = (rest.theme as CardTheme | undefined) ?? mergeTheme('minimal_light');
+      let restoredTheme = (rest.theme as CardTheme | undefined) ?? mergeTheme('minimal_light');
+      // profile_url이 있는데 profileShape가 'none'이면 'circle'로 자동 복원
+      if (rest.profile_url && restoredTheme.style.profileShape === 'none') {
+        restoredTheme = { ...restoredTheme, style: { ...restoredTheme.style, profileShape: 'circle' } };
+      }
       setValue(newValue);
       setTheme(restoredTheme);
       lastSavedRef.current = JSON.stringify({ v: newValue, t: restoredTheme });

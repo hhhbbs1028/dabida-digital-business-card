@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Profile } from '../api/profileApi';
 import { upsertMyProfile } from '../api/profileApi';
-import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 type Props = {
@@ -172,7 +171,16 @@ export function ProfileForm({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('로그인이 필요합니다.');
-      const url = await uploadToStorage('avatars', file, user.id);
+
+      const filePath = `${user.id}/avatar.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true, cacheControl: '0' });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      // 캐시 무효화를 위해 타임스탬프 쿼리 파라미터 추가
+      const url = `${publicUrl}?t=${Date.now()}`;
       setValues((prev) => ({ ...prev, avatar_url: url }));
     } catch (err: any) {
       console.error('[ProfileForm] 아바타 업로드 실패:', err);
