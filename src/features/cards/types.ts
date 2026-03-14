@@ -21,6 +21,7 @@ export type CardData = {
     orientation: 'horizontal' | 'vertical';
   };
   // 이미지 URL (Supabase Storage에 저장된 이미지의 URL)
+  profile_url?: string | null;
   logo_url?: string | null;
   card_image_url?: string | null;
   // 고급 테마 엔진. NULL이면 legacy style 컬럼으로 렌더링.

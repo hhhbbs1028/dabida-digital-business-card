@@ -22,6 +22,7 @@ export function CardPreview({ card }: Props) {
         website: card.links.website || undefined,
       },
       logoUrl: card.logo_url || undefined,
+      profileUrl: card.profile_url || undefined,
     };
     return <BusinessCard theme={card.theme} data={contentTokens} />;
   }

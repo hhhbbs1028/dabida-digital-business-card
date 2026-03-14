@@ -15,6 +15,10 @@ export type Profile = {
     website?: string | null;
   };
   skill_tags: string[];
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  network_visibility: 'public' | 'friends_only' | 'private';
   onboarding_step?: 'ONBOARDING' | 'AUTH' | 'PROFILE' | 'TEMPLATE' | 'DONE';
   selected_template_id?: number | null;
   selected_theme_color?: string | null;
@@ -36,6 +40,10 @@ export type ProfileInput = {
     website?: string;
   };
   skill_tags?: string[];
+  display_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  network_visibility?: 'public' | 'friends_only' | 'private';
   onboarding_step?: 'ONBOARDING' | 'AUTH' | 'PROFILE' | 'TEMPLATE' | 'DONE';
   selected_template_id?: number;
   selected_theme_color?: string;
@@ -75,6 +83,10 @@ function normalizeProfile(row: any): Profile {
       website: row.sns?.website ?? null,
     },
     skill_tags: Array.isArray(row.skill_tags) ? row.skill_tags : [],
+    display_name: row.display_name ?? null,
+    bio: row.bio ?? null,
+    avatar_url: row.avatar_url ?? null,
+    network_visibility: row.network_visibility ?? 'public',
     onboarding_step: row.onboarding_step ?? null,
     selected_template_id: row.selected_template_id ?? null,
     selected_theme_color: row.selected_theme_color ?? null,
@@ -90,7 +102,7 @@ export async function getMyProfile(): Promise<Profile | null> {
   console.log('[profileApi] 프로필 조회:', user.id);
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select('user_id, email, name, university, major, student_id, phone, sns, skill_tags, display_name, bio, avatar_url, network_visibility, onboarding_step, selected_template_id, selected_theme_color, selected_font_family, created_at, updated_at')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -105,7 +117,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 export async function upsertMyProfile(payload: ProfileInput): Promise<Profile> {
   const user = await getCurrentUser();
 
-  const record = {
+  const record: any = {
     user_id: user.id,
     email: payload.email ?? user.email ?? null,
     name: payload.name ?? null,
@@ -124,6 +136,11 @@ export async function upsertMyProfile(payload: ProfileInput): Promise<Profile> {
     selected_theme_color: payload.selected_theme_color ?? undefined,
     selected_font_family: payload.selected_font_family ?? undefined,
   };
+
+  if (payload.display_name !== undefined) record.display_name = payload.display_name;
+  if (payload.bio !== undefined) record.bio = payload.bio;
+  if (payload.avatar_url !== undefined) record.avatar_url = payload.avatar_url;
+  if (payload.network_visibility !== undefined) record.network_visibility = payload.network_visibility;
 
   console.log('[profileApi] 프로필 저장:', user.id);
   const { data, error } = await supabase

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Profile } from '../api/profileApi';
 import { upsertMyProfile } from '../api/profileApi';
+import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
+import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 type Props = {
   userEmail?: string | null;
@@ -26,6 +28,10 @@ type FormState = {
     website: string;
   };
   skill_tags: string[];
+  display_name: string;
+  bio: string;
+  avatar_url: string | null;
+  network_visibility: 'public' | 'friends_only' | 'private';
 };
 
 const emptyState: FormState = {
@@ -41,6 +47,10 @@ const emptyState: FormState = {
     website: '',
   },
   skill_tags: [],
+  display_name: '',
+  bio: '',
+  avatar_url: null,
+  network_visibility: 'public',
 };
 
 function formatKoreanPhone(raw: string): string {
@@ -94,6 +104,8 @@ export function ProfileForm({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const profile = initialProfile;
@@ -110,6 +122,10 @@ export function ProfileForm({
         website: profile?.sns?.website ?? '',
       },
       skill_tags: profile?.skill_tags ?? [],
+      display_name: profile?.display_name ?? '',
+      bio: profile?.bio ?? '',
+      avatar_url: profile?.avatar_url ?? null,
+      network_visibility: profile?.network_visibility ?? 'public',
     });
   }, [initialProfile, userEmail]);
 
@@ -147,6 +163,26 @@ export function ProfileForm({
     return null;
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarUploading(true);
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('로그인이 필요합니다.');
+      const url = await uploadToStorage('avatars', file, user.id);
+      setValues((prev) => ({ ...prev, avatar_url: url }));
+    } catch (err: any) {
+      console.error('[ProfileForm] 아바타 업로드 실패:', err);
+      setError(err?.message ?? '사진 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccess(null);
@@ -169,6 +205,10 @@ export function ProfileForm({
         phone: values.phone,
         sns: values.sns,
         skill_tags: values.skill_tags,
+        display_name: values.display_name || null,
+        bio: values.bio || null,
+        avatar_url: values.avatar_url,
+        network_visibility: values.network_visibility,
       });
       setSuccess('프로필이 저장되었습니다.');
       onSaved?.(saved);
@@ -200,6 +240,47 @@ export function ProfileForm({
             닫기
           </button>
         )}
+      </div>
+
+      {/* 프로필 사진 */}
+      <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-base font-semibold text-slate-600">
+          {values.avatar_url ? (
+            <img src={values.avatar_url} alt="프로필" className="h-full w-full object-cover" />
+          ) : (
+            (values.display_name || values.name || '?').substring(0, 2).toUpperCase()
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-slate-700">프로필 사진</p>
+          <p className="text-[11px] text-slate-400">커뮤니티, 채팅, 명함 등 전체에서 사용됩니다.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-xs hover:border-slate-300 disabled:opacity-60"
+            >
+              {avatarUploading ? '업로드 중...' : '사진 변경'}
+            </button>
+            {values.avatar_url && (
+              <button
+                type="button"
+                onClick={() => setValues((prev) => ({ ...prev, avatar_url: null }))}
+                className="text-xs text-slate-400 hover:text-red-500"
+              >
+                삭제
+              </button>
+            )}
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          className="hidden"
+        />
       </div>
 
       {success && (
@@ -362,6 +443,77 @@ export function ProfileForm({
                 추가
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 커뮤니티 프로필 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-slate-300" />
+          <h3 className="text-xs font-semibold text-slate-500">커뮤니티 프로필</h3>
+          <span className="text-[11px] text-slate-400">커뮤니티에서 표시되는 정보</span>
+        </div>
+
+        <div className="space-y-4">
+          {/* 커뮤니티 표시 이름 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              커뮤니티 표시 이름 <OptionalBadge />
+            </label>
+            <input
+              value={values.display_name}
+              onChange={(e) => setValues((prev) => ({ ...prev, display_name: e.target.value }))}
+              className={inputClass}
+              placeholder="커뮤니티에서 보일 이름 (미입력 시 기본 이름 사용)"
+            />
+          </div>
+
+          {/* 한 줄 소개 */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              한 줄 소개 <OptionalBadge />
+            </label>
+            <textarea
+              value={values.bio}
+              onChange={(e) => setValues((prev) => ({ ...prev, bio: e.target.value }))}
+              rows={3}
+              className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-xs focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/40"
+              placeholder="자신을 간단히 소개해 보세요"
+            />
+          </div>
+
+          {/* 공개 범위 */}
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-600">공개 범위</label>
+            <div className="flex gap-2">
+              {(
+                [
+                  { value: 'public', label: '전체 공개' },
+                  { value: 'friends_only', label: '인맥만' },
+                  { value: 'private', label: '비공개' },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setValues((prev) => ({ ...prev, network_visibility: value }))}
+                  className={[
+                    'flex-1 rounded-full px-3 py-2 text-xs font-semibold transition',
+                    values.network_visibility === value
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              {values.network_visibility === 'public' && '모든 사용자가 커뮤니티에서 내 프로필을 볼 수 있어요.'}
+              {values.network_visibility === 'friends_only' && '나와 명함을 교환한 사람만 내 프로필을 볼 수 있어요.'}
+              {values.network_visibility === 'private' && '커뮤니티에서 내 프로필이 표시되지 않아요.'}
+            </p>
           </div>
         </div>
       </div>

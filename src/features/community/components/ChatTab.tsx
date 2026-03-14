@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ConversationWithMembers, Message, CommunityProfile } from '../types';
-import { listConversations, listMessages, sendMessage, createOrGetDm } from '../api/chatsApi';
+import { listConversations, listMessages, sendMessage } from '../api/chatsApi';
 import { getProfiles } from '../api/profilesApi';
 import { useToast } from '../../../shared/ui/Toast';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 type Props = {
-  onStartChat?: (targetUserId: string) => void;
   initialConversationId?: string | null;
 };
 
-export function ChatTab({ onStartChat, initialConversationId }: Props) {
+export function ChatTab({ initialConversationId }: Props) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [conversations, setConversations] = useState<ConversationWithMembers[]>([]);
@@ -304,7 +303,7 @@ export function ChatTab({ onStartChat, initialConversationId }: Props) {
   });
 
   return (
-    <div className="flex min-h-[400px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex min-h-[400px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       {selectedConvId ? (
         <>
           {/* 헤더: 상대방 정보 */}

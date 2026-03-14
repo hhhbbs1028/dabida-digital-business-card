@@ -6,7 +6,16 @@ type Props = {
   onEditClick: () => void;
 };
 
+const visibilityLabel: Record<string, string> = {
+  public: '전체 공개',
+  friends_only: '인맥만',
+  private: '비공개',
+};
+
 export function ProfileSection({ profile, onEditClick }: Props) {
+  const displayName = profile.display_name || profile.name || '?';
+  const initials = displayName.substring(0, 2).toUpperCase();
+
   return (
     <div className="mb-6 rounded-2xl bg-white p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -19,6 +28,25 @@ export function ProfileSection({ profile, onEditClick }: Props) {
           수정
         </button>
       </div>
+
+      {/* 커뮤니티 프로필 영역 */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-base font-semibold text-slate-700">
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt={displayName} className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-semibold text-slate-900">{displayName}</p>
+          {profile.bio && <p className="mt-0.5 text-sm text-slate-500 line-clamp-2">{profile.bio}</p>}
+          <span className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+            {visibilityLabel[profile.network_visibility] ?? '전체 공개'}
+          </span>
+        </div>
+      </div>
+
       <div className="grid gap-5 text-base text-slate-600 md:grid-cols-2 lg:grid-cols-3">
         {profile.email && (
           <div>

@@ -5,19 +5,17 @@ import { WaveTab } from '../components/WaveTab';
 import { BoardTab } from '../components/BoardTab';
 import { ProfileDetailModal } from '../components/ProfileDetailModal';
 import { BottomSheet } from '../../../shared/ui/BottomSheet';
-import { FullScreenModal } from '../../../shared/ui/FullScreenModal';
 import { ChatTab } from '../components/ChatTab';
 import { createOrGetDm } from '../api/chatsApi';
 import { useToast } from '../../../shared/ui/Toast';
 
-type SubTab = 'find' | 'wave' | 'board';
+type SubTab = 'find' | 'wave' | 'board' | 'chat';
 
 export function CommunityPage() {
   const { showToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('find');
   const [selectedProfile, setSelectedProfile] = useState<CommunityProfile | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const [chatConversationId, setChatConversationId] = useState<string | null>(null);
 
   const handleProfileClick = (profile: CommunityProfile) => {
@@ -64,9 +62,9 @@ export function CommunityPage() {
         memberCount: conversation.members.length
       });
       
-      // 채팅 모달 열기
+      // 채팅 탭으로 이동
       setChatConversationId(conversation.id);
-      setShowChatModal(true);
+      setActiveSubTab('chat');
       // 프로필 모달 닫기
       setShowProfileModal(false);
       setSelectedProfile(null);
@@ -91,6 +89,7 @@ export function CommunityPage() {
     { id: 'find', label: '친구찾기', icon: '🔍' },
     { id: 'wave', label: '파도타기', icon: '🌊' },
     { id: 'board', label: '게시판', icon: '📋' },
+    { id: 'chat', label: '채팅', icon: '💬' },
   ];
 
   return (
@@ -105,6 +104,8 @@ export function CommunityPage() {
               type="button"
               onClick={() => {
                 setActiveSubTab(tab.id);
+                // 채팅 탭을 직접 클릭하면 특정 대화방 자동선택 해제
+                if (tab.id !== 'chat') setChatConversationId(null);
               }}
               className={[
                 'flex flex-1 flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-xs font-semibold transition',
@@ -134,7 +135,10 @@ export function CommunityPage() {
             onSendMessage={handleSendMessage}
           />
         )}
-        {activeSubTab === 'board' && <BoardTab />}
+        {activeSubTab === 'board' && <BoardTab onSendMessage={handleSendMessage} />}
+        {activeSubTab === 'chat' && (
+          <ChatTab initialConversationId={chatConversationId} />
+        )}
       </div>
 
       {/* 프로필 상세 모달 */}
@@ -156,19 +160,6 @@ export function CommunityPage() {
         />
       </BottomSheet>
 
-      {/* 채팅 모달 */}
-      {showChatModal && chatConversationId && (
-        <FullScreenModal
-          isOpen={showChatModal}
-          onClose={() => {
-            setShowChatModal(false);
-            setChatConversationId(null);
-          }}
-          title="채팅"
-        >
-          <ChatTab initialConversationId={chatConversationId} />
-        </FullScreenModal>
-      )}
     </div>
   );
 }

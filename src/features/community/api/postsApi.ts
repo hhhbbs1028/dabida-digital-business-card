@@ -27,6 +27,7 @@ function normalizePost(row: any): Post {
     title: row.title,
     content: row.content,
     tags: Array.isArray(row.tags) ? row.tags : [],
+    image_url: row.image_url ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -71,6 +72,7 @@ export async function createPost(input: PostInput): Promise<Post> {
     title: input.title,
     content: input.content,
     tags: input.tags ?? [],
+    image_url: input.image_url ?? null,
   };
 
   const { data, error } = await supabase
@@ -95,6 +97,7 @@ export async function updatePost(id: string, update: PostUpdate): Promise<Post> 
   if (update.title !== undefined) updateData.title = update.title;
   if (update.content !== undefined) updateData.content = update.content;
   if (update.tags !== undefined) updateData.tags = update.tags;
+  if (update.image_url !== undefined) updateData.image_url = update.image_url;
 
   const { data, error } = await supabase
     .from('posts')

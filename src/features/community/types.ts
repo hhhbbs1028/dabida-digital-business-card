@@ -45,6 +45,7 @@ export type Post = {
   title: string;
   content: string;
   tags: string[];
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -53,12 +54,14 @@ export type PostInput = {
   title: string;
   content: string;
   tags?: string[];
+  image_url?: string | null;
 };
 
 export type PostUpdate = {
   title?: string;
   content?: string;
   tags?: string[];
+  image_url?: string | null;
 };
 
 // Chat (채팅)

@@ -186,6 +186,7 @@ export function AppPage() {
       template_id: profile.selected_template_id ?? 1,
       theme_color: profile.selected_theme_color ?? '#111827',
       font_family: (profile.selected_font_family as any) ?? 'sans',
+      orientation: 'horizontal' as const,
     };
   }, [profile]);
 
@@ -528,6 +529,7 @@ export function AppPage() {
                     initialValue={selected}
                     onSave={handleSave}
                     defaultStyle={defaultStyle}
+                    avatarUrl={profile?.avatar_url}
                   />
               </div>
               </section>
@@ -872,6 +874,7 @@ export function AppPage() {
           initialValue={selected}
           onSave={handleSave}
           defaultStyle={defaultStyle}
+          avatarUrl={profile?.avatar_url}
         />
       </FullScreenModal>
 
