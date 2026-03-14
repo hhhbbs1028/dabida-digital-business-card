@@ -61,6 +61,11 @@ export function AuthButtons() {
         expectedUrl: redirectTo,
       });
 
+      console.log({
+        origin: window.location.origin,
+        redirectTo,
+      })
+
       if (signInError) {
         console.error(`[AuthButtons] ${provider} 로그인 오류:`, signInError);
         setError(signInError.message);
