@@ -14,7 +14,12 @@ export function AuthCallback() {
 
     const handleCallback = async () => {
       try {
-        console.log('[AuthCallback] OAuth callback 처리 시작');
+        console.log('[AuthCallback] OAuth callback 처리 시작', {
+          fullUrl: window.location.href,
+          origin: window.location.origin,
+          hash: window.location.hash,
+          search: window.location.search,
+        });
 
         // URL에서 hash fragment 확인 (OAuth redirect)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));

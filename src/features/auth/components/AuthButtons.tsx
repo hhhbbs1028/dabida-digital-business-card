@@ -36,6 +36,10 @@ export function AuthButtons() {
         redirectTo,
         returnUrl,
         fullUrl: window.location.href,
+        envOrigin,
+        VITE_PUBLIC_APP_ORIGIN: (import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN,
+        sessionStorageAuthReturnUrl: sessionStorage.getItem('authReturnUrl'),
+        allEnvKeys: Object.keys((import.meta as any).env ?? {}),
       });
 
       // redirectTo가 절대 URL인지 확인

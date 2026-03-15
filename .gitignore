@@ -54,3 +54,4 @@ claude/
 
 # env
 .env*
+.vercel
