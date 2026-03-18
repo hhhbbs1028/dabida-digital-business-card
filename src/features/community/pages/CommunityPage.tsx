@@ -108,7 +108,7 @@ export function CommunityPage() {
                 if (tab.id !== 'chat') setChatConversationId(null);
               }}
               className={[
-                'flex flex-1 flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-xs font-semibold transition',
+                'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-xs font-semibold transition',
                 isActive
                   ? 'bg-slate-900 text-white'
                   : 'bg-transparent text-slate-600 hover:bg-slate-50',

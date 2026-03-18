@@ -82,14 +82,14 @@ export function FindFriendsTab({ onProfileClick, onSendMessage }: Props) {
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             placeholder="학교"
-            className="flex-1 rounded-2xl border-none bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+            className="min-w-0 flex-1 rounded-2xl border-none bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
           <input
             type="text"
             value={major}
             onChange={(e) => setMajor(e.target.value)}
             placeholder="학과"
-            className="flex-1 rounded-2xl border-none bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+            className="min-w-0 flex-1 rounded-2xl border-none bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
         </div>
         
