@@ -7,7 +7,9 @@
     "dev": "vite",
     "dev:https": "cross-env VITE_USE_HTTPS=true vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:android": "npm run build && npx cap sync android",
+    "open:android": "npx cap open android"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,9 @@
     "vite-plugin-mkcert": "^1.17.9"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@supabase/supabase-js": "^2.90.1",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.577.0",

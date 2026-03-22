@@ -1,20 +1,54 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 type Provider = 'google' | 'github' | 'apple';
+
+/**
+ * KakaoTalk, NAVER, Line 등 인앱 브라우저(WebView) 여부를 감지합니다.
+ * Capacitor 네이티브 앱은 MainActivity에서 UA를 수정하므로 여기서 제외합니다.
+ */
+function isInAppBrowser(): boolean {
+  if (Capacitor.isNativePlatform()) return false;
+  const ua = navigator.userAgent;
+  if (/KAKAOTALK/i.test(ua)) return true;
+  if (/NAVER\(inapp/i.test(ua)) return true;
+  if (/Line\//.test(ua)) return true;
+  // Android WebView 마커: "; wv)" 포함 && Chrome 브라우저가 아닌 경우
+  if (/Android/.test(ua) && /; wv\)/.test(ua)) return true;
+  return false;
+}
+
+/**
+ * Android Intent URL을 통해 현재 페이지를 외부 브라우저(Chrome)에서 엽니다.
+ * Google OAuth는 WebView를 차단하므로 외부 브라우저에서 전체 플로우를 진행해야 합니다.
+ */
+function openCurrentPageInExternalBrowser(): void {
+  const currentUrl = window.location.href;
+  const urlBody = currentUrl.replace(/^https?:\/\//, '');
+  // package를 지정하지 않으면 기기의 기본 브라우저로 열립니다
+  const intentUrl = `intent://${urlBody}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+  window.location.href = intentUrl;
+}
 
 export function AuthButtons() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleOAuthLogin = async (provider: Provider) => {
+    // KakaoTalk, NAVER 등 인앱 브라우저 감지: Google OAuth가 차단되므로 외부 브라우저로 리다이렉트
+    if (isInAppBrowser()) {
+      openCurrentPageInExternalBrowser();
+      return;
+    }
+
     setLoading(provider);
     setError(null);
 
     try {
       // 환경변수로 강제된 origin이 있으면 우선 사용 (프로덕션 배포용)
       // 없으면 현재 origin 사용 (로컬 개발용)
-      const envOrigin = import.meta.env.VITE_PUBLIC_APP_ORIGIN as string | undefined;
+      const envOrigin = (import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN as string | undefined;
       const appOrigin = envOrigin && typeof envOrigin === 'string' && envOrigin.trim().length > 0
         ? envOrigin.replace(/\/+$/, '')
         : window.location.origin;

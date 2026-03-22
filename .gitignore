@@ -48,6 +48,5 @@ claude/
 dist/
 
 # Android / Capacitor
-# android/ 소스 파일은 추적됩니다. 빌드 아티팩트와 생성 파일은 android/.gitignore에서 처리합니다.
-# 루트의 build/ 패턴은 android/build/, android/app/build/ 등에도 적용됩니다.
-build/
+android/
+capacitor.config.json
