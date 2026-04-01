@@ -487,6 +487,9 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
             onPositionsChange={(positions) =>
               setTheme((prev) => ({ ...prev, elementPositions: positions }))
             }
+            onStickersChange={(stickers) =>
+              setTheme((prev) => ({ ...prev, stickers }))
+            }
           />
 
           {/* 캔버스 하단 버튼 행 */}
@@ -625,6 +628,11 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
         theme={theme}
         data={themePreviewData}
         onChange={(partial) => setTheme((prev) => ({ ...prev, ...partial }))}
+        onUploadImage={async (file) => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('로그인이 필요합니다.');
+          return uploadToStorage('cards', file, user.id, 'stickers');
+        }}
       />
     </div>
   );

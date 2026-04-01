@@ -171,6 +171,30 @@ export interface CardElementPositions {
 }
 
 // ============================================================================
+// Sticker Element
+// ============================================================================
+/**
+ * 명함 위에 얹히는 스티커/이미지 레이어
+ * x, y: 카드 너비/높이 대비 % (중심점 기준)
+ * width: 카드 너비 대비 % (기본 20)
+ * rotation: 회전 각도 (degrees)
+ * opacity: 0~1
+ * zIndex: 렌더 순서 (낮을수록 뒤)
+ */
+export interface StickerElement {
+  id: string;
+  type: 'emoji' | 'image';
+  /** 이모지 문자(emoji) 또는 Storage URL(image) */
+  src: string;
+  x: number;
+  y: number;
+  width: number;
+  rotation: number;
+  opacity: number;
+  zIndex: number;
+}
+
+// ============================================================================
 // Orientation
 // ============================================================================
 /**
@@ -196,6 +220,8 @@ export interface CardTheme {
   style: CardStyleTokens;
   /** 각 요소의 커스텀 위치 (드래그로 조정). 없으면 기본 레이아웃 사용 */
   elementPositions?: CardElementPositions;
+  /** 스티커 / 갤러리 이미지 레이어 목록 */
+  stickers?: StickerElement[];
 }
 
 // ============================================================================

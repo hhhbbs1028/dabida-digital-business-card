@@ -12,7 +12,7 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { Instagram, Github, Globe } from 'lucide-react';
-import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, LayoutId, CardOrientation } from '../../theme/types';
+import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, LayoutId, CardOrientation, StickerElement } from '../../theme/types';
 import { applyThemeToStyle } from '../../theme/applyTheme';
 
 // ============================================================================
@@ -349,10 +349,12 @@ type Props = {
   data: CardContentTokens;
   /** 위치가 바뀔 때마다 호출 (실시간 미리보기용) */
   onPositionsChange?: (positions: CardElementPositions) => void;
+  /** 스티커 변경 시 호출 */
+  onStickersChange?: (stickers: StickerElement[]) => void;
   className?: string;
 };
 
-export function CardCanvas({ theme, data, onPositionsChange, className }: Props) {
+export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
@@ -371,7 +373,29 @@ export function CardCanvas({ theme, data, onPositionsChange, className }: Props)
     links:   { ...defaults.links,   ...saved.links   },
   }));
 
-  const [selected, setSelected] = useState<keyof DefaultPositionMap | null>(null);
+  // selected: 텍스트 요소 키 또는 스티커 ID
+  const [selected, setSelected] = useState<string | null>(null);
+  const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
+
+  // theme.stickers 외부 변경 시 동기화
+  React.useEffect(() => {
+    setStickers(theme.stickers ?? []);
+  }, [theme.stickers]);
+
+  const commitSticker = useCallback((updated: StickerElement[]) => {
+    setStickers(updated);
+    onStickersChange?.(updated);
+  }, [onStickersChange]);
+
+  const updateSticker = useCallback((id: string, patch: Partial<StickerElement>) => {
+    setStickers((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
+  }, []);
+
+  const deleteSticker = useCallback((id: string) => {
+    const next = stickers.filter((s) => s.id !== id);
+    setSelected(null);
+    commitSticker(next);
+  }, [stickers, commitSticker]);
 
   const updatePos = useCallback((key: keyof DefaultPositionMap, x: number, y: number) => {
     setPositions((prev) => {
@@ -594,6 +618,153 @@ export function CardCanvas({ theme, data, onPositionsChange, className }: Props)
           </div>
         </DraggableElement>
       )}
+
+      {/* ── 스티커 레이어 ── */}
+      {stickers
+        .slice()
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map((sticker) => {
+          const isSel = selected === sticker.id;
+          // 스티커용 드래그: pointerCapture 방식
+          const handleStickerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setSelected(sticker.id);
+          };
+          const handleStickerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+            const x = Math.max(2, Math.min(98, ((e.clientX - rect.left) / rect.width) * 100));
+            const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
+            updateSticker(sticker.id, { x, y });
+          };
+          const handleStickerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+            const x = Math.max(2, Math.min(98, ((e.clientX - rect.left) / rect.width) * 100));
+            const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
+            commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, x, y } : s));
+          };
+
+          // 리사이즈 핸들
+          const resizeDragging = { current: false };
+          const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            resizeDragging.current = true;
+          };
+          const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+            const cx = rect.left + (sticker.x / 100) * rect.width;
+            const cy = rect.top + (sticker.y / 100) * rect.height;
+            const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+            const newW = Math.max(5, Math.min(70, (dist / rect.width) * 200));
+            updateSticker(sticker.id, { width: newW });
+          };
+          const handleResizeUp = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+            const cx = rect.left + (sticker.x / 100) * rect.width;
+            const cy = rect.top + (sticker.y / 100) * rect.height;
+            const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+            const newW = Math.max(5, Math.min(70, (dist / rect.width) * 200));
+            commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, width: newW } : s));
+          };
+
+          return (
+            <div
+              key={sticker.id}
+              onPointerDown={handleStickerPointerDown}
+              onPointerMove={handleStickerPointerMove}
+              onPointerUp={handleStickerPointerUp}
+              style={{
+                position: 'absolute',
+                left: `${sticker.x}%`,
+                top: `${sticker.y}%`,
+                transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg)`,
+                width: `${sticker.width}%`,
+                opacity: sticker.opacity,
+                zIndex: 10 + sticker.zIndex,
+                cursor: 'grab',
+                userSelect: 'none',
+                touchAction: 'none',
+                outline: isSel ? '2px solid rgba(99,102,241,0.8)' : 'none',
+                outlineOffset: '2px',
+                borderRadius: '4px',
+              }}
+            >
+              {sticker.type === 'emoji' ? (
+                <div style={{
+                  fontSize: '3rem',
+                  lineHeight: 1,
+                  textAlign: 'center',
+                  pointerEvents: 'none',
+                  width: '100%',
+                }}>
+                  {sticker.src}
+                </div>
+              ) : (
+                <img
+                  src={sticker.src}
+                  alt="sticker"
+                  draggable={false}
+                  style={{ width: '100%', display: 'block', pointerEvents: 'none' }}
+                />
+              )}
+
+              {/* 선택 시 삭제 버튼 */}
+              {isSel && (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); deleteSticker(sticker.id); }}
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    width: '18px',
+                    height: '18px',
+                    background: 'rgba(239,68,68,0.9)',
+                    border: '2px solid #fff',
+                    borderRadius: '50%',
+                    color: '#fff',
+                    fontSize: '0.6rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 40,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+
+              {/* 선택 시 리사이즈 핸들 */}
+              {isSel && (
+                <div
+                  onPointerDown={handleResizeDown}
+                  onPointerMove={handleResizeMove}
+                  onPointerUp={handleResizeUp}
+                  style={{
+                    position: 'absolute',
+                    bottom: '-8px',
+                    right: '-8px',
+                    width: '14px',
+                    height: '14px',
+                    background: 'rgba(99,102,241,0.9)',
+                    border: '2px solid #fff',
+                    borderRadius: '50%',
+                    cursor: 'nwse-resize',
+                    zIndex: 40,
+                    touchAction: 'none',
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
 
       {/* 클릭 해제 영역 */}
       {selected && (

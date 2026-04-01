@@ -621,6 +621,34 @@ function PositionedView({ theme, data }: Props) {
           </div>
         </AbsElem>
       )}
+
+      {/* 스티커 레이어 */}
+      {(theme.stickers ?? [])
+        .slice()
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map((sticker) => (
+          <div
+            key={sticker.id}
+            style={{
+              position: 'absolute',
+              left: `${sticker.x}%`,
+              top: `${sticker.y}%`,
+              transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg)`,
+              width: `${sticker.width}%`,
+              opacity: sticker.opacity,
+              zIndex: 10 + sticker.zIndex,
+              pointerEvents: 'none',
+            }}
+          >
+            {sticker.type === 'emoji' ? (
+              <div style={{ fontSize: '3rem', lineHeight: 1, textAlign: 'center', width: '100%' }}>
+                {sticker.src}
+              </div>
+            ) : (
+              <img src={sticker.src} alt="" style={{ width: '100%', display: 'block' }} />
+            )}
+          </div>
+        ))}
     </div>
   );
 }

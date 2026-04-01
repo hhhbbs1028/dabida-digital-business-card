@@ -7,7 +7,7 @@
  * 색상·폰트·배경 변경 시 presetId가 자동으로 'custom'으로 전환됩니다.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { BottomSheet } from '../../shared/ui/BottomSheet';
 import type {
   CardTheme,
@@ -17,6 +17,7 @@ import type {
   ProfileShape,
   CardContentTokens,
   CardStyleTokens,
+  StickerElement,
 } from '../../theme/types';
 import { THEME_PRESETS, COLOR_PALETTES, FONT_SETS, GRADIENT_PRESETS, PATTERN_PRESETS } from '../../theme/presets';
 import { getLayoutCapabilities } from '../../theme/capabilities';
@@ -28,15 +29,18 @@ type Props = {
   theme: CardTheme;
   data?: CardContentTokens;
   onChange: (partial: Partial<CardTheme>) => void;
+  /** 갤러리 이미지 업로드 처리 (CardEditor에서 주입) */
+  onUploadImage?: (file: File) => Promise<string>;
 };
 
-type TabId = 'preset' | 'color' | 'font' | 'background';
+type TabId = 'preset' | 'color' | 'font' | 'background' | 'sticker';
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'preset', label: '프리셋' },
-  { id: 'color', label: '색상' },
-  { id: 'font', label: '폰트' },
-  { id: 'background', label: '배경' },
+  { id: 'preset',     label: '프리셋' },
+  { id: 'color',      label: '색상'   },
+  { id: 'font',       label: '폰트'   },
+  { id: 'background', label: '배경'   },
+  { id: 'sticker',    label: '꾸미기' },
 ];
 
 // ── 프리셋 탭 ─────────────────────────────────────────────────────────────────
@@ -572,9 +576,192 @@ function BackgroundTab({ theme, onChange }: {
   );
 }
 
+// ── 꾸미기 탭 ─────────────────────────────────────────────────────────────────
+
+const EMOJI_GROUPS: { label: string; items: string[] }[] = [
+  { label: '하트 & 감정', items: ['❤️','💕','💖','🧡','💛','💚','💙','💜','🖤','🤍','😊','😍','🥰','🤩','😎'] },
+  { label: '자연',         items: ['🌸','🌻','🌈','🌙','⭐','✨','☀️','🍀','🌿','🔥','⚡','❄️','🌊','🦋','🌺'] },
+  { label: '꾸미기',       items: ['👑','💎','🏆','🎨','🎉','🎊','🎀','🎵','🎶','📸','💡','🔮','🌟','🍭','🧁'] },
+];
+
+function StickerTab({
+  theme,
+  onChange,
+  onUploadImage,
+}: {
+  theme: CardTheme;
+  onChange: (partial: Partial<CardTheme>) => void;
+  onUploadImage?: (file: File) => Promise<string>;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const stickers = theme.stickers ?? [];
+
+  const addSticker = (emoji: string) => {
+    const newSticker: StickerElement = {
+      id: `sticker_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      type: 'emoji',
+      src: emoji,
+      x: 50,
+      y: 50,
+      width: 12,
+      rotation: 0,
+      opacity: 1,
+      zIndex: (stickers.length > 0 ? Math.max(...stickers.map((s) => s.zIndex)) : 0) + 1,
+    };
+    onChange({ stickers: [...stickers, newSticker] });
+  };
+
+  const addImageSticker = async (file: File) => {
+    if (!onUploadImage) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const url = await onUploadImage(file);
+      const newSticker: StickerElement = {
+        id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: 'image',
+        src: url,
+        x: 50,
+        y: 50,
+        width: 25,
+        rotation: 0,
+        opacity: 1,
+        zIndex: (stickers.length > 0 ? Math.max(...stickers.map((s) => s.zIndex)) : 0) + 1,
+      };
+      onChange({ stickers: [...stickers, newSticker] });
+    } catch (e: any) {
+      setUploadError(e?.message ?? '업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeSticker = (id: string) =>
+    onChange({ stickers: stickers.filter((s) => s.id !== id) });
+
+  const clearAll = () => onChange({ stickers: [] });
+
+  return (
+    <div className="space-y-6">
+      {/* 이모지 스티커 */}
+      {EMOJI_GROUPS.map((group) => (
+        <div key={group.label}>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {group.label}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {group.items.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => addSticker(emoji)}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-100 bg-white text-2xl shadow-sm transition hover:border-slate-300 hover:scale-110 active:scale-95"
+                title={`${emoji} 추가`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* 갤러리 이미지 업로드 */}
+      {onUploadImage && (
+        <div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            내 사진 추가
+          </div>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white py-4 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {uploading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+                업로드 중...
+              </>
+            ) : (
+              <>
+                <span className="text-xl">🖼️</span>
+                갤러리에서 사진 선택
+              </>
+            )}
+          </button>
+          {uploadError && (
+            <p className="mt-1 text-xs text-red-500">{uploadError}</p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) addImageSticker(file);
+            }}
+          />
+        </div>
+      )}
+
+      {/* 추가된 스티커 목록 */}
+      {stickers.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              추가된 스티커 ({stickers.length})
+            </span>
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-[11px] text-red-400 hover:text-red-600 transition"
+            >
+              전체 삭제
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {stickers.map((s) => (
+              <div
+                key={s.id}
+                className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm"
+              >
+                {s.type === 'emoji' ? (
+                  <span className="text-2xl">{s.src}</span>
+                ) : (
+                  <img
+                    src={s.src}
+                    alt="sticker"
+                    className="h-full w-full rounded-xl object-cover"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeSticker(s.id)}
+                  className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white shadow"
+                  title="삭제"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-slate-400">
+            명함 캔버스에서 드래그하여 위치를 조정할 수 있어요
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
-export function EditPanel({ isOpen, onClose, theme, data, onChange }: Props) {
+export function EditPanel({ isOpen, onClose, theme, data, onChange, onUploadImage }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('preset');
 
   // 미리보기 + 탭 바를 고정 슬롯에 배치 (스크롤 영역 밖)
@@ -642,6 +829,9 @@ export function EditPanel({ isOpen, onClose, theme, data, onChange }: Props) {
         )}
         {activeTab === 'background' && (
           <BackgroundTab theme={theme} onChange={onChange} />
+        )}
+        {activeTab === 'sticker' && (
+          <StickerTab theme={theme} onChange={onChange} onUploadImage={onUploadImage} />
         )}
       </div>
     </BottomSheet>
