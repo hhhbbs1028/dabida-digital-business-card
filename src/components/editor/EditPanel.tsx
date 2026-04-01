@@ -158,38 +158,105 @@ const PALETTE_LABELS: Record<ColorPaletteId, string> = {
 };
 
 const ELEMENT_COLORS: { label: string; key: keyof Pick<CardStyleTokens, 'primary' | 'secondary' | 'accent' | 'text'> }[] = [
-  { label: '이름',        key: 'primary' },
-  { label: '한줄소개',    key: 'secondary' },
-  { label: '소속',        key: 'accent' },
-  { label: '연락처 / 링크', key: 'text' },
+  { label: '이름',           key: 'primary'   },
+  { label: '한줄소개',       key: 'secondary' },
+  { label: '소속',           key: 'accent'    },
+  { label: '연락처 / 링크',  key: 'text'      },
 ];
+
+const RECENT_COLORS_KEY = 'dabida_recent_colors';
+const MAX_RECENT = 10;
+
+function loadRecentColors(): string[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) ?? '[]'); } catch { return []; }
+}
+function saveRecentColor(hex: string) {
+  const prev = loadRecentColors().filter((c) => c !== hex);
+  localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify([hex, ...prev].slice(0, MAX_RECENT)));
+}
+
+/** hex 문자열 유효성 검사 */
+function isValidHex(v: string) { return /^#[0-9a-fA-F]{6}$/.test(v); }
+
+/** 개별 색상 행 컴포넌트 */
+function ColorRow({
+  label, color, onCommit,
+}: { label: string; color: string; onCommit: (hex: string) => void }) {
+  const [hex, setHex] = React.useState(color);
+  // 외부에서 color 변경되면 동기화
+  React.useEffect(() => { setHex(color); }, [color]);
+
+  const commit = (val: string) => {
+    if (!isValidHex(val)) { setHex(color); return; }
+    saveRecentColor(val);
+    onCommit(val);
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-2.5">
+      <span className="w-24 shrink-0 text-xs font-medium text-slate-700">{label}</span>
+
+      {/* 컬러 픽커 버튼 — 크게, 눌리는 느낌 명확하게 */}
+      <label className="relative shrink-0 cursor-pointer">
+        <input
+          type="color"
+          value={hex}
+          onChange={(e) => { setHex(e.target.value); onCommit(e.target.value); }}
+          onBlur={(e) => commit(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label={`${label} 색상 선택`}
+        />
+        <div
+          className="h-9 w-9 rounded-xl border-2 border-white shadow-md ring-1 ring-slate-200 transition hover:scale-105"
+          style={{ backgroundColor: hex }}
+        />
+      </label>
+
+      {/* hex 직접 입력 */}
+      <input
+        type="text"
+        value={hex}
+        maxLength={7}
+        onChange={(e) => setHex(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') commit((e.target as HTMLInputElement).value); }}
+        className="w-24 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 focus:border-slate-400 focus:outline-none"
+        placeholder="#000000"
+        spellCheck={false}
+      />
+    </div>
+  );
+}
 
 function ColorTab({ theme, onChange }: {
   theme: CardTheme;
   onChange: (partial: Partial<CardTheme>) => void;
 }) {
-  const applyStyle = (patch: Partial<CardStyleTokens>) =>
+  const [recentColors, setRecentColors] = React.useState<string[]>(loadRecentColors);
+
+  const applyStyle = (patch: Partial<CardStyleTokens>) => {
     onChange({ presetId: 'custom', style: { ...theme.style, ...patch } });
+  };
+
+  const handleColorCommit = (key: keyof CardStyleTokens, hex: string) => {
+    applyStyle({ [key]: hex });
+    setRecentColors(loadRecentColors());
+  };
 
   return (
     <div className="space-y-6">
-      {/* 팔레트 프리셋 */}
+      {/* ── 팔레트 프리셋 ── */}
       <div>
         <div className="mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">색상 팔레트</div>
         <div className="grid grid-cols-5 gap-2">
           {PALETTE_IDS.map((paletteId) => {
             const isSelected = theme.paletteId === paletteId;
             const palette = COLOR_PALETTES[paletteId];
-
             return (
               <button
                 key={paletteId}
                 type="button"
-                onClick={() => onChange({
-                  paletteId,
-                  presetId: 'custom',
-                  style: { ...theme.style, ...palette },
-                })}
+                onClick={() => onChange({ paletteId, presetId: 'custom', style: { ...theme.style, ...palette } })}
                 className={[
                   'flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition',
                   isSelected ? 'border-slate-900 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300',
@@ -206,9 +273,7 @@ function ColorTab({ theme, onChange }: {
                   {PALETTE_LABELS[paletteId]}
                 </div>
                 {isSelected && (
-                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-[8px] text-white">
-                    ✓
-                  </div>
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-[8px] text-white">✓</div>
                 )}
               </button>
             );
@@ -216,36 +281,44 @@ function ColorTab({ theme, onChange }: {
         </div>
       </div>
 
-      {/* 요소별 색상 */}
+      {/* ── 요소별 자유 색상 ── */}
       <div>
         <div className="mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">요소별 색상</div>
         <div className="space-y-2">
-          {ELEMENT_COLORS.map(({ label, key }) => {
-            const currentColor = theme.style[key] as string;
-            return (
-              <label
-                key={key}
-                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-2.5 transition hover:border-slate-300"
-              >
-                <span className="w-24 shrink-0 text-xs font-medium text-slate-700">{label}</span>
-                <div className="relative shrink-0">
-                  <input
-                    type="color"
-                    value={currentColor}
-                    onChange={(e) => applyStyle({ [key]: e.target.value })}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  />
-                  <div
-                    className="h-7 w-7 rounded-lg border border-slate-200 shadow-sm"
-                    style={{ backgroundColor: currentColor }}
-                  />
-                </div>
-                <span className="font-mono text-[11px] text-slate-400">{currentColor}</span>
-              </label>
-            );
-          })}
+          {ELEMENT_COLORS.map(({ label, key }) => (
+            <ColorRow
+              key={key}
+              label={label}
+              color={theme.style[key] as string}
+              onCommit={(hex) => handleColorCommit(key, hex)}
+            />
+          ))}
         </div>
       </div>
+
+      {/* ── 최근 사용 색상 ── */}
+      {recentColors.length > 0 && (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">최근 사용</div>
+          <div className="flex flex-wrap gap-2">
+            {recentColors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                title={c}
+                onClick={() => {
+                  /* 가장 최근에 편집한 요소(primary)에 적용 */
+                  applyStyle({ primary: c });
+                  setRecentColors(loadRecentColors());
+                }}
+                className="h-8 w-8 rounded-xl border-2 border-white shadow ring-1 ring-slate-200 transition hover:scale-110"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-slate-400">탭하면 이름 색상에 적용됩니다</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -317,7 +390,7 @@ function FontTab({ theme, onChange }: {
 
 // ── 배경 탭 ───────────────────────────────────────────────────────────────────
 
-const SOLID_COLORS = ['#ffffff', '#f8fafc', '#0f172a', '#1e293b'];
+const SOLID_COLORS = ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#0f172a', '#1e293b', '#334155', '#475569'];
 
 function BackgroundTab({ theme, onChange }: {
   theme: CardTheme;
@@ -330,6 +403,19 @@ function BackgroundTab({ theme, onChange }: {
   const applyStyle = (patch: Partial<CardStyleTokens>) =>
     onChange({ presetId: 'custom', style: { ...theme.style, ...patch } });
 
+  // 자유 단색 배경 — 현재 solid 색상 or 흰색
+  const customSolidColor = currentBg.type === 'solid' ? currentBg.color : '#ffffff';
+  const [customHex, setCustomHex] = React.useState(customSolidColor);
+  React.useEffect(() => {
+    if (currentBg.type === 'solid') setCustomHex(currentBg.color);
+  }, [currentBg]);
+
+  const commitCustomBg = (val: string) => {
+    if (!isValidHex(val)) { setCustomHex(customSolidColor); return; }
+    saveRecentColor(val);
+    applyStyle({ background: { type: 'solid', color: val } });
+  };
+
   const shapes: { id: ProfileShape; label: string; icon: React.ReactNode }[] = [
     { id: 'circle', label: '원형', icon: <div className="h-8 w-8 rounded-full bg-slate-300" /> },
     { id: 'rounded', label: '둥근 모서리', icon: <div className="h-8 w-8 rounded-xl bg-slate-300" /> },
@@ -337,20 +423,20 @@ function BackgroundTab({ theme, onChange }: {
 
   return (
     <div className="space-y-6">
-      {/* 단색 */}
+      {/* 단색 프리셋 + 자유 색상 */}
       <div>
         <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">단색</div>
         <div className="grid grid-cols-4 gap-2">
           {SOLID_COLORS.map((color) => {
             const isSelected = currentBg.type === 'solid' && currentBg.color === color;
-            const isLight = color === '#ffffff' || color === '#f8fafc';
+            const isLight = parseInt(color.slice(1, 3), 16) > 180;
             return (
               <button
                 key={color}
                 type="button"
                 onClick={() => applyStyle({ background: { type: 'solid', color } })}
                 className={[
-                  'h-14 w-full rounded-2xl border-2 transition',
+                  'h-12 w-full rounded-2xl border-2 transition',
                   isSelected
                     ? 'border-slate-900 ring-2 ring-slate-900 ring-offset-2'
                     : 'border-slate-200 hover:border-slate-400',
@@ -358,11 +444,41 @@ function BackgroundTab({ theme, onChange }: {
                 style={{ backgroundColor: color }}
               >
                 {isSelected && (
-                  <span style={{ color: isLight ? '#0f172a' : '#ffffff' }}>✓</span>
+                  <span style={{ color: isLight ? '#0f172a' : '#ffffff', fontSize: '0.875rem' }}>✓</span>
                 )}
               </button>
             );
           })}
+        </div>
+
+        {/* 자유 색상 행 */}
+        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5">
+          <span className="shrink-0 text-xs font-medium text-slate-700">직접 지정</span>
+          <label className="relative shrink-0 cursor-pointer">
+            <input
+              type="color"
+              value={customHex}
+              onChange={(e) => { setCustomHex(e.target.value); applyStyle({ background: { type: 'solid', color: e.target.value } }); }}
+              onBlur={(e) => commitCustomBg(e.target.value)}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              aria-label="배경 색상 직접 선택"
+            />
+            <div
+              className="h-9 w-9 rounded-xl border-2 border-white shadow-md ring-1 ring-slate-200 transition hover:scale-105"
+              style={{ backgroundColor: customHex }}
+            />
+          </label>
+          <input
+            type="text"
+            value={customHex}
+            maxLength={7}
+            onChange={(e) => setCustomHex(e.target.value)}
+            onBlur={(e) => commitCustomBg(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitCustomBg((e.target as HTMLInputElement).value); }}
+            className="w-24 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700 focus:border-slate-400 focus:outline-none"
+            placeholder="#ffffff"
+            spellCheck={false}
+          />
         </div>
       </div>
 
