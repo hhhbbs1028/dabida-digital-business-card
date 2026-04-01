@@ -144,6 +144,43 @@ export interface CardContentTokens {
 }
 
 // ============================================================================
+// Element Position
+// ============================================================================
+/**
+ * 개별 요소의 위치
+ * x, y: 카드 너비/높이 대비 % (0~100), 요소 중심점 기준
+ * size: 프로필 이미지 전용 — 카드 너비 대비 % (기본 22)
+ */
+export interface ElementPosition {
+  x: number;
+  y: number;
+  size?: number;
+}
+
+/**
+ * 명함 내 각 요소의 위치 맵
+ * 설정되지 않은 요소는 기본 레이아웃 위치를 따름
+ */
+export interface CardElementPositions {
+  profile?: ElementPosition;
+  name?: ElementPosition;
+  tagline?: ElementPosition;
+  major?: ElementPosition;
+  contact?: ElementPosition;
+  links?: ElementPosition;
+}
+
+// ============================================================================
+// Orientation
+// ============================================================================
+/**
+ * 명함 방향
+ * landscape: 가로 (90:50 비율)
+ * portrait: 세로 (50:90 비율)
+ */
+export type CardOrientation = 'landscape' | 'portrait';
+
+// ============================================================================
 // Card Theme (최상위)
 // ============================================================================
 /**
@@ -152,10 +189,13 @@ export interface CardContentTokens {
  */
 export interface CardTheme {
   layoutId: LayoutId;
+  orientation: CardOrientation;
   presetId: ThemePresetId;
   paletteId: ColorPaletteId;
   fontSetId: FontSetId;
   style: CardStyleTokens;
+  /** 각 요소의 커스텀 위치 (드래그로 조정). 없으면 기본 레이아웃 사용 */
+  elementPositions?: CardElementPositions;
 }
 
 // ============================================================================

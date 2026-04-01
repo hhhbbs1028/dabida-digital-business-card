@@ -9,7 +9,7 @@
  * - 병합 순서: preset → palette → font → overrides
  */
 
-import type { CardTheme, ThemeOverride, ColorPaletteId, FontSetId } from './types';
+import type { CardTheme, ThemeOverride, ColorPaletteId, FontSetId, CardOrientation } from './types';
 import {
   THEME_PRESETS,
   COLOR_PALETTES,
@@ -33,6 +33,7 @@ export function mergeTheme(
   paletteId?: ColorPaletteId,
   fontSetId?: FontSetId,
   overrides?: ThemeOverride['style'],
+  orientation: CardOrientation = 'landscape',
 ): CardTheme {
   // 1. 프리셋을 베이스로 시작
   const preset = THEME_PRESETS[presetId];
@@ -65,6 +66,7 @@ export function mergeTheme(
 
   return {
     layoutId: PRESET_LAYOUT_MAP[presetId],
+    orientation,
     presetId,
     paletteId: paletteId ?? PRESET_PALETTE_MAP[presetId],
     fontSetId: fontSetId ?? PRESET_FONT_MAP[presetId],
@@ -133,11 +135,13 @@ export function extractThemeOverrides(
 export function restoreThemeFromOverrides(
   presetId: CardTheme['presetId'],
   overrides?: ThemeOverride,
+  orientation: CardOrientation = 'landscape',
 ): CardTheme {
   return mergeTheme(
     presetId,
     overrides?.paletteId,
     overrides?.fontSetId,
     overrides?.style,
+    orientation,
   );
 }
