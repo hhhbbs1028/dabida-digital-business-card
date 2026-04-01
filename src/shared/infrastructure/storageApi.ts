@@ -33,9 +33,10 @@ export async function uploadToStorage(
   // 파일명 생성: {userId}/{timestamp}-{random}-{originalName}
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 9);
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const fileName = folderName
-    ? `${folderName}/${userId}/${timestamp}-${random}-${file.name}`
-    : `${userId}/${timestamp}-${random}-${file.name}`;
+    ? `${folderName}/${userId}/${timestamp}-${random}-${safeName}`
+    : `${userId}/${timestamp}-${random}-${safeName}`;
 
   // 파일 업로드
   const { data, error } = await supabase.storage
