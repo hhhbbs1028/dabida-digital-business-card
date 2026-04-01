@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardPreview } from './CardPreview';
 import type { CardData, FontFamilyOption } from '../types';
-import { BusinessCard } from '../../../components/business-card/BusinessCard';
+import { CardCanvas } from '../../../components/business-card/CardCanvas';
 import { EditPanel } from '../../../components/editor/EditPanel';
 import type { CardTheme, CardContentTokens } from '../../../theme/types';
 import { mergeTheme } from '../../../theme/mergeTheme';
@@ -137,6 +137,13 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
         style: { ...baseEmpty.style, ...rest.style },
       };
       let restoredTheme = (rest.theme as CardTheme | undefined) ?? mergeTheme('minimal_light');
+      // orientation 복원: theme에 없으면 legacy style.orientation에서 매핑
+      if (!restoredTheme.orientation) {
+        restoredTheme = {
+          ...restoredTheme,
+          orientation: rest.style?.orientation === 'vertical' ? 'portrait' : 'landscape',
+        };
+      }
       // profile_url이 있는데 profileShape가 'none'이면 'circle'로 자동 복원
       if (rest.profile_url && restoredTheme.style.profileShape === 'none') {
         restoredTheme = { ...restoredTheme, style: { ...restoredTheme.style, profileShape: 'circle' } };
@@ -228,8 +235,65 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
 
   const renderSection = (tab: TabKey) => {
     if (tab === 'basic') {
+      const orientation = theme.orientation ?? 'landscape';
       return (
         <div className="space-y-6">
+          {/* 명함 방향 */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">명함 방향</p>
+            <div className="flex gap-3">
+              {/* 가로 방향 */}
+              <button
+                type="button"
+                onClick={() => setTheme((prev) => ({ ...prev, orientation: 'landscape' }))}
+                className={[
+                  'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 py-3 transition',
+                  orientation === 'landscape'
+                    ? 'border-slate-900 bg-slate-50'
+                    : 'border-slate-200 bg-white hover:border-slate-300',
+                ].join(' ')}
+              >
+                {/* 가로 명함 미니 아이콘 */}
+                <div
+                  className={[
+                    'rounded border-2',
+                    orientation === 'landscape' ? 'border-slate-900 bg-slate-200' : 'border-slate-300 bg-slate-100',
+                  ].join(' ')}
+                  style={{ width: '3rem', height: '1.6rem' }}
+                />
+                <span className={[
+                  'text-xs font-medium',
+                  orientation === 'landscape' ? 'text-slate-900' : 'text-slate-400',
+                ].join(' ')}>가로</span>
+              </button>
+
+              {/* 세로 방향 */}
+              <button
+                type="button"
+                onClick={() => setTheme((prev) => ({ ...prev, orientation: 'portrait' }))}
+                className={[
+                  'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 py-3 transition',
+                  orientation === 'portrait'
+                    ? 'border-slate-900 bg-slate-50'
+                    : 'border-slate-200 bg-white hover:border-slate-300',
+                ].join(' ')}
+              >
+                {/* 세로 명함 미니 아이콘 */}
+                <div
+                  className={[
+                    'rounded border-2',
+                    orientation === 'portrait' ? 'border-slate-900 bg-slate-200' : 'border-slate-300 bg-slate-100',
+                  ].join(' ')}
+                  style={{ width: '1.6rem', height: '3rem' }}
+                />
+                <span className={[
+                  'text-xs font-medium',
+                  orientation === 'portrait' ? 'text-slate-900' : 'text-slate-400',
+                ].join(' ')}>세로</span>
+              </button>
+            </div>
+          </div>
+
           {/* 프로필 사진 */}
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">프로필 사진</p>
@@ -411,16 +475,43 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
     }
 
     if (tab === 'style') {
+      const hasPositions =
+        theme.elementPositions && Object.keys(theme.elementPositions).length > 0;
+
       return (
         <div className="space-y-4">
-          <BusinessCard theme={theme} data={themePreviewData} />
-          <button
-            type="button"
-            onClick={() => setShowEditPanel(true)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
-          >
-            스타일 편집
-          </button>
+          {/* 드래그 캔버스 */}
+          <CardCanvas
+            theme={theme}
+            data={themePreviewData}
+            onPositionsChange={(positions) =>
+              setTheme((prev) => ({ ...prev, elementPositions: positions }))
+            }
+          />
+
+          {/* 캔버스 하단 버튼 행 */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEditPanel(true)}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
+            >
+              스타일 편집
+            </button>
+            {hasPositions && (
+              <button
+                type="button"
+                onClick={() =>
+                  setTheme((prev) => ({ ...prev, elementPositions: undefined }))
+                }
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                title="위치를 기본값으로 초기화"
+              >
+                위치 초기화
+              </button>
+            )}
+          </div>
+
           <AiLogoGenerator
             currentLogoUrl={value.logo_url}
             cardInfo={{
