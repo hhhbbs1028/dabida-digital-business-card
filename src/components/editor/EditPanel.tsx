@@ -709,12 +709,12 @@ function StickerTab({
         </div>
       )}
 
-      {/* 추가된 스티커 목록 */}
+      {/* ── 레이어 패널 ── */}
       {stickers.length > 0 && (
         <div>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              추가된 스티커 ({stickers.length})
+              레이어 ({stickers.length})
             </span>
             <button
               type="button"
@@ -724,34 +724,104 @@ function StickerTab({
               전체 삭제
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {stickers.map((s) => (
-              <div
-                key={s.id}
-                className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm"
-              >
-                {s.type === 'emoji' ? (
-                  <span className="text-2xl">{s.src}</span>
-                ) : (
-                  <img
-                    src={s.src}
-                    alt="sticker"
-                    className="h-full w-full rounded-xl object-cover"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeSticker(s.id)}
-                  className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white shadow"
-                  title="삭제"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+
+          {/* z-order 높은 것이 위에 표시 */}
+          <div className="space-y-2">
+            {stickers
+              .slice()
+              .sort((a, b) => b.zIndex - a.zIndex)
+              .map((s, idx, arr) => {
+                const isFirst = idx === 0;               // 최상단
+                const isLast  = idx === arr.length - 1; // 최하단
+
+                const moveUp = () => {
+                  // zIndex 1 증가
+                  const updated = stickers.map((st) =>
+                    st.id === s.id ? { ...st, zIndex: st.zIndex + 1 } : st
+                  );
+                  onChange({ stickers: updated });
+                };
+                const moveDown = () => {
+                  const updated = stickers.map((st) =>
+                    st.id === s.id ? { ...st, zIndex: Math.max(0, st.zIndex - 1) } : st
+                  );
+                  onChange({ stickers: updated });
+                };
+                const setOpacity = (val: number) => {
+                  const updated = stickers.map((st) =>
+                    st.id === s.id ? { ...st, opacity: val } : st
+                  );
+                  onChange({ stickers: updated });
+                };
+
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2"
+                  >
+                    {/* 썸네일 */}
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-xl">
+                      {s.type === 'emoji' ? s.src : (
+                        <img src={s.src} alt="" className="h-full w-full rounded-lg object-cover" />
+                      )}
+                    </div>
+
+                    {/* 투명도 슬라이더 */}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500">투명도</span>
+                        <span className="font-mono text-[10px] text-slate-400">
+                          {Math.round(s.opacity * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={s.opacity}
+                        onChange={(e) => setOpacity(Number(e.target.value))}
+                        className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                      />
+                    </div>
+
+                    {/* 순서 버튼 */}
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        disabled={isFirst}
+                        onClick={moveUp}
+                        title="위로"
+                        className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLast}
+                        onClick={moveDown}
+                        title="아래로"
+                        className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* 삭제 */}
+                    <button
+                      type="button"
+                      onClick={() => removeSticker(s.id)}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                      title="삭제"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
           </div>
           <p className="mt-2 text-[10px] text-slate-400">
-            명함 캔버스에서 드래그하여 위치를 조정할 수 있어요
+            캔버스에서 드래그하여 위치·크기를 조정할 수 있어요
           </p>
         </div>
       )}
