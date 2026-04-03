@@ -377,6 +377,20 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const [selected, setSelected] = useState<string | null>(null);
   const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
 
+  // theme.elementPositions 외부 변경 시 동기화 (위치 초기화 등)
+  React.useEffect(() => {
+    const newSaved = theme.elementPositions ?? {};
+    const newDefaults = getDefaultPositions(theme.layoutId, orientation, hasProfile);
+    setPositions({
+      profile: { ...newDefaults.profile, ...newSaved.profile },
+      name:    { ...newDefaults.name,    ...newSaved.name    },
+      tagline: { ...newDefaults.tagline, ...newSaved.tagline },
+      major:   { ...newDefaults.major,   ...newSaved.major   },
+      contact: { ...newDefaults.contact, ...newSaved.contact },
+      links:   { ...newDefaults.links,   ...newSaved.links   },
+    });
+  }, [theme.elementPositions, theme.layoutId, orientation, hasProfile]);
+
   // theme.stickers 외부 변경 시 동기화
   React.useEffect(() => {
     setStickers(theme.stickers ?? []);
@@ -573,13 +587,13 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
             {data.email && (
-              <span style={textStyle('--card-border', '0.58rem', '0.7rem')}>{data.email}</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>{data.email}</span>
             )}
             {data.phone && (
-              <span style={textStyle('--card-border', '0.58rem', '0.7rem')}>{data.phone}</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>{data.phone}</span>
             )}
             {!data.email && !data.phone && (
-              <span style={textStyle('--card-border', '0.58rem', '0.7rem')}>(연락처)</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>(연락처)</span>
             )}
           </div>
         </DraggableElement>
@@ -598,22 +612,22 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
             {data.links?.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
                 <Instagram size={9} />{data.links.instagram}
               </span>
             )}
             {data.links?.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
                 <Github size={9} />{data.links.github}
               </span>
             )}
             {data.links?.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
                 <Globe size={9} />{data.links.website}
               </span>
             )}
             {!data.links?.instagram && !data.links?.github && !data.links?.website && (
-              <span style={textStyle('--card-border', '0.58rem', '0.7rem')}>(링크)</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>(링크)</span>
             )}
           </div>
         </DraggableElement>

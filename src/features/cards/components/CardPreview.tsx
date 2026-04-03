@@ -1,7 +1,7 @@
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import type { CardContentTokens } from '../../../theme/types';
-import { storageToTheme } from '../../../theme/mergeTheme';
+import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
 
 type Props = {
   card: Omit<CardData, 'id'>;
@@ -25,14 +25,16 @@ export function CardPreview({ card }: Props) {
     profileUrl: card.profile_url || undefined,
   };
 
-  const theme = storageToTheme(card.theme);
+  // 구버전 CardTheme 포맷(colors 필드 없음)이 DB에 남아있을 수 있으므로 방어 처리
+  const storage = card.theme as any;
+  const theme = storage.colors ? storageToTheme(card.theme) : mergeTheme('minimal_light');
   const isPortrait = card.theme.orientation === 'portrait';
 
   return (
     <BusinessCard
       theme={theme}
       data={contentTokens}
-      style={isPortrait ? { maxWidth: '100%' } : undefined}
+      style={isPortrait ? { maxWidth: '50%' } : undefined}
     />
   );
 }

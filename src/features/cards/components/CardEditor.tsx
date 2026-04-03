@@ -5,6 +5,14 @@ import { CardCanvas } from '../../../components/business-card/CardCanvas';
 import { EditPanel } from '../../../components/editor/EditPanel';
 import type { CardTheme, CardThemeStorage, CardContentTokens } from '../../../theme/types';
 import { mergeTheme, themeToStorage, storageToTheme } from '../../../theme/mergeTheme';
+
+/** profileUrl이 있을 때 profileShape가 'none'이면 'circle'로 자동 전환 */
+function withNormalizedProfileShape(theme: CardTheme, hasProfileUrl: boolean): CardTheme {
+  if (hasProfileUrl && theme.style.profileShape === 'none') {
+    return { ...theme, style: { ...theme.style, profileShape: 'circle' } };
+  }
+  return theme;
+}
 import { AiLogoGenerator } from './AiLogoGenerator';
 import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
@@ -52,7 +60,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
     initialValue?.id ?? (crypto as any).randomUUID?.() ?? String(Date.now()),
   );
   const [theme, setTheme] = useState<CardTheme>(
-    () => (initialValue?.theme ? storageToTheme(initialValue.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light'),
+    () => (initialValue?.theme && (initialValue.theme as any).colors ? storageToTheme(initialValue.theme) : null) ?? mergeTheme('minimal_light'),
   );
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,12 +84,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       if (!user) throw new Error('로그인이 필요합니다.');
       const url = await uploadToStorage('avatars', file, user.id);
       update('profile_url', url);
-      // profileShape가 none이면 circle로 자동 전환
-      setTheme((prev) =>
-        prev.style.profileShape === 'none'
-          ? { ...prev, style: { ...prev.style, profileShape: 'circle' } }
-          : prev,
-      );
+      setTheme((prev) => withNormalizedProfileShape(prev, true));
     } catch (err: any) {
       setAvatarError(err?.message ?? '사진 업로드 중 오류가 발생했습니다.');
     } finally {
@@ -98,11 +101,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
 
   const handleUseProfileAvatar = (url: string) => {
     update('profile_url', url);
-    setTheme((prev) =>
-      prev.style.profileShape === 'none'
-        ? { ...prev, style: { ...prev.style, profileShape: 'circle' } }
-        : prev,
-    );
+    setTheme((prev) => withNormalizedProfileShape(prev, true));
   };
 
   useEffect(() => {
@@ -115,10 +114,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
         links: { ...baseEmpty.links, ...rest.links },
       };
       let restoredTheme = (rest.theme ? storageToTheme(rest.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light');
-      // profile_url이 있는데 profileShape가 'none'이면 'circle'로 자동 복원
-      if (rest.profile_url && restoredTheme.style.profileShape === 'none') {
-        restoredTheme = { ...restoredTheme, style: { ...restoredTheme.style, profileShape: 'circle' } };
-      }
+      restoredTheme = withNormalizedProfileShape(restoredTheme, !!rest.profile_url);
       setValue(newValue);
       setTheme(restoredTheme);
       lastSavedRef.current = JSON.stringify({ v: newValue, t: restoredTheme });
@@ -484,7 +480,8 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             )}
           </div>
 
-          <AiLogoGenerator
+          {/* AI 로고 생성  */}
+          {/* <AiLogoGenerator
             currentLogoUrl={value.logo_url}
             cardInfo={{
               name: value.display_name,
@@ -492,7 +489,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
               organization: value.organization || undefined,
             }}
             onLogoGenerated={(url) => update('logo_url', url)}
-          />
+          /> */}
         </div>
       );
     }
@@ -507,6 +504,17 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
           .card-preview-mobile { display: block !important; margin-top: 1.5rem; }
         }
       `}</style>
+      
+      {/* 미리보기 */}
+      <div className="hidden space-y-3 lg:block card-preview-mobile">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">미리보기</p>
+          <p className="mt-0.5 text-[11px] text-slate-400">실제 명함이 이렇게 보입니다</p>
+        </div>
+        <div className="sticky top-6">
+          <CardPreview card={{ ...value, theme: themeToStorage(theme) }} />
+        </div>
+      </div>
 
       {/* 편집 패널 */}
       <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -588,17 +596,6 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
               다음
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* 미리보기 */}
-      <div className="hidden space-y-3 lg:block card-preview-mobile">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">미리보기</p>
-          <p className="mt-0.5 text-[11px] text-slate-400">실제 명함이 이렇게 보입니다</p>
-        </div>
-        <div className="sticky top-6">
-          <CardPreview card={{ ...value, theme }} />
         </div>
       </div>
 

@@ -50,10 +50,6 @@ export function applyThemeToStyle(theme: CardTheme): React.CSSProperties {
     '--card-body-font': style.bodyFont,
     '--card-title-weight': String(style.titleWeight),
     '--card-body-weight': String(style.bodyWeight),
-    '--card-radius': style.borderRadius,
-    '--card-spacing-card': style.spacing.card,
-    '--card-spacing-section': style.spacing.section,
-    '--card-spacing-element': style.spacing.element,
     
     // 배경 스타일 직접 적용
     ...backgroundStyle,
@@ -90,10 +86,6 @@ export function applyThemeToCSSString(theme: CardTheme): string {
     --card-body-font: ${style.bodyFont};
     --card-title-weight: ${style.titleWeight};
     --card-body-weight: ${style.bodyWeight};
-    --card-radius: ${style.borderRadius};
-    --card-spacing-card: ${style.spacing.card};
-    --card-spacing-section: ${style.spacing.section};
-    --card-spacing-element: ${style.spacing.element};
     ${backgroundCSS}
   `.trim();
 }

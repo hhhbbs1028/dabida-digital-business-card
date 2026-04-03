@@ -70,8 +70,7 @@ function MinimalLandscape({ theme, data }: Props) {
       style={{
         ...style,
         borderColor: 'var(--card-border)',
-        padding: 'var(--card-spacing-card)',
-        borderRadius: 'var(--card-radius)',
+        padding: '1.5rem',
       }}
     >
       {/* 프로필 (있는 경우) */}
@@ -134,7 +133,7 @@ function MinimalLandscape({ theme, data }: Props) {
           style={{
             fontFamily: 'var(--card-body-font)',
             fontWeight: 'var(--card-body-weight)',
-            color: 'var(--card-border)',
+            color: 'var(--card-text)',
             fontSize: '0.6rem',
             lineHeight: '0.875rem',
           }}
@@ -175,8 +174,7 @@ function MinimalPortrait({ theme, data }: Props) {
       style={{
         ...style,
         borderColor: 'var(--card-border)',
-        padding: 'var(--card-spacing-card)',
-        borderRadius: 'var(--card-radius)',
+        padding: '1.5rem',
       }}
     >
       {profileShape !== 'none' && data.profileUrl && (
@@ -267,7 +265,6 @@ function SplitLandscape({ theme, data }: Props) {
       style={{
         ...style,
         borderColor: 'var(--card-border)',
-        borderRadius: 'var(--card-radius)',
       }}
     >
       {/* 좌측: 프로필/소속 */}
@@ -277,7 +274,7 @@ function SplitLandscape({ theme, data }: Props) {
           backgroundColor: 'var(--card-primary)',
           color: '#ffffff',
           minWidth: '5.5rem',
-          gap: 'var(--card-spacing-element)',
+          gap: '0.75rem',
         }}
       >
         {data.profileUrl ? (
@@ -317,7 +314,7 @@ function SplitLandscape({ theme, data }: Props) {
       {/* 우측: 정보 */}
       <div
         className="flex min-w-0 flex-1 flex-col justify-center gap-1.5"
-        style={{ padding: 'var(--card-spacing-card)' }}
+        style={{ padding: '1.5rem' }}
       >
         <div
           style={{
@@ -350,7 +347,7 @@ function SplitLandscape({ theme, data }: Props) {
           style={{
             fontFamily: 'var(--card-body-font)',
             fontWeight: 'var(--card-body-weight)',
-            color: 'var(--card-secondary)',
+            color: 'var(--card-text)',
             fontSize: '0.6rem',
             lineHeight: '0.875rem',
           }}
@@ -385,7 +382,6 @@ function SplitPortrait({ theme, data }: Props) {
       style={{
         ...style,
         borderColor: 'var(--card-border)',
-        borderRadius: 'var(--card-radius)',
       }}
     >
       {/* 상단: 프로필/소속 */}
@@ -395,7 +391,7 @@ function SplitPortrait({ theme, data }: Props) {
           backgroundColor: 'var(--card-primary)',
           color: '#ffffff',
           flex: '0 0 45%',
-          gap: 'var(--card-spacing-element)',
+          gap: '0.75rem',
         }}
       >
         {data.profileUrl ? (
@@ -434,7 +430,7 @@ function SplitPortrait({ theme, data }: Props) {
       {/* 하단: 정보 */}
       <div
         className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2"
-        style={{ padding: 'var(--card-spacing-card)' }}
+        style={{ padding: '1.5rem' }}
       >
         <div
           className="text-center"
@@ -469,7 +465,7 @@ function SplitPortrait({ theme, data }: Props) {
           style={{
             fontFamily: 'var(--card-body-font)',
             fontWeight: 'var(--card-body-weight)',
-            color: 'var(--card-secondary)',
+            color: 'var(--card-text)',
             fontSize: '0.65rem',
             lineHeight: '0.875rem',
           }}
@@ -594,8 +590,8 @@ function PositionedView({ theme, data }: Props) {
       {(data.email || data.phone) && pos.contact && (
         <AbsElem pos={pos.contact}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {data.email && <span style={ts('--card-border', '0.58rem', '0.7rem')}>{data.email}</span>}
-            {data.phone && <span style={ts('--card-border', '0.58rem', '0.7rem')}>{data.phone}</span>}
+            {data.email && <span style={ts('--card-text', '0.58rem', '0.7rem')}>{data.email}</span>}
+            {data.phone && <span style={ts('--card-text', '0.58rem', '0.7rem')}>{data.phone}</span>}
           </div>
         </AbsElem>
       )}
@@ -605,17 +601,17 @@ function PositionedView({ theme, data }: Props) {
         <AbsElem pos={pos.links}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {data.links.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
                 <Instagram size={9} />{data.links.instagram}
               </span>
             )}
             {data.links.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
                 <Github size={9} />{data.links.github}
               </span>
             )}
             {data.links.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-border', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
                 <Globe size={9} />{data.links.website}
               </span>
             )}

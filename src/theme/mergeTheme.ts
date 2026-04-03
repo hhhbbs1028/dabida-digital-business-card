@@ -53,15 +53,7 @@ export function mergeTheme(
 
   // 4. 오버라이드 적용 (가장 마지막, 최우선)
   if (overrides) {
-    mergedStyle = {
-      ...mergedStyle,
-      ...overrides,
-      // 중첩된 객체는 별도로 병합
-      spacing: {
-        ...mergedStyle.spacing,
-        ...(overrides.spacing || {}),
-      },
-    };
+    mergedStyle = { ...mergedStyle, ...overrides };
   }
 
   return {
@@ -108,18 +100,9 @@ export function extractThemeOverrides(
   if (currentStyle.titleWeight !== baseStyle.titleWeight) styleOverrides.titleWeight = currentStyle.titleWeight;
   if (currentStyle.bodyWeight !== baseStyle.bodyWeight) styleOverrides.bodyWeight = currentStyle.bodyWeight;
   if (currentStyle.profileShape !== baseStyle.profileShape) styleOverrides.profileShape = currentStyle.profileShape;
-  if (currentStyle.borderRadius !== baseStyle.borderRadius) styleOverrides.borderRadius = currentStyle.borderRadius;
 
   if (JSON.stringify(currentStyle.background) !== JSON.stringify(baseStyle.background)) {
     styleOverrides.background = currentStyle.background;
-  }
-
-  if (
-    currentStyle.spacing.card !== baseStyle.spacing.card ||
-    currentStyle.spacing.section !== baseStyle.spacing.section ||
-    currentStyle.spacing.element !== baseStyle.spacing.element
-  ) {
-    styleOverrides.spacing = currentStyle.spacing;
   }
 
   if (Object.keys(styleOverrides).length > 0) {
@@ -157,7 +140,6 @@ export function themeToStorage(theme: CardTheme): CardThemeStorage {
     },
     background: theme.style.background,
     profileShape: theme.style.profileShape,
-    borderRadius: theme.style.borderRadius,
     ...(theme.stickers ? { stickers: theme.stickers } : {}),
     ...(theme.elementPositions ? { elementPositions: theme.elementPositions } : {}),
   };
@@ -165,7 +147,7 @@ export function themeToStorage(theme: CardTheme): CardThemeStorage {
 
 /**
  * CardThemeStorage (DB 저장 포맷) → CardTheme (UI 내부 상태)
- * presetId는 'custom'으로, spacing은 기본값으로 복원
+ * presetId는 'custom'으로 복원
  */
 export function storageToTheme(storage: CardThemeStorage): CardTheme {
   return {
@@ -187,12 +169,6 @@ export function storageToTheme(storage: CardThemeStorage): CardTheme {
       bodyWeight: storage.font.bodyWeight,
       background: storage.background,
       profileShape: storage.profileShape,
-      borderRadius: storage.borderRadius,
-      spacing: {
-        card: '1.5rem',
-        section: '1rem',
-        element: '0.75rem',
-      },
     },
     stickers: storage.stickers,
     elementPositions: storage.elementPositions,

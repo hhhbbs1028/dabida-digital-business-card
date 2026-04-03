@@ -191,12 +191,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'solid', color: '#ffffff' },
     profileShape: 'none',
-    borderRadius: '1rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 미니멀 다크
@@ -210,12 +204,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'solid', color: '#0f172a' },
     profileShape: 'none',
-    borderRadius: '1rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 모던 그라데이션
@@ -224,12 +212,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'gradient', presetId: 'gradient_blue_purple' },
     profileShape: 'circle',
-    borderRadius: '1.5rem',
-    spacing: {
-      card: '2rem',
-      section: '1.25rem',
-      element: '1rem',
-    },
   },
 
   // 캠퍼스 바이브런트
@@ -238,12 +220,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.round,
     background: { type: 'gradient', presetId: 'gradient_warm_sunset' },
     profileShape: 'rounded',
-    borderRadius: '1.25rem',
-    spacing: {
-      card: '1.75rem',
-      section: '1.125rem',
-      element: '0.875rem',
-    },
   },
 
   // 테크 블루
@@ -252,12 +228,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'pattern', patternId: 'pattern_grid' },
     profileShape: 'circle',
-    borderRadius: '1rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 엘레강트 세리프
@@ -266,12 +236,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.myeongjo,
     background: { type: 'solid', color: '#fefefe' },
     profileShape: 'rounded',
-    borderRadius: '0.75rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 크리에이티브 컬러풀
@@ -280,12 +244,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.round,
     background: { type: 'gradient', presetId: 'gradient_pink_orange' },
     profileShape: 'circle',
-    borderRadius: '2rem',
-    spacing: {
-      card: '2rem',
-      section: '1.25rem',
-      element: '1rem',
-    },
   },
 
   // 코퍼레이트 뉴트럴
@@ -294,12 +252,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'pattern', patternId: 'pattern_dots' },
     profileShape: 'rounded',
-    borderRadius: '0.5rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 웜 오텀
@@ -308,12 +260,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.round,
     background: { type: 'gradient', presetId: 'gradient_warm_sunset' },
     profileShape: 'rounded',
-    borderRadius: '1.25rem',
-    spacing: {
-      card: '1.75rem',
-      section: '1.125rem',
-      element: '0.875rem',
-    },
   },
 
   // 쿨 미니멀
@@ -322,12 +268,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'gradient', presetId: 'gradient_teal_cyan' },
     profileShape: 'none',
-    borderRadius: '1rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 
   // 자유 설정 (사용자 커스텀 - minimal_light와 동일한 기본값)
@@ -336,12 +276,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
     ...FONT_SETS.gothic,
     background: { type: 'solid', color: '#ffffff' },
     profileShape: 'none',
-    borderRadius: '1rem',
-    spacing: {
-      card: '1.5rem',
-      section: '1rem',
-      element: '0.75rem',
-    },
   },
 };
 

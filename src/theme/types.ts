@@ -112,13 +112,6 @@ export interface CardStyleTokens {
   // 프로필
   profileShape: ProfileShape;
 
-  // 기타
-  borderRadius: string;
-  spacing: {
-    card: string;
-    section: string;
-    element: string;
-  };
 }
 
 // ============================================================================
@@ -231,7 +224,6 @@ export interface CardThemeStorage {
   };
   background: BackgroundToken;
   profileShape: ProfileShape;
-  borderRadius: string;
   stickers?: StickerElement[];
   elementPositions?: CardElementPositions;
 }
