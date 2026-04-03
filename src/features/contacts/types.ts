@@ -1,4 +1,5 @@
 import type { CardData } from '../cards/types';
+import type { CardTheme } from '../../theme/types';
 
 export type ReceivedCardSnapshot = {
   display_name?: string;
@@ -17,6 +18,9 @@ export type ReceivedCardSnapshot = {
     font_family?: string;
     orientation?: string;
   };
+  theme?: CardTheme | null;
+  profile_url?: string | null;
+  logo_url?: string | null;
 };
 
 export type ReceivedCard = {
