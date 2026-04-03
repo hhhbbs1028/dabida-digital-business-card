@@ -12,6 +12,7 @@ import { supabase } from '../../../shared/infrastructure/supabaseClient';
 type Props = {
   initialValue?: CardData | null;
   onSave: (card: CardData) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
   defaultStyle?: {
     template_id: number;
     theme_color: string;
@@ -54,7 +55,7 @@ const emptyCard: Omit<CardData, 'id'> = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition';
 
-export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Props) {
+export function CardEditor({ initialValue, onSave, onDirtyChange, defaultStyle, avatarUrl }: Props) {
   const baseEmpty = useMemo(
     () => ({
       ...emptyCard,
@@ -80,7 +81,7 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const saveTimer = useRef<number | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const hydratedRef = useRef(false);
   const lastSavedRef = useRef<string>('');
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
@@ -198,37 +199,35 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
     profileUrl: value.profile_url ?? undefined,
   }), [value]);
 
+  // 변경 감지 → isDirty 업데이트
   useEffect(() => {
     const serialized = JSON.stringify({ v: value, t: theme });
     if (!hydratedRef.current) {
       hydratedRef.current = true;
-      lastSavedRef.current = serialized;
       return;
     }
-    if (serialized === lastSavedRef.current) return;
-    if (isEmptyCard) return;
+    const dirty = serialized !== lastSavedRef.current;
+    setIsDirty(dirty);
+    onDirtyChange?.(dirty);
+  }, [value, theme, onDirtyChange]);
 
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+  const handleManualSave = async () => {
+    if (isEmptyCard || saveStatus === 'saving') return;
     setSaveStatus('saving');
     setSaveMessage('저장 중...');
-
-    saveTimer.current = window.setTimeout(async () => {
-      try {
-        await onSave({ id: currentId, ...value, theme });
-        lastSavedRef.current = JSON.stringify({ v: value, t: theme });
-        setSaveStatus('saved');
-        setSaveMessage('저장됨');
-      } catch (err: any) {
-        setSaveStatus('error');
-        setSaveMessage('저장 실패');
-        setError(err?.message ?? '자동 저장 중 오류가 발생했습니다.');
-      }
-    }, 900);
-
-    return () => {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    };
-  }, [value, theme, currentId, onSave, isEmptyCard]);
+    try {
+      await onSave({ id: currentId, ...value, theme });
+      lastSavedRef.current = JSON.stringify({ v: value, t: theme });
+      setSaveStatus('saved');
+      setSaveMessage('저장됨');
+      setIsDirty(false);
+      onDirtyChange?.(false);
+    } catch (err: any) {
+      setSaveStatus('error');
+      setSaveMessage('저장 실패');
+      setError(err?.message ?? '저장 중 오류가 발생했습니다.');
+    }
+  };
 
   const activeIndex = TAB_ORDER.indexOf(activeTab);
   const profileSrc = value.profile_url || null;
@@ -581,7 +580,10 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
             {saveStatus === 'saving' && (
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
             )}
-            {saveMessage && (
+            {isDirty && saveStatus !== 'saving' && (
+              <span className="text-[11px] text-amber-500">저장되지 않은 변경사항</span>
+            )}
+            {!isDirty && saveMessage && (
               <span className={[
                 'text-[11px]',
                 saveStatus === 'error' ? 'text-red-500' : 'text-slate-400',
@@ -601,9 +603,17 @@ export function CardEditor({ initialValue, onSave, defaultStyle, avatarUrl }: Pr
             </button>
             <button
               type="button"
+              disabled={!isDirty || isEmptyCard || saveStatus === 'saving'}
+              onClick={handleManualSave}
+              className="rounded-full bg-slate-900 px-5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              저장
+            </button>
+            <button
+              type="button"
               disabled={activeIndex === TAB_ORDER.length - 1}
               onClick={() => setActiveTab(TAB_ORDER[Math.min(activeIndex + 1, TAB_ORDER.length - 1)])}
-              className="rounded-full bg-slate-900 px-5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               다음
             </button>
