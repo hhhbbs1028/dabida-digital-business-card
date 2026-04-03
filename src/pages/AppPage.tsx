@@ -16,6 +16,8 @@ import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import { BottomSheet } from '../shared/ui/BottomSheet';
 import { ReceivedCardDetail } from '../features/contacts/components/ReceivedCardDetail';
 import { ReceivedCardsList } from '../features/contacts/components/ReceivedCardsList';
+import { CardPreview } from '../features/cards/components/CardPreview';
+import { snapshotToCardData } from '../features/contacts/utils/snapshotToCardData';
 import { ShareCardModal } from '../features/share/components/ShareCardModal';
 import { QRScanner } from '../features/share/components/QRScanner';
 import {
@@ -319,6 +321,16 @@ export function AppPage() {
       return;
     }
 
+    await executeDelete(id);
+  };
+
+  // confirm 없이 즉시 삭제 (끝까지 스와이프 시)
+  const handleDeleteDirect = async (id: string) => {
+    if (!user) return;
+    await executeDelete(id);
+  };
+
+  const executeDelete = async (id: string) => {
     setError(null);
     setCardsLoading(true);
 
@@ -442,46 +454,38 @@ export function AppPage() {
 
             <div>
               {filteredAndSortedCards.slice(0, 5).length > 0 ? (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-3">
                   {filteredAndSortedCards.slice(0, 5).map((card) => {
-                    const displayName = card.snapshot.display_name || '이름 없음';
-                    const initials = displayName.substring(0, 2).toUpperCase();
                     const canChat = !!card.source_card_id;
+                    const cardData = snapshotToCardData(card.snapshot);
+                    const isPortrait = cardData.theme?.orientation === 'portrait';
                     return (
-                      <div key={card.id} className="flex items-center gap-2">
-                        <button
-                          type="button"
+                      <div key={card.id} className="relative">
+                        <div
+                          className="relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                          style={{ maxWidth: isPortrait ? 200 : '100%', margin: isPortrait ? '0 auto' : undefined }}
                           onClick={() => {
                             setSelectedCardId(card.id);
                             setShowCardDetail(true);
                           }}
-                          className="flex flex-1 min-h-[84px] items-center gap-4 rounded-2xl bg-white px-6 py-5 text-left transition active:bg-slate-50 touch-manipulation"
                         >
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-700">
-                            {initials}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xl font-semibold leading-tight text-slate-900">
-                              {displayName}
-                            </p>
-                            <p className="mt-1.5 text-base leading-relaxed text-slate-500">
-                              {card.snapshot.headline || card.snapshot.organization || '설명 없음'}
-                            </p>
-                          </div>
-                        </button>
-                        {canChat && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartChat(card);
-                            }}
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-600 transition hover:bg-primary-200 active:bg-primary-300 touch-manipulation"
-                            title="채팅하기"
-                          >
-                            💬
-                          </button>
-                        )}
+                          <CardPreview card={cardData} />
+                          {canChat && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartChat(card);
+                              }}
+                              className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-primary-500 shadow transition hover:bg-white"
+                              title="채팅하기"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -518,6 +522,7 @@ export function AppPage() {
               setShowCardEditor(true);
             }}
             onDelete={handleDelete}
+            onDeleteDirect={handleDeleteDirect}
             onShare={(id) => {
               setShareTargetCardId(id);
             }}
