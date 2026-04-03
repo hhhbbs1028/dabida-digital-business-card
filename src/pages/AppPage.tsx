@@ -9,7 +9,6 @@ import { getMyProfile, type Profile } from '../features/profile/api/profileApi';
 import { getMyCards, createCard, updateCard, deleteCard } from '../features/cards/api/cardsApi';
 import { ProfileForm } from '../features/profile/components/ProfileForm';
 import { ProfileSection } from '../features/profile/components/ProfileSection';
-import { ContactsPage } from '../features/contacts/components/ContactsPage';
 import { BottomTabNavigation } from '../shared/ui/BottomTabNavigation';
 import { FloatingActionButton } from '../shared/ui/FloatingActionButton';
 import { FullScreenModal } from '../shared/ui/FullScreenModal';
