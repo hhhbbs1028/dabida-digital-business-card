@@ -35,12 +35,7 @@ export async function getPublicCard(cardId: string): Promise<PublicCard | null> 
       github: data.links?.github ?? '',
       website: data.links?.website ?? '',
     },
-    style: {
-      template_id: data.style?.template_id ?? 1,
-      theme_color: data.style?.theme_color ?? '#111827',
-      font_family: data.style?.font_family ?? 'sans',
-      orientation: data.style?.orientation ?? 'horizontal',
-    },
+    theme: data.theme ?? null,
     is_public: (data as any).is_public ?? true,
   };
 
@@ -131,16 +126,13 @@ export async function saveReceivedCardFromPublicCard(
               email: receiverCard.email,
               phone: receiverCard.phone,
               links: {
-                instagram: receiverCard.links.instagram,
-                github: receiverCard.links.github,
-                website: receiverCard.links.website,
+                ...(receiverCard.links.instagram && { instagram: receiverCard.links.instagram }),
+                ...(receiverCard.links.github && { github: receiverCard.links.github }),
+                ...(receiverCard.links.website && { website: receiverCard.links.website }),
               },
-              style: {
-                template_id: receiverCard.style.template_id,
-                theme_color: receiverCard.style.theme_color,
-                font_family: receiverCard.style.font_family,
-                orientation: receiverCard.style.orientation,
-              },
+              theme: receiverCard.theme ?? null,
+              profile_url: receiverCard.profile_url ?? null,
+              logo_url: receiverCard.logo_url ?? null,
             },
           }
         );

@@ -1,7 +1,7 @@
-import React from 'react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import type { CardContentTokens } from '../../../theme/types';
+import { storageToTheme } from '../../../theme/mergeTheme';
 
 type Props = {
   card: Omit<CardData, 'id'>;
@@ -25,11 +25,12 @@ export function CardPreview({ card }: Props) {
     profileUrl: card.profile_url || undefined,
   };
 
+  const theme = storageToTheme(card.theme);
   const isPortrait = card.theme.orientation === 'portrait';
 
   return (
     <BusinessCard
-      theme={card.theme}
+      theme={theme}
       data={contentTokens}
       style={isPortrait ? { maxWidth: '100%' } : undefined}
     />

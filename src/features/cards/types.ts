@@ -1,6 +1,4 @@
-import type { CardTheme } from '../../theme/types';
-
-export type FontFamilyOption = 'sans' | 'serif' | 'mono';
+import type { CardThemeStorage } from '../../theme/types';
 
 export type CardData = {
   id: string;
@@ -14,18 +12,10 @@ export type CardData = {
     github: string;
     website: string;
   };
-  style: {
-    template_id: 1 | 2;
-    theme_color: string;
-    font_family: FontFamilyOption;
-    orientation: 'horizontal' | 'vertical';
-  };
   // 이미지 URL (Supabase Storage에 저장된 이미지의 URL)
   profile_url?: string | null;
   logo_url?: string | null;
   card_image_url?: string | null;
-  // 고급 테마 엔진. NULL이면 legacy style 컬럼으로 렌더링.
-  theme?: CardTheme | null;
+  // 테마 (DB 저장 포맷). NULL이면 기본 테마로 렌더링.
+  theme: CardThemeStorage | null;
 };
-
-

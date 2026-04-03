@@ -1,5 +1,4 @@
-import type { CardData } from '../cards/types';
-import type { CardTheme } from '../../theme/types';
+import type { CardThemeStorage } from '../../theme/types';
 
 export type ReceivedCardSnapshot = {
   display_name?: string;
@@ -12,13 +11,7 @@ export type ReceivedCardSnapshot = {
     github?: string;
     website?: string;
   };
-  style?: {
-    template_id?: number;
-    theme_color?: string;
-    font_family?: string;
-    orientation?: string;
-  };
-  theme?: CardTheme | null;
+  theme?: CardThemeStorage | null;
   profile_url?: string | null;
   logo_url?: string | null;
 };

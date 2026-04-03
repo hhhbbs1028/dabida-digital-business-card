@@ -9,7 +9,7 @@
  * - 병합 순서: preset → palette → font → overrides
  */
 
-import type { CardTheme, ThemeOverride, ColorPaletteId, FontSetId, CardOrientation } from './types';
+import type { CardTheme, CardThemeStorage, ThemeOverride, ColorPaletteId, FontSetId, CardOrientation } from './types';
 import {
   THEME_PRESETS,
   COLOR_PALETTES,
@@ -127,6 +127,76 @@ export function extractThemeOverrides(
   }
 
   return overrides;
+}
+
+// ============================================================================
+// Storage ↔ UI 변환 함수
+// ============================================================================
+
+/**
+ * CardTheme (UI 내부 상태) → CardThemeStorage (DB 저장 포맷)
+ * presetId/paletteId/fontSetId는 제외하고 실제 값만 저장
+ */
+export function themeToStorage(theme: CardTheme): CardThemeStorage {
+  return {
+    layoutId: theme.layoutId,
+    orientation: theme.orientation,
+    colors: {
+      primary: theme.style.primary,
+      secondary: theme.style.secondary,
+      accent: theme.style.accent,
+      text: theme.style.text,
+      textMuted: theme.style.textMuted,
+      border: theme.style.border,
+    },
+    font: {
+      titleFont: theme.style.titleFont,
+      bodyFont: theme.style.bodyFont,
+      titleWeight: theme.style.titleWeight,
+      bodyWeight: theme.style.bodyWeight,
+    },
+    background: theme.style.background,
+    profileShape: theme.style.profileShape,
+    borderRadius: theme.style.borderRadius,
+    ...(theme.stickers ? { stickers: theme.stickers } : {}),
+    ...(theme.elementPositions ? { elementPositions: theme.elementPositions } : {}),
+  };
+}
+
+/**
+ * CardThemeStorage (DB 저장 포맷) → CardTheme (UI 내부 상태)
+ * presetId는 'custom'으로, spacing은 기본값으로 복원
+ */
+export function storageToTheme(storage: CardThemeStorage): CardTheme {
+  return {
+    layoutId: storage.layoutId,
+    orientation: storage.orientation,
+    presetId: 'custom',
+    paletteId: 'slate',
+    fontSetId: 'gothic',
+    style: {
+      primary: storage.colors.primary,
+      secondary: storage.colors.secondary,
+      accent: storage.colors.accent,
+      text: storage.colors.text,
+      textMuted: storage.colors.textMuted,
+      border: storage.colors.border,
+      titleFont: storage.font.titleFont,
+      bodyFont: storage.font.bodyFont,
+      titleWeight: storage.font.titleWeight,
+      bodyWeight: storage.font.bodyWeight,
+      background: storage.background,
+      profileShape: storage.profileShape,
+      borderRadius: storage.borderRadius,
+      spacing: {
+        card: '1.5rem',
+        section: '1rem',
+        element: '0.75rem',
+      },
+    },
+    stickers: storage.stickers,
+    elementPositions: storage.elementPositions,
+  };
 }
 
 /**

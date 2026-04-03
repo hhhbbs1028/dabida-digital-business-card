@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardPreview } from './CardPreview';
-import type { CardData, FontFamilyOption } from '../types';
+import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
 import { EditPanel } from '../../../components/editor/EditPanel';
-import type { CardTheme, CardContentTokens } from '../../../theme/types';
-import { mergeTheme } from '../../../theme/mergeTheme';
+import type { CardTheme, CardThemeStorage, CardContentTokens } from '../../../theme/types';
+import { mergeTheme, themeToStorage, storageToTheme } from '../../../theme/mergeTheme';
 import { AiLogoGenerator } from './AiLogoGenerator';
 import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
@@ -13,12 +13,6 @@ type Props = {
   initialValue?: CardData | null;
   onSave: (card: CardData) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
-  defaultStyle?: {
-    template_id: number;
-    theme_color: string;
-    font_family: FontFamilyOption;
-    orientation: 'horizontal' | 'vertical';
-  };
   avatarUrl?: string | null;
 };
 
@@ -44,37 +38,21 @@ const emptyCard: Omit<CardData, 'id'> = {
     github: '',
     website: '',
   },
-  style: {
-    template_id: 1,
-    theme_color: '#111827',
-    font_family: 'sans',
-    orientation: 'horizontal',
-  },
+  theme: null,
 };
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition';
 
-export function CardEditor({ initialValue, onSave, onDirtyChange, defaultStyle, avatarUrl }: Props) {
-  const baseEmpty = useMemo(
-    () => ({
-      ...emptyCard,
-      style: {
-        template_id: (defaultStyle?.template_id ?? emptyCard.style.template_id) as 1 | 2,
-        theme_color: defaultStyle?.theme_color ?? emptyCard.style.theme_color,
-        font_family: defaultStyle?.font_family ?? emptyCard.style.font_family,
-        orientation: defaultStyle?.orientation ?? emptyCard.style.orientation,
-      },
-    }),
-    [defaultStyle],
-  );
+export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: Props) {
+  const baseEmpty = emptyCard;
 
-  const [value, setValue] = useState(baseEmpty as Omit<CardData, 'id'>);
+  const [value, setValue] = useState<Omit<CardData, 'id'>>(baseEmpty);
   const [currentId, setCurrentId] = useState(
     initialValue?.id ?? (crypto as any).randomUUID?.() ?? String(Date.now()),
   );
   const [theme, setTheme] = useState<CardTheme>(
-    () => (initialValue?.theme as CardTheme | undefined) ?? mergeTheme('minimal_light'),
+    () => (initialValue?.theme ? storageToTheme(initialValue.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light'),
   );
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,16 +113,8 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, defaultStyle, 
         ...baseEmpty,
         ...rest,
         links: { ...baseEmpty.links, ...rest.links },
-        style: { ...baseEmpty.style, ...rest.style },
       };
-      let restoredTheme = (rest.theme as CardTheme | undefined) ?? mergeTheme('minimal_light');
-      // orientation 복원: theme에 없으면 legacy style.orientation에서 매핑
-      if (!restoredTheme.orientation) {
-        restoredTheme = {
-          ...restoredTheme,
-          orientation: rest.style?.orientation === 'vertical' ? 'portrait' : 'landscape',
-        };
-      }
+      let restoredTheme = (rest.theme ? storageToTheme(rest.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light');
       // profile_url이 있는데 profileShape가 'none'이면 'circle'로 자동 복원
       if (rest.profile_url && restoredTheme.style.profileShape === 'none') {
         restoredTheme = { ...restoredTheme, style: { ...restoredTheme.style, profileShape: 'circle' } };
@@ -216,7 +186,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, defaultStyle, 
     setSaveStatus('saving');
     setSaveMessage('저장 중...');
     try {
-      await onSave({ id: currentId, ...value, theme });
+      await onSave({ id: currentId, ...value, theme: themeToStorage(theme) });
       lastSavedRef.current = JSON.stringify({ v: value, t: theme });
       setSaveStatus('saved');
       setSaveMessage('저장됨');

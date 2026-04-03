@@ -13,12 +13,6 @@ export function snapshotToCardData(snapshot: ReceivedCardSnapshot): Omit<CardDat
       github: snapshot.links?.github ?? '',
       website: snapshot.links?.website ?? '',
     },
-    style: {
-      template_id: (snapshot.style?.template_id as 1 | 2) ?? 1,
-      theme_color: snapshot.style?.theme_color ?? '#111827',
-      font_family: (snapshot.style?.font_family as any) ?? 'sans',
-      orientation: (snapshot.style?.orientation as any) ?? 'horizontal',
-    },
     profile_url: snapshot.profile_url ?? null,
     logo_url: snapshot.logo_url ?? null,
     theme: snapshot.theme ?? null,

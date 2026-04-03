@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -29,7 +29,7 @@ console.log('[supabaseClient] 초기화:', {
 });
 
 // Supabase 클라이언트 생성 (오류 발생 시에도 계속 진행)
-let supabase: ReturnType<typeof createClient>;
+let supabase: SupabaseClient;
 
 try {
   supabase = createClient(supabaseUrl, supabaseAnonKey, {

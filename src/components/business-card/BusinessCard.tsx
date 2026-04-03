@@ -19,6 +19,7 @@ type Props = {
   theme: CardTheme;
   data: CardContentTokens;
   className?: string;
+  style?: React.CSSProperties;
 };
 
 /**
@@ -668,7 +669,7 @@ const LAYOUT_MAP: Record<LayoutKey, React.ComponentType<Props>> = {
  * - landscape: 9:5 비율, 최대 너비 540px
  * - portrait:  5:9 비율, 최대 너비 300px
  */
-export function BusinessCard({ theme, data, className }: Props) {
+export function BusinessCard({ theme, data, className, style }: Props) {
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
 
@@ -687,6 +688,7 @@ export function BusinessCard({ theme, data, className }: Props) {
         maxWidth: isPortrait ? '300px' : '540px',
         position: 'relative',
         borderColor: 'var(--card-border, #e2e8f0)',
+        ...style,
       }}
     >
       {hasCustomPositions

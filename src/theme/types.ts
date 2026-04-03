@@ -205,6 +205,38 @@ export interface StickerElement {
 export type CardOrientation = 'landscape' | 'portrait';
 
 // ============================================================================
+// Card Theme Storage (DB 저장 포맷)
+// ============================================================================
+/**
+ * DB에 저장되는 테마 데이터
+ * presetId/paletteId/fontSetId 같은 선택 단축키는 저장하지 않고
+ * 실제 적용된 값(색상, 폰트, 배경 등)만 직접 저장
+ */
+export interface CardThemeStorage {
+  layoutId: LayoutId;
+  orientation: CardOrientation;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    text: string;
+    textMuted: string;
+    border: string;
+  };
+  font: {
+    titleFont: string;
+    bodyFont: string;
+    titleWeight: number | string;
+    bodyWeight: number | string;
+  };
+  background: BackgroundToken;
+  profileShape: ProfileShape;
+  borderRadius: string;
+  stickers?: StickerElement[];
+  elementPositions?: CardElementPositions;
+}
+
+// ============================================================================
 // Card Theme (최상위)
 // ============================================================================
 /**

@@ -33,13 +33,8 @@ function normalizeCard(row: any): CardData {
       github: row.links?.github ?? '',
       website: row.links?.website ?? '',
     },
-    style: {
-      template_id: row.style?.template_id ?? 1,
-      theme_color: row.style?.theme_color ?? '#111827',
-      font_family: row.style?.font_family ?? 'sans',
-      orientation: row.style?.orientation ?? 'horizontal',
-    },
     profile_url: row.profile_url ?? null,
+    logo_url: row.logo_url ?? null,
     theme: row.theme ?? null,
   };
 }
@@ -76,19 +71,13 @@ export async function createCard(card: Omit<CardData, 'id'>): Promise<CardData> 
       email: card.email,
       phone: card.phone,
       links: {
-        instagram: card.links.instagram || null,
-        github: card.links.github || null,
-        website: card.links.website || null,
+        ...(card.links.instagram && { instagram: card.links.instagram }),
+        ...(card.links.github && { github: card.links.github }),
+        ...(card.links.website && { website: card.links.website }),
       },
-      style: {
-        template_id: card.style.template_id,
-        theme_color: card.style.theme_color,
-        font_family: card.style.font_family,
-        orientation: card.style.orientation,
-      },
-      ...(card.theme != null ? { theme: card.theme } : {}),
+      theme: card.theme ?? null,
       profile_url: card.profile_url ?? null,
-    })
+    } as any)
     .select('*')
     .single();
 
@@ -113,19 +102,13 @@ export async function updateCard(card: CardData): Promise<CardData> {
       email: card.email,
       phone: card.phone,
       links: {
-        instagram: card.links.instagram || null,
-        github: card.links.github || null,
-        website: card.links.website || null,
+        ...(card.links.instagram && { instagram: card.links.instagram }),
+        ...(card.links.github && { github: card.links.github }),
+        ...(card.links.website && { website: card.links.website }),
       },
-      style: {
-        template_id: card.style.template_id,
-        theme_color: card.style.theme_color,
-        font_family: card.style.font_family,
-        orientation: card.style.orientation,
-      },
-      ...(card.theme != null ? { theme: card.theme } : {}),
+      theme: card.theme ?? null,
       profile_url: card.profile_url ?? null,
-    })
+    } as any)
     .eq('id', card.id)
     .eq('user_id', user.id);
 
@@ -165,4 +148,3 @@ export async function deleteCard(id: string): Promise<void> {
     throw error;
   }
 }
-
