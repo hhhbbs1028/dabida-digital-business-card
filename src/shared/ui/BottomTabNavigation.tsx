@@ -1,6 +1,6 @@
 import React from 'react';
 
-type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'community' | 'profile';
+type Tab = 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 
 type Props = {
   activeTab: Tab;
@@ -56,7 +56,6 @@ const IconProfile = ({ isActive }: { isActive: boolean }) => (
 
 export function BottomTabNavigation({ activeTab, onTabChange }: Props) {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'home', label: '홈', icon: <IconHome isActive={activeTab === 'home'} /> },
     { id: 'cards', label: '명함', icon: <IconCards isActive={activeTab === 'cards'} /> },
     { id: 'received', label: '받은 명함', icon: <IconReceived isActive={activeTab === 'received'} /> },
     { id: 'exchange', label: '교환', icon: <IconExchange isActive={activeTab === 'exchange'} /> },

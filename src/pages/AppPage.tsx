@@ -15,8 +15,6 @@ import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import { BottomSheet } from '../shared/ui/BottomSheet';
 import { ReceivedCardDetail } from '../features/contacts/components/ReceivedCardDetail';
 import { ReceivedCardsList } from '../features/contacts/components/ReceivedCardsList';
-import { CardPreview } from '../features/cards/components/CardPreview';
-import { snapshotToCardData } from '../features/contacts/utils/snapshotToCardData';
 import { ShareCardModal } from '../features/share/components/ShareCardModal';
 import { QRScanner } from '../features/share/components/QRScanner';
 import {
@@ -35,14 +33,14 @@ import { createOrGetDm } from '../features/community/api/chatsApi';
 import { ChatTab } from '../features/community/components/ChatTab';
 import { supabase } from '../shared/infrastructure/supabaseClient';
 
-type Tab = 'home' | 'cards' | 'received' | 'exchange' | 'community' | 'profile';
+type Tab = 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 type ExchangeSubTab = 'give' | 'receive';
 
 export function AppPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [activeTab, setActiveTab] = useState<Tab>('cards');
   const [cards, setCards] = useState([] as CardData[]);
   const [selectedId, setSelectedId] = useState(null as string | null);
   const [cardsLoading, setCardsLoading] = useState(false);
@@ -440,73 +438,6 @@ export function AppPage() {
       }}
     >
       <div className="pb-20 md:pb-8">
-        {/* 홈 탭 */}
-        {activeTab === 'home' && (
-          <div className="space-y-6">
-            {/* 간단한 인사 */}
-            <div>
-              <h2 className="text-2xl font-semibold leading-tight text-slate-900">👋 안녕하세요</h2>
-              <p className="mt-2 text-base leading-relaxed text-slate-500">
-                오늘 받은 명함
-              </p>
-            </div>
-
-            <div>
-              {filteredAndSortedCards.slice(0, 5).length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {filteredAndSortedCards.slice(0, 5).map((card) => {
-                    const canChat = !!card.source_card_id;
-                    const cardData = snapshotToCardData(card.snapshot);
-                    const isPortrait = cardData.theme?.orientation === 'portrait';
-                    return (
-                      <div key={card.id} className="relative">
-                        <div
-                          className="relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-md transition-shadow"
-                          style={{ maxWidth: isPortrait ? 200 : '100%', margin: isPortrait ? '0 auto' : undefined }}
-                          onClick={() => {
-                            setSelectedCardId(card.id);
-                            setShowCardDetail(true);
-                          }}
-                        >
-                          <CardPreview card={cardData} />
-                          {canChat && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartChat(card);
-                              }}
-                              className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-primary-500 shadow transition hover:bg-white"
-                              title="채팅하기"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {filteredAndSortedCards.length > 5 && (
-          <button
-            type="button"
-                      onClick={() => setActiveTab('received')}
-                      className="w-full rounded-2xl bg-slate-50 px-6 py-4 text-base font-medium text-slate-600 transition active:bg-slate-100 touch-manipulation"
-          >
-                      전체보기 →
-          </button>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-white p-12 text-center">
-                  <p className="text-base text-slate-500">아직 받은 명함이 없어요</p>
-                </div>
-              )}
-            </div>
-      </div>
-        )}
-
         {/* 명함 탭 */}
         {activeTab === 'cards' && (
           <div className="space-y-6">
