@@ -19,6 +19,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 type Props = {
   initialValue?: CardData | null;
@@ -129,7 +130,19 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
     setTheme((prev) => withNormalizedProfileShape(prev, true));
   };
 
+  const navigate = useNavigate();
+
   useEffect(() => {
+    // ThemeEditor에서 돌아올 때 sessionStorage에 저장된 테마 확인
+    const themeEditResult = sessionStorage.getItem('dabida_theme_edit_result');
+    let returnedTheme: CardTheme | null = null;
+    if (themeEditResult) {
+      try {
+        returnedTheme = storageToTheme(JSON.parse(themeEditResult));
+      } catch {}
+      sessionStorage.removeItem('dabida_theme_edit_result');
+    }
+
     if (initialValue) {
       const { id: _id, ...rest } = initialValue;
       setCurrentId(initialValue.id);
@@ -138,13 +151,15 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
         ...rest,
         links: { ...baseEmpty.links, ...rest.links },
       };
-      let restoredTheme = (rest.theme ? storageToTheme(rest.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light');
+      let restoredTheme = returnedTheme
+        ?? (rest.theme ? storageToTheme(rest.theme as CardThemeStorage) : null)
+        ?? mergeTheme('minimal_light');
       restoredTheme = withNormalizedProfileShape(restoredTheme, !!rest.profile_url);
       setValue(newValue);
       setTheme(restoredTheme);
       lastSavedRef.current = JSON.stringify({ v: newValue, t: restoredTheme });
     } else {
-      const defaultTheme = mergeTheme('minimal_light');
+      const defaultTheme = returnedTheme ?? mergeTheme('minimal_light');
       setValue(baseEmpty);
       setTheme(defaultTheme);
       lastSavedRef.current = JSON.stringify({ v: baseEmpty, t: defaultTheme });
@@ -478,7 +493,14 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             </div>
             <button
               type="button"
-              onClick={() => window.open('/theme-editor', '_blank')}
+              onClick={() => navigate('/theme-editor', {
+                state: {
+                  data: value,
+                  avatar: avatarUrl,
+                  theme: themeToStorage(theme),
+                }
+              })}
+              // onClick={() => window.open('/theme-editor', '_blank')}
               className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
             >
               스타일 편집
