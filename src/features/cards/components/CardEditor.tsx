@@ -15,6 +15,8 @@ function withNormalizedProfileShape(theme: CardTheme, hasProfileUrl: boolean): C
   return theme;
 }
 import { AiLogoGenerator } from './AiLogoGenerator';
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
@@ -75,18 +77,39 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAvatarUpload = async (e?: React.ChangeEvent<HTMLInputElement>) => {
     setAvatarUploading(true);
     setAvatarError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('로그인이 필요합니다.');
+
+      let file: File;
+
+      if (Capacitor.isNativePlatform()) {
+        // 네이티브: 카메라 플러그인으로 네이티브 갤러리/카메라 선택 UI 사용
+        const image = await Camera.getPhoto({
+          quality: 80,
+          allowEditing: true,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Prompt,
+        });
+        if (!image.dataUrl) throw new Error('이미지를 가져올 수 없습니다.');
+        const res = await fetch(image.dataUrl);
+        const blob = await res.blob();
+        file = new File([blob], `avatar_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      } else {
+        // 웹: 기존 파일 input 방식
+        const f = e?.target.files?.[0];
+        if (!f) return;
+        file = f;
+      }
+
       const url = await uploadToStorage('avatars', file, user.id);
       update('profile_url', url);
       setTheme((prev) => withNormalizedProfileShape(prev, true));
     } catch (err: any) {
+      if (err?.message?.includes('canceled') || err?.message?.includes('cancelled')) return;
       setAvatarError(err?.message ?? '사진 업로드 중 오류가 발생했습니다.');
     } finally {
       setAvatarUploading(false);
@@ -268,7 +291,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => avatarFileInputRef.current?.click()}
+                onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
                 disabled={avatarUploading}
                 className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-2 ring-offset-2 ring-transparent hover:ring-slate-300 transition focus:outline-none disabled:opacity-60"
                 title={profileSrc ? '사진 변경' : '사진 추가'}
@@ -303,7 +326,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => avatarFileInputRef.current?.click()}
+                    onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
                     disabled={avatarUploading}
                     className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 transition disabled:opacity-50"
                   >

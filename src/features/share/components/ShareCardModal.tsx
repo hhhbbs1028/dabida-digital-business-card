@@ -1,5 +1,9 @@
 import React, { useMemo, useRef } from 'react';
 import QRCode from 'react-qr-code';
+import { Capacitor } from '@capacitor/core';
+import { Clipboard } from '@capacitor/clipboard';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useToast } from '../../../shared/ui/Toast';
 
 type Props = {
@@ -30,25 +34,23 @@ export function ShareCardModal({ cardId, onClose }: Props) {
   const handleCopy = async () => {
     if (!shareUrl) return;
     try {
-      // 1순위: 최신 Clipboard API (https 또는 localhost 등 secure context)
-      if (navigator.clipboard && window.isSecureContext) {
+      if (Capacitor.isNativePlatform()) {
+        // 네이티브: Capacitor Clipboard 플러그인 (HTTPS/포커스 조건 불필요)
+        await Clipboard.write({ string: shareUrl });
+      } else if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(shareUrl);
       } else {
-        // 2순위: 예전 방식 fallback
+        // 웹 폴백
         const textArea = document.createElement('textarea');
         textArea.value = shareUrl;
         textArea.style.position = 'fixed';
         textArea.style.left = '-9999px';
-        textArea.style.top = '-9999px';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        const successful = document.execCommand('copy');
+        const ok = document.execCommand('copy');
         document.body.removeChild(textArea);
-
-        if (!successful) {
-          throw new Error('execCommand copy failed');
-        }
+        if (!ok) throw new Error('execCommand copy failed');
       }
 
       showToast('공유 링크를 복사했어요.', 'success');
@@ -61,25 +63,41 @@ export function ShareCardModal({ cardId, onClose }: Props) {
   const handleDownloadQR = () => {
     if (!qrRef.current) return;
 
-    try {
-      const svg = qrRef.current.querySelector('svg');
-      if (!svg) return;
+    const svg = qrRef.current.querySelector('svg');
+    if (!svg) return;
 
-      // SVG를 canvas로 변환
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
 
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        if (ctx) {
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+    img.onload = async () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      if (!ctx) return;
 
-          // PNG로 다운로드
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        if (Capacitor.isNativePlatform()) {
+          // 네이티브: 파일로 저장 후 공유 시트 표시
+          const base64 = canvas.toDataURL('image/png').split(',')[1];
+          const fileName = `dabida-card-${cardId.substring(0, 8)}.png`;
+          await Filesystem.writeFile({
+            path: fileName,
+            data: base64,
+            directory: Directory.Cache,
+          });
+          const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+          await Share.share({
+            title: '내 디지털 명함 QR 코드',
+            url: uri,
+            dialogTitle: '공유하기',
+          });
+        } else {
+          // 웹: <a download> 방식
           canvas.toBlob((blob) => {
             if (!blob) return;
             const url = URL.createObjectURL(blob);
@@ -93,13 +111,17 @@ export function ShareCardModal({ cardId, onClose }: Props) {
             showToast('QR 코드를 다운로드했어요.', 'success');
           });
         }
-      };
+      } catch (error) {
+        console.error('[ShareCardModal] QR 저장/공유 오류:', error);
+        showToast('QR 코드 저장에 실패했습니다.', 'error');
+      }
+    };
 
+    try {
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-      img.src = url;
+      img.src = URL.createObjectURL(svgBlob);
     } catch (error) {
-      console.error('[ShareCardModal] QR 다운로드 오류:', error);
+      console.error('[ShareCardModal] QR 변환 오류:', error);
       showToast('QR 코드 다운로드에 실패했습니다.', 'error');
     }
   };
@@ -140,7 +162,7 @@ export function ShareCardModal({ cardId, onClose }: Props) {
               disabled={!shareUrl}
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              QR 저장 (PNG)
+              {Capacitor.isNativePlatform() ? 'QR 공유하기' : 'QR 저장 (PNG)'}
             </button>
           </div>
         </div>

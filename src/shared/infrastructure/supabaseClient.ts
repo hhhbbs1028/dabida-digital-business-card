@@ -1,4 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
+
+/** 네이티브 앱에서 localStorage 대신 Capacitor Preferences를 사용 (메모리 압박 시 초기화 방지) */
+const capacitorStorage = {
+  getItem: async (key: string) => {
+    const { value } = await Preferences.get({ key });
+    return value;
+  },
+  setItem: async (key: string, value: string) => {
+    await Preferences.set({ key, value });
+  },
+  removeItem: async (key: string) => {
+    await Preferences.remove({ key });
+  },
+};
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -37,6 +53,7 @@ try {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      storage: Capacitor.isNativePlatform() ? capacitorStorage : undefined,
     },
     global: {
       headers: {

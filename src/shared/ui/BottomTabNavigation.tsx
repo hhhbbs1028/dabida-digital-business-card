@@ -64,7 +64,7 @@ export function BottomTabNavigation({ activeTab, onTabChange }: Props) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-bg-white/95 backdrop-blur-md md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-bg-white/95 backdrop-blur-md md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex h-16 items-stretch overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;

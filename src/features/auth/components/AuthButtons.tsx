@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { supabase } from '../../../shared/infrastructure/supabaseClient';
 
 type Provider = 'google' | 'github' | 'apple';
+
+const isAndroid = Capacitor.getPlatform() === 'android';
 
 /**
  * KakaoTalk, NAVER, Line 등 인앱 브라우저(WebView) 여부를 감지합니다.
@@ -46,70 +49,53 @@ export function AuthButtons() {
     setError(null);
 
     try {
-      // 환경변수로 강제된 origin이 있으면 우선 사용 (프로덕션 배포용)
-      // 없으면 현재 origin 사용 (로컬 개발용)
-      const envOrigin = (import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN as string | undefined;
-      const appOrigin = envOrigin && typeof envOrigin === 'string' && envOrigin.trim().length > 0
-        ? envOrigin.replace(/\/+$/, '')
-        : window.location.origin;
-      
-      // 리다이렉트 URL 생성
-      // - 프로덕션: https://dabida-digital-business-card.pages.dev/auth/callback
-      // - 로컬: http://localhost:5173/auth/callback
-      // - 로컬 IP: http://192.168.x.x:5173/auth/callback (Supabase 대시보드에 추가 필요)
-      const baseRedirectTo = `${appOrigin}/auth/callback`;
-      
-      // returnUrl이 있으면 콜백 URL에 쿼리 파라미터로 전달
-      const returnUrl = sessionStorage.getItem('authReturnUrl');
-      const redirectTo = returnUrl
-        ? `${baseRedirectTo}?returnUrl=${encodeURIComponent(returnUrl)}`
-        : baseRedirectTo;
-      
-      console.log(`[AuthButtons] ${provider} 로그인 시작`, {
-        origin: window.location.origin,
-        redirectTo,
-        returnUrl,
-        fullUrl: window.location.href,
-        envOrigin,
-        VITE_PUBLIC_APP_ORIGIN: (import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN,
-        sessionStorageAuthReturnUrl: sessionStorage.getItem('authReturnUrl'),
-        allEnvKeys: Object.keys((import.meta as any).env ?? {}),
-      });
+      if (Capacitor.isNativePlatform()) {
+        // 네이티브(Android): Chrome Custom Tab으로 OAuth 진행
+        // Google은 WebView를 차단하므로 반드시 Custom Tab을 사용해야 함
+        const { data, error: signInError } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: 'com.dabida.digitalcard://login-callback',
+            skipBrowserRedirect: true, // URL만 받고 직접 열지 않음
+          },
+        });
 
-      // redirectTo가 절대 URL인지 확인
-      if (!redirectTo.startsWith('http://') && !redirectTo.startsWith('https://')) {
-        throw new Error(`잘못된 리다이렉트 URL: ${redirectTo}`);
-      }
+        if (signInError) {
+          setError(signInError.message);
+          setLoading(null);
+          return;
+        }
 
-      // Supabase OAuth 로그인
-      // redirectTo를 명시적으로 전달하여 현재 origin으로 리다이렉트되도록 함
-      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectTo,
-          skipBrowserRedirect: false,
-        },
-      });
-
-      // 디버깅: 실제 전달되는 URL 확인
-      console.log(`[AuthButtons] ${provider} OAuth 응답:`, {
-        data,
-        error: signInError,
-        redirectTo,
-        expectedUrl: redirectTo,
-      });
-
-      console.log({
-        origin: window.location.origin,
-        redirectTo,
-      })
-
-      if (signInError) {
-        console.error(`[AuthButtons] ${provider} 로그인 오류:`, signInError);
-        setError(signInError.message);
+        if (data.url) {
+          await Browser.open({ url: data.url });
+        }
+        // 이후 처리는 App.tsx의 appUrlOpen 리스너에서 담당
         setLoading(null);
       } else {
-        console.log(`[AuthButtons] ${provider} 로그인 리다이렉트 완료`);
+        // 웹: 기존 방식대로 현재 창에서 리다이렉트
+        const envOrigin = (import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN as string | undefined;
+        const appOrigin = envOrigin && typeof envOrigin === 'string' && envOrigin.trim().length > 0
+          ? envOrigin.replace(/\/+$/, '')
+          : window.location.origin;
+
+        const baseRedirectTo = `${appOrigin}/auth/callback`;
+        const returnUrl = sessionStorage.getItem('authReturnUrl');
+        const redirectTo = returnUrl
+          ? `${baseRedirectTo}?returnUrl=${encodeURIComponent(returnUrl)}`
+          : baseRedirectTo;
+
+        const { error: signInError } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo,
+            skipBrowserRedirect: false,
+          },
+        });
+
+        if (signInError) {
+          setError(signInError.message);
+          setLoading(null);
+        }
       }
     } catch (err: any) {
       console.error(`[AuthButtons] ${provider} 로그인 실패:`, err);
@@ -179,22 +165,24 @@ export function AuthButtons() {
         )}
       </button>
 
-      <button
-        onClick={() => handleOAuthLogin('apple')}
-        disabled={!!loading}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {loading === 'apple' ? (
-          <span className="text-xs">로그인 중...</span>
-        ) : (
-          <>
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-            </svg>
-            <span>Apple로 로그인</span>
-          </>
-        )}
-      </button>
+      {!isAndroid && (
+        <button
+          onClick={() => handleOAuthLogin('apple')}
+          disabled={!!loading}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading === 'apple' ? (
+            <span className="text-xs">로그인 중...</span>
+          ) : (
+            <>
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+              </svg>
+              <span>Apple로 로그인</span>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

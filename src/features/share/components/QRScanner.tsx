@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import QrScanner from 'qr-scanner';
+import { Capacitor } from '@capacitor/core';
+import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning';
 import { useToast } from '../../../shared/ui/Toast';
 
 type Props = {
@@ -7,145 +8,160 @@ type Props = {
   onClose?: () => void;
 };
 
+/** 네이티브(Android): MLKit 풀스크린 스캐너 사용. 웹: qr-scanner WebRTC 폴백 */
 export function QRScanner({ onScanSuccess, onClose }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const qrScannerRef = useRef<QrScanner | null>(null);
-  const onScanSuccessRef = useRef(onScanSuccess);
-  const isDestroyedRef = useRef(false);
+  const { showToast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { showToast } = useToast();
 
-  // onScanSuccess를 ref에 저장하여 의존성 문제 해결
+  // ── 네이티브 스캐너 (Android) ──────────────────────────────────────────────
+  const startNativeScan = async () => {
+    try {
+      const { camera } = await BarcodeScanner.checkPermissions();
+      if (camera !== 'granted') {
+        const { camera: granted } = await BarcodeScanner.requestPermissions();
+        if (granted !== 'granted') {
+          setError('카메라 권한이 필요합니다. 설정에서 권한을 허용해 주세요.');
+          return;
+        }
+      }
+
+      const { barcodes } = await BarcodeScanner.scan({
+        formats: [BarcodeFormat.QrCode],
+      });
+
+      if (barcodes.length > 0 && barcodes[0].rawValue) {
+        onScanSuccess(barcodes[0].rawValue);
+      }
+      onClose?.();
+    } catch (err: any) {
+      const msg = err?.message ?? '스캔에 실패했습니다.';
+      if (msg.includes('canceled') || msg.includes('cancelled')) {
+        onClose?.();
+        return;
+      }
+      setError(msg);
+      showToast('QR 스캔에 실패했습니다.', 'error');
+    }
+  };
+
+  // ── 웹 폴백 스캐너 (WebRTC) ───────────────────────────────────────────────
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const webScannerRef = useRef<any>(null);
+  const onScanSuccessRef = useRef(onScanSuccess);
+
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
   }, [onScanSuccess]);
 
-  // cleanup 함수를 별도로 분리
-  const cleanupScanner = React.useCallback(() => {
-    if (isDestroyedRef.current) {
-      return;
-    }
-    isDestroyedRef.current = true;
+  const cleanupWebScanner = () => {
+    const scanner = webScannerRef.current;
+    if (!scanner) return;
+    webScannerRef.current = null;
+    try { scanner.stop(); } catch {}
+    try { scanner.destroy(); } catch {}
+  };
 
-    const scanner = qrScannerRef.current;
-    if (!scanner) {
-      return;
-    }
-
-    qrScannerRef.current = null;
-
-    // 동기적으로 즉시 정리 (Promise를 기다리지 않음)
-    try {
-      scanner.stop();
-    } catch {
-      // stop 실패는 무시
-    }
-
-    try {
-      scanner.destroy();
-    } catch {
-      // destroy 실패는 무시
-    }
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
+  const startWebScan = async () => {
+    const QrScanner = (await import('qr-scanner')).default;
     const videoElement = videoRef.current;
+    if (!videoElement) return;
 
-    if (!videoElement) {
-      return;
-    }
+    try {
+      const hasCamera = await QrScanner.hasCamera();
+      if (!hasCamera) throw new Error('사용 가능한 카메라를 찾을 수 없습니다.');
 
-    const startScan = async () => {
-      try {
-        // 카메라 권한 확인
-        const hasCamera = await QrScanner.hasCamera();
-        if (!hasCamera) {
-          throw new Error('사용 가능한 카메라를 찾을 수 없습니다.');
-        }
-
-        // qr-scanner 인스턴스 생성
-        const qrScanner = new QrScanner(
-          videoElement,
-          (result) => {
-            // QR 코드 스캔 성공
-            if (mounted && !isDestroyedRef.current) {
-              console.log('[QRScanner] 스캔 성공:', result.data);
-              onScanSuccessRef.current(result.data);
-              // 스캔 성공 후 정리
-              cleanupScanner();
-              setIsScanning(false);
-            }
-          },
-          {
-            preferredCamera: 'environment', // 후면 카메라 우선
-            maxScansPerSecond: 5,
-            returnDetailedScanResult: false,
-          },
-        );
-
-        qrScannerRef.current = qrScanner;
-
-        // 카메라 시작
-        await qrScanner.start();
-
-        if (mounted && !isDestroyedRef.current) {
-          setIsScanning(true);
-          setError(null);
-        }
-      } catch (err: any) {
-        console.error('[QRScanner] 카메라 시작 오류:', err);
-        if (mounted && !isDestroyedRef.current) {
-          const errorMsg = err?.message ?? '카메라를 시작할 수 없습니다.';
-          setError(errorMsg);
+      const qrScanner = new QrScanner(
+        videoElement,
+        (result: any) => {
+          onScanSuccessRef.current(result.data);
+          cleanupWebScanner();
           setIsScanning(false);
+          onClose?.();
+        },
+        { preferredCamera: 'environment', maxScansPerSecond: 5 },
+      );
 
-          // HTTPS 관련 오류 체크
-          const isSecureContext = window.isSecureContext || location.protocol === 'https:';
-          if (!isSecureContext) {
-            showToast('카메라 사용을 위해 HTTPS 연결이 필요합니다. ngrok HTTPS URL로 접속해주세요.', 'error');
-          } else if (errorMsg.includes('Permission denied') || errorMsg.includes('NotAllowedError')) {
-            showToast('카메라 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.', 'error');
-          } else if (errorMsg.includes('streaming not supported') || errorMsg.includes('Camera streaming')) {
-            showToast('이 브라우저에서는 카메라 스트리밍을 지원하지 않습니다. 다른 브라우저를 사용해주세요.', 'error');
-          } else {
-            showToast('카메라를 시작할 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.', 'error');
-          }
-        }
-        qrScannerRef.current = null;
+      webScannerRef.current = qrScanner;
+      await qrScanner.start();
+      setIsScanning(true);
+    } catch (err: any) {
+      const msg = err?.message ?? '카메라를 시작할 수 없습니다.';
+      setError(msg);
+      if (!window.isSecureContext) {
+        showToast('카메라 사용을 위해 HTTPS 연결이 필요합니다.', 'error');
+      } else {
+        showToast('카메라를 시작할 수 없습니다.', 'error');
       }
-    };
+    }
+  };
 
-    // 약간의 지연을 두고 시작 (DOM이 완전히 준비되도록)
-    const startTimeout = setTimeout(() => {
-      if (mounted && !isDestroyedRef.current) {
-        void startScan();
-      }
-    }, 100);
+  // ── 진입점 ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      void startNativeScan();
+    } else {
+      void startWebScan();
+    }
 
     return () => {
-      mounted = false;
-      clearTimeout(startTimeout);
-      // 컴포넌트 언마운트 시 즉시 정리 (동기적으로)
-      cleanupScanner();
+      if (!Capacitor.isNativePlatform()) cleanupWebScanner();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 빈 의존성 배열 - 마운트 시 한 번만 실행
+  }, []);
 
   const handleClose = () => {
-    cleanupScanner();
-    setIsScanning(false);
+    if (!Capacitor.isNativePlatform()) cleanupWebScanner();
     onClose?.();
   };
 
+  // 네이티브에서는 스캐너가 풀스크린으로 열리므로 UI 최소화
+  if (Capacitor.isNativePlatform()) {
+    return (
+      <div className="flex flex-col">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">QR 코드 스캔</h3>
+          <p className="mt-1 text-sm text-slate-500">카메라가 자동으로 열립니다.</p>
+        </div>
+
+        {error ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+            <div className="mb-4 text-4xl">📷</div>
+            <p className="mb-2 text-sm font-medium text-red-800">카메라 오류</p>
+            <p className="text-xs text-red-600">{error}</p>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              닫기
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="text-5xl">📷</div>
+            <p className="text-sm text-slate-500">QR 스캐너를 시작하는 중...</p>
+            {onClose && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 웹 폴백 UI
   return (
     <div className="flex flex-col">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-slate-900">QR 코드 스캔</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          상대방의 명함 QR 코드를 카메라로 스캔하세요.
-        </p>
+        <p className="mt-1 text-sm text-slate-500">상대방의 명함 QR 코드를 카메라로 스캔하세요.</p>
       </div>
 
       {error ? (
@@ -167,11 +183,7 @@ export function QRScanner({ onScanSuccess, onClose }: Props) {
             <video
               ref={videoRef}
               className="h-full w-full"
-              style={{ 
-                minHeight: '300px',
-                width: '100%',
-                objectFit: 'cover',
-              }}
+              style={{ minHeight: '300px', width: '100%', objectFit: 'cover' }}
               playsInline
               muted
             />
@@ -204,4 +216,3 @@ export function QRScanner({ onScanSuccess, onClose }: Props) {
     </div>
   );
 }
-
