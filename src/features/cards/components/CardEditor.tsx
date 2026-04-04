@@ -503,7 +503,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
                 setTheme((prev) => ({ ...prev, stickers }))}
               }
             />
-            {!hasPositions && (
+            {hasPositions && (
               <button
                 type="button"
                 onClick={() =>
