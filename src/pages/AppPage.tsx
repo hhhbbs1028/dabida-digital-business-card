@@ -309,19 +309,7 @@ export function AppPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!user) return;
-    const target = cards.find((c) => c.id === id);
-    if (!target) return;
-
-    if (!confirm(`"${target.display_name || '이름 없음'}" 명함을 삭제하시겠습니까?`)) {
-      return;
-    }
-
-    await executeDelete(id);
-  };
-
-  // confirm 없이 즉시 삭제 (끝까지 스와이프 시)
+  // confirm 없이 즉시 삭제
   const handleDeleteDirect = async (id: string) => {
     if (!user) return;
     await executeDelete(id);
@@ -442,21 +430,17 @@ export function AppPage() {
         {activeTab === 'cards' && (
           <div className="space-y-6">
             <div className="md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.6fr)] md:gap-6">
-          <CardsList
-            cards={cards}
-            selectedId={selectedId}
-            loading={cardsLoading}
-            error={error}
-            onSelect={(id) => {
-              setSelectedId(id);
-              setShowCardEditor(true);
-            }}
-            onDelete={handleDelete}
-            onDeleteDirect={handleDeleteDirect}
-            onShare={(id) => {
-              setShareTargetCardId(id);
-            }}
-          />
+              <CardsList
+                cards={cards}
+                selectedId={selectedId}
+                loading={cardsLoading}
+                error={error}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  setShowCardEditor(true);
+                }}
+                onDeleteDirect={handleDeleteDirect}
+              />
 
               {/* 데스크탑: 우측 패널 */}
               <section className="hidden space-y-4 md:block">
@@ -465,7 +449,6 @@ export function AppPage() {
                     initialValue={selected}
                     onSave={handleSave}
                     onDirtyChange={setIsEditorDirty}
-                    defaultStyle={defaultStyle}
                     avatarUrl={profile?.avatar_url}
                   />
               </div>
@@ -813,7 +796,6 @@ export function AppPage() {
           initialValue={selected}
           onSave={handleSave}
           onDirtyChange={setIsEditorDirty}
-          defaultStyle={defaultStyle}
           avatarUrl={profile?.avatar_url}
         />
       </FullScreenModal>
