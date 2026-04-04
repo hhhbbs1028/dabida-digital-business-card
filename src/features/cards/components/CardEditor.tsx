@@ -640,7 +640,6 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       <ThemeEditor
         theme={theme}
         data={value}
-        avatar={avatarUrl}
         onChange={(newTheme) => setTheme(newTheme)}
         onClose={() => setShowThemeEditor(false)}
       />

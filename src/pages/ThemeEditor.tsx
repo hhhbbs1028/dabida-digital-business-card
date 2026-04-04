@@ -19,11 +19,11 @@ import type { CardData } from '../features/cards/types';
 import { uploadToStorage } from '../shared/infrastructure/storageApi';
 import { supabase } from '../shared/infrastructure/supabaseClient';
 import { setBackInterceptor } from '../shared/utils/backIntercept';
+import { CardEditor } from '../features/cards/components/CardEditor';
 
 type Props = {
   theme: CardTheme;
   data?: Omit<CardData, 'id'>;
-  avatar?: string | null;
   onChange: (theme: CardTheme) => void;
   onClose: () => void;
 };
@@ -826,7 +826,7 @@ function StickerTab({
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
-export function ThemeEditor({ theme: initialTheme, data, avatar, onChange, onClose }: Props) {
+export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Props) {
   const [theme, setTheme] = useState<CardTheme>(initialTheme);
   const [activeTab, setActiveTab] = useState<TabId>('preset');
 
@@ -882,7 +882,7 @@ export function ThemeEditor({ theme: initialTheme, data, avatar, onChange, onClo
       github: data?.links?.github || undefined,
       website: data?.links?.website || undefined,
     },
-    profileUrl: avatar || data?.profile_url || undefined,
+    profileUrl: data?.profile_url || undefined,
   };
 
   return (
