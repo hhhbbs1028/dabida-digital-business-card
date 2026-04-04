@@ -14,6 +14,7 @@ function withNormalizedProfileShape(theme: CardTheme, hasProfileUrl: boolean): C
   return theme;
 }
 import { AiLogoGenerator } from './AiLogoGenerator';
+import { useToast } from '../../../shared/ui/Toast';
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { uploadToStorage } from '../../../shared/infrastructure/storageApi';
@@ -56,6 +57,7 @@ const inputClass =
 
 export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: Props) {
   const baseEmpty = emptyCard;
+  const { showToast } = useToast();
 
   const [value, setValue] = useState<Omit<CardData, 'id'>>(baseEmpty);
   const [currentId, setCurrentId] = useState(
@@ -211,6 +213,8 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       setSaveMessage('저장됨');
       setIsDirty(false);
       onDirtyChange?.(false);
+      showToast('저장이 완료되었습니다.', 'success');
+      setActiveTab('basic');
     } catch (err: any) {
       setSaveStatus('error');
       setSaveMessage('저장 실패');
