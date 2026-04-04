@@ -868,7 +868,7 @@ export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Pr
   const handleUploadImage = async (file: File): Promise<string> => {
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) throw new Error('로그인이 필요합니다.');
-    return uploadToStorage('stickers', file, authData.user.id);
+    return uploadToStorage('cards', file, authData.user.id);
   };
 
   const previewData: CardContentTokens = {
