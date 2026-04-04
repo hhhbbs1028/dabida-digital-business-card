@@ -16,7 +16,7 @@ const IconHome = ({ isActive }: { isActive: boolean }) => (
 );
 
 const IconCards = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#3182f6' : '#8b95a1'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={isActive ? '#1d6fe8' : '#8b95a1'} strokeWidth={isActive ? 2.2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="3" y1="10" x2="21" y2="10" />
     <line x1="10" y1="3" x2="10" y2="21" />
@@ -82,13 +82,13 @@ export function BottomTabNavigation({ activeTab, onTabChange }: Props) {
                 {tab.icon}
               </div>
               <span className={[
-                'text-[11px] font-medium leading-tight whitespace-nowrap',
-                isActive ? 'text-primary-500' : 'text-text-tertiary',
+                'text-[11px] leading-tight whitespace-nowrap',
+                isActive ? 'font-bold text-blue-600' : 'font-medium text-text-tertiary',
               ].join(' ')}>
                 {tab.label}
               </span>
               {isActive && (
-                <div className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-primary-500" />
+                <div className="absolute inset-x-3 bottom-0 h-0.5 rounded-t-full bg-blue-600" />
               )}
             </button>
           );

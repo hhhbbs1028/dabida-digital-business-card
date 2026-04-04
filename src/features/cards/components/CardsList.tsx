@@ -12,7 +12,7 @@ type Props = {
 };
 
 const SWIPE_THRESHOLD = 60; // px
-const DELETE_REVEAL_WIDTH = 80; // px
+const DELETE_REVEAL_WIDTH = 88; // px
 
 export function CardsList({
   cards,
@@ -32,7 +32,6 @@ export function CardsList({
     touchCurrentX.current = e.touches[0].clientX;
     isDragging.current = false;
 
-    // 다른 카드가 열려있으면 닫기
     if (swipedCardId && swipedCardId !== cardId) {
       setSwipedCardId(null);
     }
@@ -50,10 +49,8 @@ export function CardsList({
     const delta = touchCurrentX.current - touchStartX.current;
 
     if (delta < -SWIPE_THRESHOLD) {
-      // 왼쪽으로 충분히 스와이프 → 삭제 버튼 노출
       setSwipedCardId(cardId);
     } else if (delta > 10) {
-      // 오른쪽으로 스와이프 → 닫기
       setSwipedCardId(null);
     }
   }
@@ -61,7 +58,6 @@ export function CardsList({
   function handleCardClick(cardId: string) {
     if (isDragging.current) return;
     if (swipedCardId === cardId) {
-      // 열린 상태에서 카드 탭 → 닫기
       setSwipedCardId(null);
       return;
     }
@@ -78,35 +74,52 @@ export function CardsList({
 
   return (
     <aside>
-      <div className="mb-5">
-        <h2 className="text-lg font-bold text-text-primary">내 명함</h2>
+      {/* 헤더 */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-extrabold tracking-tight text-gray-900">내 명함</h2>
+        {cards.length > 0 && (
+          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-600">
+            {cards.length}장
+          </span>
+        )}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-text-secondary">명함을 불러오는 중입니다...</p>
+          <p className="text-sm text-gray-400">명함을 불러오는 중입니다...</p>
         </div>
       ) : (
         <>
           {error && (
-            <div className="mb-4 rounded-toss border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600">
+            <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-500">
               {error}
             </div>
           )}
 
           {cards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-toss-xl bg-bg-gray px-6 py-12 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-toss-xl bg-primary-50 text-2xl">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-3xl bg-gray-50 px-6 py-14 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
                 💳
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-text-primary">아직 저장된 명함이 없어요</p>
-                <p className="text-xs text-text-tertiary">오른쪽에서 첫 번째 명함을 만들어보세요.</p>
+              <div className="space-y-1.5">
+                <p className="text-sm font-bold text-gray-800">아직 저장된 명함이 없어요</p>
+                <p className="text-xs text-gray-400">아래 + 버튼을 눌러 첫 번째 명함을 만들어보세요.</p>
               </div>
             </div>
           ) : (
-            /* ── 카드 스택 ── */
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3">
+              {/* 스와이프 안내 힌트 */}
+              <div className="flex items-center gap-1.5 rounded-xl bg-blue-50/60 px-3 py-2">
+                {/* 손가락 스와이프 아이콘 */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 text-blue-400" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11V6a2 2 0 0 1 4 0v5" />
+                  <path d="M13 11V8a2 2 0 0 1 4 0v3" />
+                  <path d="M17 11v-1a2 2 0 0 1 4 0v4a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V9a2 2 0 0 1 4 0v3" />
+                  <path d="M3 9V7a2 2 0 0 1 2-2" />
+                </svg>
+                <p className="text-xs font-medium text-blue-500">카드를 왼쪽으로 밀면 삭제할 수 있어요</p>
+              </div>
+
               {cards.map((card) => {
                 const isActive = selectedId === card.id;
                 const isSwiped = swipedCardId === card.id;
@@ -115,44 +128,51 @@ export function CardsList({
                   <div
                     key={card.id}
                     className="relative overflow-hidden rounded-2xl"
+                    style={{
+                      boxShadow: '0 2px 12px 0 rgba(0,0,0,0.07), 0 1px 3px 0 rgba(0,0,0,0.04)',
+                    }}
                   >
-                    {/* 삭제 버튼 (스와이프 시 우측에서 노출) */}
+                    {/* 삭제 버튼 */}
                     <div
-                      className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-500 transition-all duration-200"
-                      style={{ width: DELETE_REVEAL_WIDTH }}
+                      className="absolute inset-y-0 right-0 flex items-center justify-center transition-all duration-200"
+                      style={{
+                        width: DELETE_REVEAL_WIDTH,
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      }}
                     >
                       <button
                         onClick={(e) => handleDelete(e, card.id)}
-                        className="flex h-full w-full flex-col items-center justify-center gap-1 text-white"
+                        className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-white"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span className="text-xs font-medium">삭제</span>
+                        <span className="text-[11px] font-semibold tracking-wide">삭제</span>
                       </button>
                     </div>
 
-                    {/* 카드 본체 (스와이프 시 왼쪽으로 이동) */}
+                    {/* 카드 본체 */}
                     <div
                       onTouchStart={(e) => handleTouchStart(e, card.id)}
                       onTouchMove={handleTouchMove}
                       onTouchEnd={() => handleTouchEnd(card.id)}
                       onClick={() => handleCardClick(card.id)}
-                      className="relative cursor-pointer overflow-hidden rounded-2xl p-2.5 transition-transform duration-200 active:scale-[0.98]"
+                      className="relative cursor-pointer overflow-hidden rounded-2xl transition-transform duration-200 active:scale-[0.99]"
                       style={{
                         transform: isSwiped ? `translateX(-${DELETE_REVEAL_WIDTH}px)` : 'translateX(0)',
-                        outline: isActive ? '2px solid #9299aa' : 'none',
-                        outlineOffset: '3px',
+                        outline: isActive ? '2px solid #3182f6' : 'none',
+                        outlineOffset: '2px',
                         backgroundColor: 'white',
+                        padding: '10px',
                       }}
                     >
                       <CardPreview card={card} />
 
-                      {/* 스와이프 힌트 (첫 카드에만, 미스와이프 상태일 때) */}
+                      {/* 스와이프 방향 힌트 화살표 (열리지 않은 상태에서만) */}
                       {!isSwiped && (
-                        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center opacity-30">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+                        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center opacity-20">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
                         </div>
                       )}
@@ -160,11 +180,6 @@ export function CardsList({
                   </div>
                 );
               })}
-
-              {/* 스와이프 안내 텍스트 */}
-              <p className="mt-2 text-center text-xs text-text-tertiary">
-                카드를 왼쪽으로 밀어 삭제
-              </p>
             </div>
           )}
         </>
