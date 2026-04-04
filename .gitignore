@@ -51,6 +51,3 @@ dist/
 # Android / Capacitor
 android/
 capacitor.config.json
-
-#index.html
-index.html
