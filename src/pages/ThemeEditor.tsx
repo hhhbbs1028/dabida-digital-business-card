@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import type {
   CardTheme,
   ThemePresetId,
@@ -13,11 +14,19 @@ import type {
 } from '../theme/types';
 import { THEME_PRESETS, COLOR_PALETTES, FONT_SETS, GRADIENT_PRESETS, PATTERN_PRESETS } from '../theme/presets';
 import { getLayoutCapabilities } from '../theme/capabilities';
-import { mergeTheme, storageToTheme, themeToStorage } from '../theme/mergeTheme';
 import { CardCanvas } from '../components/business-card/CardCanvas';
 import type { CardData } from '../features/cards/types';
 import { uploadToStorage } from '../shared/infrastructure/storageApi';
 import { supabase } from '../shared/infrastructure/supabaseClient';
+import { setBackInterceptor } from '../shared/utils/backIntercept';
+
+type Props = {
+  theme: CardTheme;
+  data?: Omit<CardData, 'id'>;
+  avatar?: string | null;
+  onChange: (theme: CardTheme) => void;
+  onClose: () => void;
+};
 
 type TabId = 'preset' | 'color' | 'font' | 'background' | 'sticker';
 
@@ -817,43 +826,39 @@ function StickerTab({
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
-export function ThemeEditor() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const locationState = (location.state ?? {}) as {
-    data?: Omit<CardData, 'id'>;
-    avatar?: string;
-    theme?: any;
-  };
-
-  const [theme, setTheme] = useState<CardTheme>(() => {
-    if (locationState.theme) {
-      try { return storageToTheme(locationState.theme); } catch {}
-    }
-    return mergeTheme('minimal_light');
-  });
+export function ThemeEditor({ theme: initialTheme, data, avatar, onChange, onClose }: Props) {
+  const [theme, setTheme] = useState<CardTheme>(initialTheme);
   const [activeTab, setActiveTab] = useState<TabId>('preset');
 
-  const data = locationState.data;
-  const avatar = locationState.avatar;
+  // 최신 theme·콜백을 ref로 유지 (back interceptor에서 사용)
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  const previewData: CardContentTokens = {
-    name: data?.display_name ?? '홍길동',
-    major: data?.organization || undefined,
-    tagline: data?.headline || undefined,
-    email: data?.email || undefined,
-    phone: data?.phone || undefined,
-    links: {
-      instagram: data?.links?.instagram || undefined,
-      github: data?.links?.github || undefined,
-      website: data?.links?.website || undefined,
-    },
-    profileUrl: avatar || data?.profile_url || undefined,
-  };
+  // 하드웨어 뒤로가기 인터셉터 등록
+  useEffect(() => {
+    setBackInterceptor(() => {
+      onChangeRef.current(themeRef.current);
+      onCloseRef.current();
+    });
+    // 네이티브 환경이 아닌 경우 대비해 Capacitor 리스너도 등록
+    if (!Capacitor.isNativePlatform()) return () => setBackInterceptor(null);
+    const listener = CapApp.addListener('backButton', () => {
+      onChangeRef.current(themeRef.current);
+      onCloseRef.current();
+    });
+    return () => {
+      setBackInterceptor(null);
+      listener.then((h) => h.remove());
+    };
+  }, []);
 
   const handleBack = () => {
-    sessionStorage.setItem('dabida_theme_edit_result', JSON.stringify(themeToStorage(theme)));
-    navigate(-1);
+    onChange(theme);
+    onClose();
   };
 
   const handleChange = (partial: Partial<CardTheme>) => {
@@ -866,8 +871,22 @@ export function ThemeEditor() {
     return uploadToStorage('stickers', file, authData.user.id);
   };
 
+  const previewData: CardContentTokens = {
+    name: data?.display_name ?? '',
+    major: data?.organization || undefined,
+    tagline: data?.headline || undefined,
+    email: data?.email || undefined,
+    phone: data?.phone || undefined,
+    links: {
+      instagram: data?.links?.instagram || undefined,
+      github: data?.links?.github || undefined,
+      website: data?.links?.website || undefined,
+    },
+    profileUrl: avatar || data?.profile_url || undefined,
+  };
+
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
       {/* 헤더 */}
       <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3">
         <button

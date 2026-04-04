@@ -11,7 +11,7 @@ import { AppPage } from './pages/AppPage';
 import { PublicCardPage } from './pages/PublicCardPage';
 import { supabase } from './shared/infrastructure/supabaseClient';
 import { getMyProfile } from './features/profile/api/profileApi';
-import { ThemeEditor } from './pages/ThemeEditor';
+import { consumeBackIntercept } from './shared/utils/backIntercept';
 
 /**
  * Android 뒤로가기 버튼 핸들러.
@@ -26,6 +26,7 @@ function BackButtonHandler() {
     let lastBackPress = 0;
 
     const handler = CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (consumeBackIntercept()) return;
       if (canGoBack) {
         navigate(-1);
       } else {
@@ -151,7 +152,6 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/app" element={<AppPage />} />
-        <Route path="/theme-editor" element={<ThemeEditor />} />
         <Route path="/c/:cardId" element={<PublicCardPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
