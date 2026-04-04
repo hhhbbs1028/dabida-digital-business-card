@@ -78,7 +78,7 @@ function getDefaultPositions(layoutId: LayoutId, orientation: CardOrientation, h
 // ============================================================================
 
 type UseDragOptions = {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   onDragEnd: (x: number, y: number) => void;
 };
 
@@ -124,7 +124,7 @@ function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
 
 type DraggableProps = {
   pos: ElementPosition;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   isSelected: boolean;
   label: string;
   onSelect: () => void;
@@ -205,7 +205,7 @@ type ProfileCanvasProps = {
   pos: ElementPosition;
   url: string;
   shape: CardTheme['style']['profileShape'];
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   isSelected: boolean;
   onSelect: () => void;
   onMove: (x: number, y: number) => void;
