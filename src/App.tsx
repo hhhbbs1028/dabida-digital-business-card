@@ -9,9 +9,9 @@ import { AuthCallback } from './pages/AuthCallback';
 import { Onboarding } from './pages/Onboarding';
 import { AppPage } from './pages/AppPage';
 import { PublicCardPage } from './pages/PublicCardPage';
-import { ThemeEditorPage } from './pages/ThemeEditorPage';
 import { supabase } from './shared/infrastructure/supabaseClient';
 import { getMyProfile } from './features/profile/api/profileApi';
+import { ThemeEditor } from './pages/ThemeEditor';
 
 /**
  * Android 뒤로가기 버튼 핸들러.
@@ -151,7 +151,7 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/app" element={<AppPage />} />
-        <Route path="/theme-editor" element={<ThemeEditorPage />} />
+        <Route path="/theme-editor" element={<ThemeEditor />} />
         <Route path="/c/:cardId" element={<PublicCardPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
