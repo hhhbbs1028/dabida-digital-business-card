@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
@@ -198,6 +199,8 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
   const activeIndex = TAB_ORDER.indexOf(activeTab);
   const profileSrc = value.profile_url || null;
 
+  const hasPositions = theme.elementPositions && Object.keys(theme.elementPositions).length > 0;
+  
   const renderSection = (tab: TabKey) => {
     if (tab === 'basic') {
       const orientation = theme.orientation ?? 'landscape';
@@ -440,25 +443,13 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
     }
 
     if (tab === 'style') {
-      const hasPositions =
-        theme.elementPositions && Object.keys(theme.elementPositions).length > 0;
-
       return (
         <div className="space-y-4">
-          {/* 드래그 캔버스 */}
-          <CardCanvas
-            theme={theme}
-            data={themePreviewData}
-            onPositionsChange={(positions) =>
-              setTheme((prev) => ({ ...prev, elementPositions: positions }))
-            }
-            onStickersChange={(stickers) =>
-              setTheme((prev) => ({ ...prev, stickers }))
-            }
-          />
-
           {/* 캔버스 하단 버튼 행 */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
+            <div>
+              <p className="mt-0.5 text-[11px] text-slate-400">색상, 폰트 등을 변경하고 이미지를 추가할 수 있습니다.</p>
+            </div>
             <button
               type="button"
               onClick={() => setShowEditPanel(true)}
@@ -466,18 +457,6 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             >
               스타일 편집
             </button>
-            {hasPositions && (
-              <button
-                type="button"
-                onClick={() =>
-                  setTheme((prev) => ({ ...prev, elementPositions: undefined }))
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 shadow-sm transition hover:border-red-200 hover:text-red-500"
-                title="위치를 기본값으로 초기화"
-              >
-                위치 초기화
-              </button>
-            )}
           </div>
 
           {/* AI 로고 생성  */}
@@ -511,8 +490,32 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">미리보기</p>
           <p className="mt-0.5 text-[11px] text-slate-400">실제 명함이 이렇게 보입니다</p>
         </div>
+        
         <div className="sticky top-6">
-          <CardPreview card={{ ...value, theme: themeToStorage(theme) }} />
+          <div className="relative">
+            <CardCanvas
+              theme={theme}
+              data={themePreviewData}
+              onPositionsChange={(positions) =>{
+                setTheme((prev) => ({ ...prev, elementPositions: positions }))}
+              }
+              onStickersChange={(stickers) => {
+                setTheme((prev) => ({ ...prev, stickers }))}
+              }
+            />
+            {!hasPositions && (
+              <button
+                type="button"
+                onClick={() =>
+                  setTheme((prev) => ({ ...prev, elementPositions: undefined }))
+                }
+                className="absolute bottom-0 right-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                title="위치를 기본값으로 초기화"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -579,14 +582,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             >
               이전
             </button>
-            <button
-              type="button"
-              disabled={!isDirty || isEmptyCard || saveStatus === 'saving'}
-              onClick={handleManualSave}
-              className="rounded-full bg-slate-900 px-5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              저장
-            </button>
+            
             <button
               type="button"
               disabled={activeIndex === TAB_ORDER.length - 1}
@@ -594,6 +590,15 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
               className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               다음
+            </button>
+
+            <button
+              type="button"
+              disabled={!isDirty || isEmptyCard || saveStatus === 'saving'}
+              onClick={handleManualSave}
+              className="rounded-full bg-slate-900 px-5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              저장
             </button>
           </div>
         </div>
