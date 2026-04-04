@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
@@ -63,28 +63,61 @@ function DeepLinkHandler() {
     CapApp.addListener('appUrlOpen', async ({ url }) => {
       if (!url.startsWith('com.dabida.digitalcard://login-callback')) return;
 
-      // URL fragment에서 토큰 추출: com.dabida.digitalcard://login-callback#access_token=...
-      const hash = url.split('#')[1] ?? '';
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      const errorParam = params.get('error');
+      console.log('[DeepLinkHandler] 딥링크 수신:', url);
 
-      await Browser.close();
-
-      if (errorParam || !accessToken || !refreshToken) {
-        console.error('[DeepLinkHandler] OAuth 오류 또는 토큰 없음:', errorParam);
+      // PKCE flow: ?code=... (Supabase v2 기본값)
+      // Implicit flow: #access_token=... (레거시)
+      let urlObj: URL;
+      try {
+        urlObj = new URL(url);
+      } catch {
+        console.error('[DeepLinkHandler] URL 파싱 실패:', url);
+        await Browser.close();
         navigate('/login');
         return;
       }
 
-      const { error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+      const code = urlObj.searchParams.get('code');
+      const errorParam = urlObj.searchParams.get('error')
+        || new URLSearchParams(url.split('#')[1] ?? '').get('error');
 
-      if (error) {
-        console.error('[DeepLinkHandler] 세션 설정 실패:', error);
+      // Implicit flow fallback
+      const hash = url.split('#')[1] ?? '';
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      await Browser.close();
+
+      if (errorParam) {
+        console.error('[DeepLinkHandler] OAuth 오류:', errorParam);
+        navigate('/login');
+        return;
+      }
+
+      let sessionError: unknown = null;
+
+      if (code) {
+        // PKCE: authorization code → session 교환
+        console.log('[DeepLinkHandler] PKCE code 교환 시작');
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        sessionError = error;
+      } else if (accessToken && refreshToken) {
+        // Implicit: 토큰 직접 설정
+        console.log('[DeepLinkHandler] Implicit 토큰으로 세션 설정');
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        sessionError = error;
+      } else {
+        console.error('[DeepLinkHandler] code도 token도 없음. URL:', url);
+        navigate('/login');
+        return;
+      }
+
+      if (sessionError) {
+        console.error('[DeepLinkHandler] 세션 설정 실패:', sessionError);
         navigate('/login');
         return;
       }
