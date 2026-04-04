@@ -127,6 +127,19 @@ export function AppPage() {
     };
   }, [user]);
 
+  // ThemeEditor에서 돌아온 경우 CardEditor 복원
+  useEffect(() => {
+    if (cardsLoading || cards.length === 0) return;
+    const returnCardId = sessionStorage.getItem('dabida_return_to_editor');
+    if (!returnCardId) return;
+    sessionStorage.removeItem('dabida_return_to_editor');
+    const card = cards.find((c) => c.id === returnCardId);
+    if (card) {
+      setSelectedId(returnCardId);
+      setShowCardEditor(true);
+    }
+  }, [cards, cardsLoading]);
+
   // 받은 명함 로드
   useEffect(() => {
     let ignore = false;

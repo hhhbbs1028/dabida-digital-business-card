@@ -493,13 +493,18 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             </div>
             <button
               type="button"
-              onClick={() => navigate('/theme-editor', {
-                state: {
-                  data: value,
-                  avatar: avatarUrl,
-                  theme: themeToStorage(theme),
+              onClick={() => {
+                if (initialValue?.id) {
+                  sessionStorage.setItem('dabida_return_to_editor', initialValue.id);
                 }
-              })}
+                navigate('/theme-editor', {
+                  state: {
+                    data: value,
+                    avatar: avatarUrl,
+                    theme: themeToStorage(theme),
+                  }
+                });
+              }}
               // onClick={() => window.open('/theme-editor', '_blank')}
               className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
             >
