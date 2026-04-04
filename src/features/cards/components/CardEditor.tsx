@@ -3,7 +3,6 @@ import { RotateCcw } from 'lucide-react';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
-import { EditPanel } from '../../../components/editor/EditPanel';
 import type { CardTheme, CardThemeStorage, CardContentTokens } from '../../../theme/types';
 import { mergeTheme, themeToStorage, storageToTheme } from '../../../theme/mergeTheme';
 
@@ -65,7 +64,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
   const [theme, setTheme] = useState<CardTheme>(
     () => (initialValue?.theme && (initialValue.theme as any).colors ? storageToTheme(initialValue.theme) : null) ?? mergeTheme('minimal_light'),
   );
-  const [showEditPanel, setShowEditPanel] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -475,7 +474,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
             </div>
             <button
               type="button"
-              onClick={() => setShowEditPanel(true)}
+              onClick={() => window.open('/theme-editor', '_blank')}
               className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
             >
               스타일 편집
@@ -627,18 +626,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
         </div>
       </div>
 
-      <EditPanel
-        isOpen={showEditPanel}
-        onClose={() => setShowEditPanel(false)}
-        theme={theme}
-        data={themePreviewData}
-        onChange={(partial) => setTheme((prev) => ({ ...prev, ...partial }))}
-        onUploadImage={async (file) => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('로그인이 필요합니다.');
-          return uploadToStorage('cards', file, user.id, 'stickers');
-        }}
-      />
+
     </div>
   );
 }
