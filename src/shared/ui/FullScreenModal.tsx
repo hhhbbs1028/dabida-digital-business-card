@@ -31,8 +31,11 @@ export function FullScreenModal({ isOpen, onClose, title, children }: Props) {
       
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex flex-col bg-white md:inset-auto md:left-1/2 md:top-1/2 md:h-auto md:max-h-[90vh] md:w-full md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:shadow-2xl">
-        {/* Header */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-6">
+        {/* Header — 모바일에서 상태바 영역만큼 상단 여백 확보 */}
+        <div
+          className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-6"
+          style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(4rem + env(safe-area-inset-top))' }}
+        >
           <h2 className="text-lg font-semibold text-slate-900">{title || ''}</h2>
           <button
             type="button"

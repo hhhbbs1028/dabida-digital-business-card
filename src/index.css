@@ -14,6 +14,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'kern' 1;
+    /* 상태바가 WebView를 오버레이할 때 콘텐츠가 가려지지 않도록 (iOS) */
+    padding-top: env(safe-area-inset-top);
   }
   
   /* 토스 스타일 버튼 애니메이션 */
