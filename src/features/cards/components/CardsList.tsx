@@ -157,12 +157,11 @@ export function CardsList({
                       onTouchMove={handleTouchMove}
                       onTouchEnd={() => handleTouchEnd(card.id)}
                       onClick={() => handleCardClick(card.id)}
-                      className="relative cursor-pointer overflow-hidden rounded-2xl transition-transform duration-200 active:scale-[0.99]"
+                      className="relative cursor-pointer overflow-hidden rounded-2xl transition-transform duration-200 active:scale-[0.99] bg-slate-50"
                       style={{
                         transform: isSwiped ? `translateX(-${DELETE_REVEAL_WIDTH}px)` : 'translateX(0)',
                         outline: isActive ? '2px solid #3182f6' : 'none',
                         outlineOffset: '2px',
-                        backgroundColor: 'white',
                         padding: '10px',
                       }}
                     >
