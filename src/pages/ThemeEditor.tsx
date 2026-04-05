@@ -928,6 +928,15 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
   const [theme, setTheme] = useState<CardTheme>(initialTheme);
   const [activeTab, setActiveTab] = useState<TabId>('preset');
 
+  // 열릴 때마다 부모의 최신 theme으로 동기화 (CardEditor 캔버스에서 변경된 내용 반영)
+  useEffect(() => {
+    if (isOpen) {
+      setTheme(initialTheme);
+    }
+  // isOpen이 true로 바뀔 때만 동기화 (편집 중 덮어쓰기 방지)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   // 최신 theme·콜백을 ref로 유지 (back interceptor에서 사용)
   const themeRef = useRef(theme);
   themeRef.current = theme;
@@ -989,8 +998,20 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
             <CardCanvas
               theme={theme}
               data={previewData}
-              onPositionsChange={(positions) => setTheme((prev) => ({ ...prev, elementPositions: positions }))}
-              onStickersChange={(stickers) => setTheme((prev) => ({ ...prev, stickers }))}
+              onPositionsChange={(positions) => {
+                setTheme((prev) => {
+                  const next = { ...prev, elementPositions: positions };
+                  onChange(next);
+                  return next;
+                });
+              }}
+              onStickersChange={(stickers) => {
+                setTheme((prev) => {
+                  const next = { ...prev, stickers };
+                  onChange(next);
+                  return next;
+                });
+              }}
             />
           </div>
         </div>

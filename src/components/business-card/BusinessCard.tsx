@@ -505,6 +505,8 @@ function AbsElem({
         left: `${pos.x}%`,
         top: `${pos.y}%`,
         transform: 'translate(-50%, -50%)',
+        opacity: pos.opacity ?? 1,
+        zIndex: pos.zIndex != null ? pos.zIndex : undefined,
       }}
     >
       {children}
@@ -523,11 +525,14 @@ function PositionedView({ theme, data }: Props) {
   const shapeRadius =
     profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
 
-  const ts = (colorVar: string, fs: string, fsP?: string) => ({
+  const scaledFs = (fs: string, scale: number) =>
+    scale === 1 ? fs : `calc(${fs} * ${scale})`;
+
+  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1) => ({
     fontFamily: 'var(--card-body-font)',
     fontWeight: 'var(--card-body-weight)',
     color: `var(${colorVar})`,
-    fontSize: isPortrait ? (fsP ?? fs) : fs,
+    fontSize: scaledFs(isPortrait ? (fsP ?? fs) : fs, scale),
     whiteSpace: 'nowrap' as const,
   });
 
@@ -545,6 +550,8 @@ function PositionedView({ theme, data }: Props) {
             aspectRatio: '1',
             borderRadius: shapeRadius,
             overflow: 'hidden',
+            opacity: pos.profile.opacity ?? 1,
+            zIndex: pos.profile.zIndex != null ? pos.profile.zIndex : undefined,
           }}
         >
           <img
@@ -562,7 +569,7 @@ function PositionedView({ theme, data }: Props) {
             fontFamily: 'var(--card-title-font)',
             fontWeight: 'var(--card-title-weight)',
             color: 'var(--card-primary)',
-            fontSize: isPortrait ? '1.3rem' : '1rem',
+            fontSize: scaledFs(isPortrait ? '1.3rem' : '1rem', pos.name.fontScale ?? 1),
             whiteSpace: 'nowrap',
           }}>
             {data.name || 'Your Name'}
@@ -573,14 +580,14 @@ function PositionedView({ theme, data }: Props) {
       {/* 한 줄 소개 */}
       {data.tagline && pos.tagline && (
         <AbsElem pos={pos.tagline}>
-          <div style={ts('--card-secondary', '0.7rem', '0.875rem')}>{data.tagline}</div>
+          <div style={ts('--card-secondary', '0.7rem', '0.875rem', pos.tagline.fontScale ?? 1)}>{data.tagline}</div>
         </AbsElem>
       )}
 
       {/* 소속 */}
       {data.major && pos.major && (
         <AbsElem pos={pos.major}>
-          <div style={{ ...ts('--card-accent', '0.6rem', '0.75rem'), textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ ...ts('--card-accent', '0.6rem', '0.75rem', pos.major.fontScale ?? 1), textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {data.major}
           </div>
         </AbsElem>
@@ -590,8 +597,8 @@ function PositionedView({ theme, data }: Props) {
       {(data.email || data.phone) && pos.contact && (
         <AbsElem pos={pos.contact}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {data.email && <span style={ts('--card-text', '0.58rem', '0.7rem')}>{data.email}</span>}
-            {data.phone && <span style={ts('--card-text', '0.58rem', '0.7rem')}>{data.phone}</span>}
+            {data.email && <span style={ts('--card-text', '0.58rem', '0.7rem', pos.contact.fontScale ?? 1)}>{data.email}</span>}
+            {data.phone && <span style={ts('--card-text', '0.58rem', '0.7rem', pos.contact.fontScale ?? 1)}>{data.phone}</span>}
           </div>
         </AbsElem>
       )}
@@ -601,17 +608,17 @@ function PositionedView({ theme, data }: Props) {
         <AbsElem pos={pos.links}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {data.links.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
                 <Instagram size={9} />{data.links.instagram}
               </span>
             )}
             {data.links.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
                 <Github size={9} />{data.links.github}
               </span>
             )}
             {data.links.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
                 <Globe size={9} />{data.links.website}
               </span>
             )}
@@ -632,13 +639,24 @@ function PositionedView({ theme, data }: Props) {
               top: `${sticker.y}%`,
               transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg)`,
               width: `${sticker.width}%`,
+              aspectRatio: sticker.type === 'emoji' ? '1' : undefined,
+              containerType: sticker.type === 'emoji' ? 'inline-size' as const : undefined,
               opacity: sticker.opacity,
               zIndex: 10 + sticker.zIndex,
               pointerEvents: 'none',
             }}
           >
             {sticker.type === 'emoji' ? (
-              <div style={{ fontSize: '3rem', lineHeight: 1, textAlign: 'center', width: '100%' }}>
+              <div style={{
+                fontSize: '80cqw',
+                lineHeight: 1,
+                textAlign: 'center',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
                 {sticker.src}
               </div>
             ) : (
