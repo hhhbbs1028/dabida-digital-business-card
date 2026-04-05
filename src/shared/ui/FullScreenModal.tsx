@@ -47,7 +47,10 @@ export function FullScreenModal({ isOpen, onClose, title, children }: Props) {
         </div>
         
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div
+          className="flex-1 overflow-y-auto px-6 py-4"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        >
           {children}
         </div>
       </div>
