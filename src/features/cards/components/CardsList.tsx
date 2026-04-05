@@ -1,5 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useRef, useState } from 'react';
 import { Instagram, Github, Globe } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
@@ -76,10 +75,11 @@ type Props = {
   error: string | null;
   onSelect: (id: string) => void;
   onDeleteDirect: (id: string) => void;
+  onShare: (id: string) => void;
 };
 
 const SWIPE_THRESHOLD = 60;
-const DELETE_REVEAL_WIDTH = 80;
+const REVEAL_WIDTH = 160; // 공유(80) + 삭제(80)
 
 export function CardsList({
   cards,
@@ -88,29 +88,12 @@ export function CardsList({
   error,
   onSelect,
   onDeleteDirect,
+  onShare,
 }: Props) {
   const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
   const touchStartX = useRef<number>(0);
   const touchCurrentX = useRef<number>(0);
   const isDragging = useRef(false);
-
-  // 메뉴 외부 클릭 시 닫기
-  useEffect(() => {
-    function handleClickOutside() {
-      setMenuOpenId(null);
-      setMenuRect(null);
-    }
-    if (menuOpenId) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [menuOpenId]);
 
   function handleTouchStart(e: React.TouchEvent, cardId: string) {
     touchStartX.current = e.touches[0].clientX;
@@ -135,17 +118,21 @@ export function CardsList({
   function handleCardClick(cardId: string) {
     if (isDragging.current) return;
     if (swipedCardId === cardId) { setSwipedCardId(null); return; }
-    if (menuOpenId) { setMenuOpenId(null); return; }
     onSelect(cardId);
   }
 
   function handleDelete(e: React.MouseEvent, cardId: string) {
     e.stopPropagation();
-    setMenuOpenId(null);
     setSwipedCardId(null);
     if (confirm('정말 삭제하시겠습니까?')) {
       onDeleteDirect(cardId);
     }
+  }
+
+  function handleShare(e: React.MouseEvent, cardId: string) {
+    e.stopPropagation();
+    setSwipedCardId(null);
+    onShare(cardId);
   }
 
   return (
@@ -188,7 +175,6 @@ export function CardsList({
               {cards.map((card, index) => {
                 const isActive = selectedId === card.id;
                 const isSwiped = swipedCardId === card.id;
-                const isMenuOpen = menuOpenId === card.id;
                 const isLast = index === cards.length - 1;
 
                 return (
@@ -197,17 +183,27 @@ export function CardsList({
                     className="relative overflow-hidden"
                     style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
                   >
-                    {/* 스와이프 삭제 버튼 */}
+                    {/* 스와이프 액션 버튼: 공유 + 삭제 */}
                     <div
-                      className="absolute inset-y-0 right-0 flex items-center justify-center"
-                      style={{
-                        width: DELETE_REVEAL_WIDTH,
-                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                      }}
+                      className="absolute inset-y-0 right-0 flex"
+                      style={{ width: REVEAL_WIDTH }}
                     >
+                      {/* 공유 버튼 */}
+                      <button
+                        onClick={(e) => handleShare(e, card.id)}
+                        className="flex w-20 flex-col items-center justify-center gap-1 text-white"
+                        style={{ background: 'linear-gradient(135deg, #3182f6 0%, #1e6ee6 100%)' }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span className="text-[11px] font-semibold">공유</span>
+                      </button>
+                      {/* 삭제 버튼 */}
                       <button
                         onClick={(e) => handleDelete(e, card.id)}
-                        className="flex h-full w-full flex-col items-center justify-center gap-1 text-white"
+                        className="flex w-20 flex-col items-center justify-center gap-1 text-white"
+                        style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -224,7 +220,7 @@ export function CardsList({
                       onClick={() => handleCardClick(card.id)}
                       className="relative flex w-full cursor-pointer items-center gap-3 bg-white px-3 py-3 transition-transform duration-200 active:bg-slate-50"
                       style={{
-                        transform: isSwiped ? `translateX(-${DELETE_REVEAL_WIDTH}px)` : 'translateX(0)',
+                        transform: isSwiped ? `translateX(-${REVEAL_WIDTH}px)` : 'translateX(0)',
                         outline: isActive ? '2px solid #3182f6' : 'none',
                         outlineOffset: '-2px',
                       }}
@@ -239,24 +235,23 @@ export function CardsList({
                         <div className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-slate-900">
                           <p className="truncate">{card.display_name || '이름 없음'}</p>
                           {card.organization && (
-                            <p className="truncate text-xs text-slate-500">{card.organization}
-                            </p>
-                        )}
+                            <p className="truncate text-xs text-slate-500">{card.organization}</p>
+                          )}
                         </div>
 
                         {card.headline && (
                           <p className="truncate text-xs text-slate-500">{card.headline}</p>
                         )}
 
-                        { (card.email || card.phone) && (
+                        {(card.email || card.phone) && (
                           <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-300">
                             {card.email && <p className="truncate">{card.email}</p>}
                             {card.email && card.phone && <span className="text-[10px] opacity-50">•</span>}
                             {card.phone && <p className="truncate">{card.phone}</p>}
                           </div>
                         )}
-              
-                      {(card.links?.instagram || card.links?.github || card.links?.website) && (
+
+                        {(card.links?.instagram || card.links?.github || card.links?.website) && (
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             {card.links.instagram && (
                               <span className="flex items-center gap-1 text-xs text-slate-300">
@@ -276,30 +271,6 @@ export function CardsList({
                           </div>
                         )}
                       </div>
-
-                      {/* 오른쪽: 케밥 메뉴 */}
-                      <div className="shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isMenuOpen) {
-                              setMenuOpenId(null);
-                              setMenuRect(null);
-                            } else {
-                              setMenuRect(e.currentTarget.getBoundingClientRect());
-                              setMenuOpenId(card.id);
-                              setSwipedCardId(null);
-                            }
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                            <circle cx="12" cy="5" r="1.5" />
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="12" cy="19" r="1.5" />
-                          </svg>
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );
@@ -307,29 +278,6 @@ export function CardsList({
             </div>
           )}
         </>
-      )}
-      {/* 케밥 드롭다운 — overflow:hidden 밖으로 portal 렌더링 */}
-      {menuOpenId && menuRect && createPortal(
-        <div
-          className="fixed z-[9999] min-w-[110px] overflow-hidden rounded-xl border border-slate-100 bg-white"
-          style={{
-            top: menuRect.bottom + 4,
-            left: menuRect.right - 110,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={(e) => handleDelete(e, menuOpenId)}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            삭제
-          </button>
-        </div>,
-        document.body
       )}
     </aside>
   );

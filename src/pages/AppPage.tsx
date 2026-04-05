@@ -441,6 +441,7 @@ export function AppPage() {
                   setShowCardEditor(true);
                 }}
                 onDeleteDirect={handleDeleteDirect}
+                onShare={(id) => setShareTargetCardId(id)}
               />
 
               {/* 데스크탑: 우측 패널 */}
