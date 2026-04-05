@@ -192,7 +192,10 @@ export function PublicCardPage() {
   if (loading || (autoSaving && user)) {
     return (
       <div className="flex min-h-screen flex-col bg-slate-50">
-        <header className="border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur">
+        <header
+          className="border-b border-slate-200 bg-white/80 px-4 pb-3 backdrop-blur"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
           <div className="mx-auto flex max-w-xl items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -217,7 +220,10 @@ export function PublicCardPage() {
   if (error || !previewCard) {
     return (
       <div className="flex min-h-screen flex-col bg-slate-50">
-        <header className="border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur">
+        <header
+          className="border-b border-slate-200 bg-white/80 px-4 pb-3 backdrop-blur"
+          style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+        >
           <div className="mx-auto flex max-w-xl items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -252,7 +258,10 @@ export function PublicCardPage() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center px-4 py-8">
+      <main
+        className="flex flex-1 flex-col items-center px-4 py-8"
+        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
+      >
         <div className="w-full max-w-sm space-y-6">
           <div className="rounded-2xl bg-white p-5 shadow-md">
             <CardPreview card={previewCard} />

@@ -144,7 +144,10 @@ export function AuthCallback() {
 
   if (status === 'checking' || status === 'redirecting') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div
+        className="flex min-h-screen items-center justify-center bg-slate-50"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-slate-900" />
           <p className="text-sm text-slate-600">
@@ -157,7 +160,10 @@ export function AuthCallback() {
 
   if (status === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div
+        className="flex min-h-screen items-center justify-center bg-slate-50 px-4"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="mb-2 text-lg font-semibold text-slate-900">로그인 오류</h1>
           <p className="mb-4 text-sm text-slate-600">{error}</p>

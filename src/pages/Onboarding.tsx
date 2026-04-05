@@ -159,14 +159,20 @@ export function Onboarding() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div
+        className="flex min-h-screen items-center justify-center bg-slate-50"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="text-sm text-slate-500">확인 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
+    <div
+      className="min-h-screen bg-slate-50 px-4"
+      style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top))', paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}
+    >
       <div className="mx-auto max-w-lg">
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-2xl font-bold text-slate-900">프로필 설정</h1>

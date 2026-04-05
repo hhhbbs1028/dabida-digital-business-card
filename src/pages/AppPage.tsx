@@ -426,7 +426,7 @@ export function AppPage() {
         setShowCardEditor(true);
       }}
     >
-      <div className="pb-20 md:pb-8">
+      <div className="md:pb-8" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* 명함 탭 */}
         {activeTab === 'cards' && (
           <div className="space-y-6">
