@@ -257,10 +257,22 @@ export function CardsList({
                         )}
               
                       {(card.links?.instagram || card.links?.github || card.links?.website) && (
-                          <div className="flex items-center gap-2 text-slate-300">
-                            {card.links.instagram && <Instagram size={12} />}
-                            {card.links.github && <Github size={12} />}
-                            {card.links.website && <Globe size={12} />}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            {card.links.instagram && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Instagram size={11} />{card.links.instagram}
+                              </span>
+                            )}
+                            {card.links.github && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Github size={11} />{card.links.github}
+                              </span>
+                            )}
+                            {card.links.website && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Globe size={11} />{card.links.website}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
