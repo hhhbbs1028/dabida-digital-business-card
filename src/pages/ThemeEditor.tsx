@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
+import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import type {
   CardTheme,
   ThemePresetId,
@@ -19,9 +19,9 @@ import type { CardData } from '../features/cards/types';
 import { uploadToStorage } from '../shared/infrastructure/storageApi';
 import { supabase } from '../shared/infrastructure/supabaseClient';
 import { setBackInterceptor } from '../shared/utils/backIntercept';
-import { CardEditor } from '../features/cards/components/CardEditor';
 
 type Props = {
+  isOpen: boolean;
   theme: CardTheme;
   data?: Omit<CardData, 'id'>;
   onChange: (theme: CardTheme) => void;
@@ -826,7 +826,7 @@ function StickerTab({
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
-export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Props) {
+export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClose }: Props) {
   const [theme, setTheme] = useState<CardTheme>(initialTheme);
   const [activeTab, setActiveTab] = useState<TabId>('preset');
 
@@ -856,13 +856,10 @@ export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Pr
     };
   }, []);
 
-  const handleBack = () => {
-    onChange(theme);
-    onClose();
-  };
-
   const handleChange = (partial: Partial<CardTheme>) => {
-    setTheme((prev) => ({ ...prev, ...partial }));
+    const next = { ...theme, ...partial };
+    setTheme(next);
+    onChange(next);
   };
 
   const handleUploadImage = async (file: File): Promise<string> => {
@@ -886,61 +883,48 @@ export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Pr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
-      {/* 헤더 */}
-      <div
-        className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4"
-        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
-      >
-        <button
-          type="button"
-          onClick={handleBack}
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 active:bg-slate-200"
-        >
-          <ChevronLeft size={22} />
-        </button>
-        <h1 className="flex-1 text-base font-semibold text-slate-900">스타일 편집</h1>
-      </div>
+    <FullScreenModal isOpen={isOpen} title="스타일 편집" onClose={onClose}>
+      <div className="flex h-full flex-col">
+        {/* 카드 미리보기 */}
+        <div className="flex items-center justify-center border-b border-slate-100 bg-white px-4 py-4">
+          <div className="w-full max-w-sm">
+            <CardCanvas
+              theme={theme}
+              data={previewData}
+              onPositionsChange={(positions) => setTheme((prev) => ({ ...prev, elementPositions: positions }))}
+              onStickersChange={(stickers) => setTheme((prev) => ({ ...prev, stickers }))}
+            />
+          </div>
+        </div>
 
-      {/* 카드 미리보기 */}
-      <div className="flex items-center justify-center border-b border-slate-100 bg-white px-4 py-4">
-        <div className="w-full max-w-sm">
-          <CardCanvas
-            theme={theme}
-            data={previewData}
-            onPositionsChange={(positions) => setTheme((prev) => ({ ...prev, elementPositions: positions }))}
-            onStickersChange={(stickers) => setTheme((prev) => ({ ...prev, stickers }))}
-          />
+        {/* 탭 네비게이션 */}
+        <div className="flex shrink-0 border-b border-slate-200 bg-white">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={[
+                'flex-1 py-3 text-[13px] font-medium transition',
+                activeTab === tab.id
+                  ? 'border-b-2 border-slate-900 text-slate-900'
+                  : 'text-slate-400 hover:text-slate-600',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 탭 콘텐츠 */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
+          {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
+          {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
+          {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
         </div>
       </div>
-
-      {/* 탭 네비게이션 */}
-      <div className="flex border-b border-slate-200 bg-white">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={[
-              'flex-1 py-3 text-[13px] font-medium transition',
-              activeTab === tab.id
-                ? 'border-b-2 border-slate-900 text-slate-900'
-                : 'text-slate-400 hover:text-slate-600',
-            ].join(' ')}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 탭 콘텐츠 */}
-      <div className="flex-1 overflow-y-auto p-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-        {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
-        {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
-        {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
-        {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-        {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
-      </div>
-    </div>
+    </FullScreenModal>
   );
 }

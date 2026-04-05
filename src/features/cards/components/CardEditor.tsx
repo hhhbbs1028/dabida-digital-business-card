@@ -509,7 +509,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <style>{`
         @media (max-width: 1023px) {
-          .card-preview-mobile { display: block !important; margin-top: 1.5rem; }
+          .card-preview-mobile { display: block !important; }
         }
       `}</style>
       
@@ -636,14 +636,13 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
 
     </div>
 
-    {showThemeEditor && (
-      <ThemeEditor
-        theme={theme}
-        data={value}
-        onChange={(newTheme) => setTheme(newTheme)}
-        onClose={() => setShowThemeEditor(false)}
-      />
-    )}
+    <ThemeEditor
+      isOpen={showThemeEditor}
+      theme={theme}
+      data={value}
+      onChange={(newTheme) => setTheme(newTheme)}
+      onClose={() => setShowThemeEditor(false)}
+    />
     </>
   );
 }
