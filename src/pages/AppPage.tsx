@@ -13,6 +13,7 @@ import { BottomTabNavigation } from '../shared/ui/BottomTabNavigation';
 import { FloatingActionButton } from '../shared/ui/FloatingActionButton';
 import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import { BottomSheet } from '../shared/ui/BottomSheet';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
 import { ReceivedCardDetail } from '../features/contacts/components/ReceivedCardDetail';
 import { ReceivedCardsList } from '../features/contacts/components/ReceivedCardsList';
 import { ShareCardModal } from '../features/share/components/ShareCardModal';
@@ -62,6 +63,7 @@ export function AppPage() {
   const [showCardDetail, setShowCardDetail] = useState(false);
   const [showCardEditor, setShowCardEditor] = useState(false);
   const [isEditorDirty, setIsEditorDirty] = useState(false);
+  const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
   const [shareTargetCardId, setShareTargetCardId] = useState<string | null>(null);
   const [showShareSelector, setShowShareSelector] = useState(false);
   const [exchangeSubTab, setExchangeSubTab] = useState<ExchangeSubTab>('give');
@@ -812,8 +814,7 @@ export function AppPage() {
       <FullScreenModal
         isOpen={showCardEditor}
         onClose={() => {
-          if (isEditorDirty && !confirm('저장하지 않은 변경사항이 있습니다. 정말 닫으시겠습니까?')) return;
-          setIsEditorDirty(false);
+          if (isEditorDirty) { setShowDirtyConfirm(true); return; }
           setShowCardEditor(false);
           setSelectedId(null);
         }}
@@ -933,6 +934,21 @@ export function AppPage() {
           <ChatTab initialConversationId={chatConversationId} />
         </FullScreenModal>
       )}
+      <ConfirmDialog
+        isOpen={showDirtyConfirm}
+        title="저장하지 않은 변경사항"
+        message="지금 닫으면 변경사항이 사라집니다."
+        confirmLabel="저장 없이 닫기"
+        cancelLabel="계속 편집하기"
+        destructive
+        onConfirm={() => {
+          setShowDirtyConfirm(false);
+          setIsEditorDirty(false);
+          setShowCardEditor(false);
+          setSelectedId(null);
+        }}
+        onCancel={() => setShowDirtyConfirm(false)}
+      />
     </AppLayout>
   );
 }
