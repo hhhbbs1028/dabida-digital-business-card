@@ -468,7 +468,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       className={`mx-auto w-full overflow-hidden rounded-2xl border shadow-md ${className ?? ''}`}
       style={{
         aspectRatio: isPortrait ? '5 / 9' : '9 / 5',
-        maxWidth: isPortrait ? '50%' : '540px',
+        maxWidth: isPortrait ? '50%' : '85%',
         position: 'relative',
         ...bgStyle,
         borderColor: 'var(--card-border, #e2e8f0)',
