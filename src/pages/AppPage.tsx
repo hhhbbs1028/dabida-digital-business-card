@@ -32,6 +32,8 @@ import { CommunityPage } from '../features/community/pages/CommunityPage';
 import { createOrGetDm } from '../features/community/api/chatsApi';
 import { ChatTab } from '../features/community/components/ChatTab';
 import { supabase } from '../shared/infrastructure/supabaseClient';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 
 type Tab = 'cards' | 'received' | 'exchange' | 'community' | 'profile';
 type ExchangeSubTab = 'give' | 'receive';
@@ -311,6 +313,29 @@ export function AppPage() {
   };
 
   // confirm 없이 즉시 삭제
+  const handleNativeShare = useCallback(async (cardId: string) => {
+    const card = cards.find((c) => c.id === cardId);
+    const origin = ((import.meta as any).env?.VITE_PUBLIC_APP_ORIGIN as string | undefined)?.replace(/\/+$/, '') || window.location.origin;
+    const url = `${origin}/c/${cardId}`;
+    const title = card?.display_name ? `${card.display_name}의 디지털 명함` : '디지털 명함';
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({ title, url, dialogTitle: '명함 공유하기' });
+        return;
+      }
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title, url });
+        return;
+      }
+    } catch (err) {
+      // 사용자가 공유 취소한 경우 (AbortError) 는 무시
+      if (err instanceof Error && err.name === 'AbortError') return;
+    }
+    // 네이티브 공유 불가 시 기존 모달 폴백
+    setShareTargetCardId(cardId);
+  }, [cards]);
+
   const handleDeleteDirect = async (id: string) => {
     if (!user) return;
     await executeDelete(id);
@@ -441,7 +466,7 @@ export function AppPage() {
                   setShowCardEditor(true);
                 }}
                 onDeleteDirect={handleDeleteDirect}
-                onShare={(id) => setShareTargetCardId(id)}
+                onShare={handleNativeShare}
               />
 
               {/* 데스크탑: 우측 패널 */}
