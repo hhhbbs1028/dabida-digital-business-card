@@ -888,7 +888,10 @@ export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Pr
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
       {/* 헤더 */}
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3">
+      <div
+        className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4"
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
+      >
         <button
           type="button"
           onClick={handleBack}
@@ -931,7 +934,7 @@ export function ThemeEditor({ theme: initialTheme, data, onChange, onClose }: Pr
       </div>
 
       {/* 탭 콘텐츠 */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
         {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
         {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
