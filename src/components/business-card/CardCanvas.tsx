@@ -698,6 +698,8 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
                 top: `${sticker.y}%`,
                 transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg)`,
                 width: `${sticker.width}%`,
+                aspectRatio: '1',
+                containerType: 'inline-size',
                 opacity: sticker.opacity,
                 zIndex: 10 + sticker.zIndex,
                 cursor: 'grab',
@@ -710,11 +712,15 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
             >
               {sticker.type === 'emoji' ? (
                 <div style={{
-                  fontSize: '3rem',
+                  fontSize: '80cqw',
                   lineHeight: 1,
                   textAlign: 'center',
                   pointerEvents: 'none',
                   width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
                   {sticker.src}
                 </div>
