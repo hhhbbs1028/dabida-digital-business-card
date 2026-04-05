@@ -170,7 +170,7 @@ export function CardsList({
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-hidden rounded-2xl border border-slate-100 bg-white"
+            <div className="py-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white"
               style={{ boxShadow: '0 1px 8px 0 rgba(0,0,0,0.06)' }}>
               {cards.map((card, index) => {
                 const isActive = selectedId === card.id;
@@ -181,12 +181,12 @@ export function CardsList({
                   <div
                     key={card.id}
                     className="relative overflow-hidden"
-                    style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
+                    style={{ borderBottom: isLast ? 'none' : '1px solid #CBD5E1'}}
                   >
                     {/* 스와이프 액션 버튼: 공유 + 삭제 */}
                     <div
                       className="absolute inset-y-0 right-0 flex"
-                      style={{ width: REVEAL_WIDTH }}
+                      style={{ width: REVEAL_WIDTH, zIndex: 0 }}
                     >
                       {/* 공유 버튼 */}
                       <button
@@ -218,11 +218,10 @@ export function CardsList({
                       onTouchMove={handleTouchMove}
                       onTouchEnd={() => handleTouchEnd(card.id)}
                       onClick={() => handleCardClick(card.id)}
-                      className="relative flex w-full cursor-pointer items-center gap-3 bg-white px-3 py-3 transition-transform duration-200 active:bg-slate-50"
+                      className="relative z-10 flex w-full cursor-pointer items-center gap-3 bg-white px-3 py-3 transition-transform duration-200 active:bg-slate-50"
                       style={{
                         transform: isSwiped ? `translateX(-${REVEAL_WIDTH}px)` : 'translateX(0)',
-                        outline: isActive ? '2px solid #3182f6' : 'none',
-                        outlineOffset: '-2px',
+                        boxShadow: isActive ? 'inset 0 0 0 2px #3182f6' : 'none',
                       }}
                     >
                       {/* 왼쪽: 썸네일 */}
