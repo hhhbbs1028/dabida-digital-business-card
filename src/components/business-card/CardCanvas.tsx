@@ -666,11 +666,9 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           };
 
           // 리사이즈 핸들
-          const resizeDragging = { current: false };
           const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
-            resizeDragging.current = true;
           };
           const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
             if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
@@ -689,6 +687,28 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
             const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
             const newW = Math.max(5, Math.min(70, (dist / rect.width) * 200));
             commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, width: newW } : s));
+          };
+
+          // 회전 핸들 — 스티커 중심에서 포인터까지의 절대 각도로 회전값 계산
+          const stickerAngle = (clientX: number, clientY: number) => {
+            if (!containerRef.current) return sticker.rotation;
+            const rect = containerRef.current.getBoundingClientRect();
+            const cx = rect.left + (sticker.x / 100) * rect.width;
+            const cy = rect.top + (sticker.y / 100) * rect.height;
+            return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI) + 90;
+          };
+          const handleRotateDown = (e: React.PointerEvent<HTMLDivElement>) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+          };
+          const handleRotateMove = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            updateSticker(sticker.id, { rotation: stickerAngle(e.clientX, e.clientY) });
+          };
+          const handleRotateUp = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            const rotation = stickerAngle(e.clientX, e.clientY);
+            commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, rotation } : s));
           };
 
           return (
@@ -764,6 +784,38 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
                 >
                   ✕
                 </button>
+              )}
+
+              {/* 선택 시 회전 핸들 (상단 중앙) */}
+              {isSel && (
+                <div
+                  onPointerDown={handleRotateDown}
+                  onPointerMove={handleRotateMove}
+                  onPointerUp={handleRotateUp}
+                  style={{
+                    position: 'absolute',
+                    top: '-22px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '14px',
+                    height: '14px',
+                    background: 'rgba(34,197,94,0.9)',
+                    border: '2px solid #fff',
+                    borderRadius: '50%',
+                    cursor: 'grab',
+                    zIndex: 40,
+                    touchAction: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '8px',
+                    color: '#fff',
+                    userSelect: 'none',
+                  }}
+                  title="드래그하여 회전"
+                >
+                  ↻
+                </div>
               )}
 
               {/* 선택 시 리사이즈 핸들 */}
