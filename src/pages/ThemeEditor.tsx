@@ -11,6 +11,7 @@ import type {
   CardContentTokens,
   CardStyleTokens,
   StickerElement,
+  CardElementPositions,
 } from '../theme/types';
 import { THEME_PRESETS, COLOR_PALETTES, FONT_SETS, GRADIENT_PRESETS, PATTERN_PRESETS } from '../theme/presets';
 import { getLayoutCapabilities } from '../theme/capabilities';
@@ -579,14 +580,25 @@ const EMOJI_GROUPS: { label: string; items: string[] }[] = [
   { label: '꾸미기',       items: ['👑','💎','🏆','🎨','🎉','🎊','🎀','🎵','🎶','📸','💡','🔮','🌟','🍭','🧁'] },
 ];
 
+const TEXT_LAYER_DEFS: { key: keyof CardElementPositions; label: string; abbr: string }[] = [
+  { key: 'name',    label: '이름',      abbr: '이름' },
+  { key: 'tagline', label: '한 줄 소개', abbr: '소개' },
+  { key: 'major',   label: '소속',      abbr: '소속' },
+  { key: 'contact', label: '연락처',    abbr: '연락' },
+  { key: 'links',   label: '링크',      abbr: '링크' },
+  { key: 'profile', label: '프로필',    abbr: '사진' },
+];
+
 function StickerTab({
   theme,
   onChange,
   onUploadImage,
+  data,
 }: {
   theme: CardTheme;
   onChange: (partial: Partial<CardTheme>) => void;
   onUploadImage?: (file: File) => Promise<string>;
+  data?: CardContentTokens;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -705,68 +717,115 @@ function StickerTab({
       )}
 
       {/* ── 레이어 패널 ── */}
-      {stickers.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              레이어 ({stickers.length})
-            </span>
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-[11px] text-red-400 hover:text-red-600 transition"
-            >
-              전체 삭제
-            </button>
-          </div>
+      {(() => {
+        // 텍스트 레이어 아이템 (실제 데이터가 있는 것만)
+        const textItems = TEXT_LAYER_DEFS
+          .filter(({ key }) => {
+            if (!data) return false;
+            if (key === 'name')    return !!data.name;
+            if (key === 'tagline') return !!data.tagline;
+            if (key === 'major')   return !!data.major;
+            if (key === 'contact') return !!(data.email || data.phone);
+            if (key === 'links')   return !!(data.links?.instagram || data.links?.github || data.links?.website);
+            if (key === 'profile') return !!data.profileUrl;
+            return false;
+          })
+          .map(({ key, label, abbr }) => ({
+            id: `text_${key}`,
+            kind: 'text' as const,
+            key,
+            label,
+            abbr,
+            opacity: theme.elementPositions?.[key]?.opacity ?? 1,
+            zIndex: theme.elementPositions?.[key]?.zIndex ?? 100,
+          }));
 
-          {/* z-order 높은 것이 위에 표시 */}
-          <div className="space-y-2">
-            {stickers
-              .slice()
-              .sort((a, b) => b.zIndex - a.zIndex)
-              .map((s, idx, arr) => {
-                const isFirst = idx === 0;               // 최상단
-                const isLast  = idx === arr.length - 1; // 최하단
+        const stickerItems = stickers.map((s) => ({
+          id: s.id,
+          kind: 'sticker' as const,
+          sticker: s,
+          label: s.type === 'emoji' ? s.src : '이미지',
+          opacity: s.opacity,
+          zIndex: s.zIndex,
+        }));
 
-                const moveUp = () => {
-                  // zIndex 1 증가
-                  const updated = stickers.map((st) =>
-                    st.id === s.id ? { ...st, zIndex: st.zIndex + 1 } : st
-                  );
-                  onChange({ stickers: updated });
-                };
-                const moveDown = () => {
-                  const updated = stickers.map((st) =>
-                    st.id === s.id ? { ...st, zIndex: Math.max(0, st.zIndex - 1) } : st
-                  );
-                  onChange({ stickers: updated });
-                };
+        const allLayers = [...textItems, ...stickerItems].sort((a, b) => b.zIndex - a.zIndex);
+
+        if (allLayers.length === 0) return null;
+
+        const swapZIndex = (itemA: typeof allLayers[0], itemB: typeof allLayers[0]) => {
+          const zA = itemA.zIndex;
+          const zB = itemB.zIndex;
+          const newStickers = stickers.map((s) => {
+            if (itemA.kind === 'sticker' && s.id === itemA.id) return { ...s, zIndex: zB };
+            if (itemB.kind === 'sticker' && s.id === itemB.id) return { ...s, zIndex: zA };
+            return s;
+          });
+          const prevPos = theme.elementPositions ?? {};
+          let newPos = { ...prevPos };
+          if (itemA.kind === 'text') newPos = { ...newPos, [itemA.key]: { ...(prevPos[itemA.key] ?? {}), zIndex: zB } };
+          if (itemB.kind === 'text') newPos = { ...newPos, [itemB.key]: { ...(prevPos[itemB.key] ?? {}), zIndex: zA } };
+          onChange({ stickers: newStickers, elementPositions: newPos });
+        };
+
+        return (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                레이어 ({allLayers.length})
+              </span>
+              {stickers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-[11px] text-red-400 hover:text-red-600 transition"
+                >
+                  스티커 삭제
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {allLayers.map((item, idx, arr) => {
+                const isFirst = idx === 0;
+                const isLast  = idx === arr.length - 1;
+
+                const moveUp   = () => { if (!isFirst) swapZIndex(item, arr[idx - 1]); };
+                const moveDown = () => { if (!isLast)  swapZIndex(item, arr[idx + 1]); };
+
                 const setOpacity = (val: number) => {
-                  const updated = stickers.map((st) =>
-                    st.id === s.id ? { ...st, opacity: val } : st
-                  );
-                  onChange({ stickers: updated });
+                  if (item.kind === 'sticker') {
+                    onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, opacity: val } : s) });
+                  } else {
+                    const prevPos = theme.elementPositions ?? {};
+                    onChange({ elementPositions: { ...prevPos, [item.key]: { ...(prevPos[item.key] ?? {}), opacity: val } } });
+                  }
                 };
 
                 return (
                   <div
-                    key={s.id}
-                    className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2"
+                    key={item.id}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-white'}`}
                   >
                     {/* 썸네일 */}
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-xl">
-                      {s.type === 'emoji' ? s.src : (
-                        <img src={s.src} alt="" className="h-full w-full rounded-lg object-cover" />
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50 text-indigo-400' : 'border-slate-100 bg-slate-50'}`}>
+                      {item.kind === 'sticker' ? (
+                        item.sticker.type === 'emoji' ? (
+                          <span className="text-xl">{item.sticker.src}</span>
+                        ) : (
+                          <img src={item.sticker.src} alt="" className="h-full w-full rounded-lg object-cover" />
+                        )
+                      ) : (
+                        item.abbr
                       )}
                     </div>
 
                     {/* 투명도 슬라이더 */}
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-slate-500">투명도</span>
+                        <span className="text-[10px] text-slate-500">{item.kind === 'text' ? item.label : '투명도'}</span>
                         <span className="font-mono text-[10px] text-slate-400">
-                          {Math.round(s.opacity * 100)}%
+                          {Math.round(item.opacity * 100)}%
                         </span>
                       </div>
                       <input
@@ -774,7 +833,7 @@ function StickerTab({
                         min={0}
                         max={1}
                         step={0.05}
-                        value={s.opacity}
+                        value={item.opacity}
                         onChange={(e) => setOpacity(Number(e.target.value))}
                         className="h-1.5 w-full cursor-pointer accent-indigo-500"
                       />
@@ -802,24 +861,29 @@ function StickerTab({
                       </button>
                     </div>
 
-                    {/* 삭제 */}
-                    <button
-                      type="button"
-                      onClick={() => removeSticker(s.id)}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] text-red-400 transition hover:bg-red-50 hover:text-red-600"
-                      title="삭제"
-                    >
-                      ✕
-                    </button>
+                    {/* 스티커만 삭제 가능 */}
+                    {item.kind === 'sticker' ? (
+                      <button
+                        type="button"
+                        onClick={() => removeSticker(item.id)}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                        title="삭제"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <div className="w-6 shrink-0" />
+                    )}
                   </div>
                 );
               })}
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              캔버스에서 드래그하여 위치·크기를 조정할 수 있어요
+            </p>
           </div>
-          <p className="mt-2 text-[10px] text-slate-400">
-            캔버스에서 드래그하여 위치·크기를 조정할 수 있어요
-          </p>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -922,7 +986,7 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
           {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
           {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
           {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
+          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
         </div>
       </div>
     </FullScreenModal>

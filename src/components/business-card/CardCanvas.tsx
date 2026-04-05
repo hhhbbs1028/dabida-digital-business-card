@@ -166,7 +166,8 @@ function DraggableElement({
           : '1.5px dashed rgba(99,102,241,0.35)',
         outlineOffset: '3px',
         borderRadius: '4px',
-        zIndex: isSelected ? 20 : 10,
+        zIndex: pos.zIndex != null ? pos.zIndex + (isSelected ? 9999 : 0) : (isSelected ? 20 : 10),
+        opacity: pos.opacity ?? 1,
         padding: '2px',
       }}
       title={`${label} — 드래그하여 이동`}
@@ -275,7 +276,8 @@ function ProfileCanvas({
           : '1.5px dashed rgba(99,102,241,0.35)',
         outlineOffset: '3px',
         borderRadius: shapeClass,
-        zIndex: isSelected ? 20 : 10,
+        zIndex: pos.zIndex != null ? pos.zIndex + (isSelected ? 9999 : 0) : (isSelected ? 20 : 10),
+        opacity: pos.opacity ?? 1,
       }}
       title="프로필 사진 — 드래그하여 이동"
     >

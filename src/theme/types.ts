@@ -148,6 +148,10 @@ export interface ElementPosition {
   x: number;
   y: number;
   size?: number;
+  /** 투명도 0~1, 기본 1 */
+  opacity?: number;
+  /** 레이어 순서 (높을수록 위), 기본 undefined (자동) */
+  zIndex?: number;
 }
 
 /**
