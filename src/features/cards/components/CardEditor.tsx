@@ -538,7 +538,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
                 onClick={() =>
                   setTheme((prev) => ({ ...prev, elementPositions: undefined }))
                 }
-                className="absolute right-0 top-0 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                className={`absolute bottom-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500 ${theme.orientation === 'portrait' ? 'right-10' : 'right-0'}`}
                 title="위치를 기본값으로 초기화"
               >
                 <RotateCcw size={14} />
