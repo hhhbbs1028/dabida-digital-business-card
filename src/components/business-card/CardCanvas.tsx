@@ -456,11 +456,14 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
 
   const bgStyle = applyThemeToStyle(theme);
 
-  const textStyle = (colorVar: string, fontSize: string, fontSizePortrait?: string) => ({
+  const scaledFontSize = (base: string, scale: number) =>
+    scale === 1 ? base : `calc(${base} * ${scale})`;
+
+  const textStyle = (colorVar: string, fontSize: string, fontSizePortrait?: string, scale = 1) => ({
     fontFamily: 'var(--card-body-font)',
     fontWeight: 'var(--card-body-weight)',
     color: `var(${colorVar})`,
-    fontSize: isPortrait ? (fontSizePortrait ?? fontSize) : fontSize,
+    fontSize: scaledFontSize(isPortrait ? (fontSizePortrait ?? fontSize) : fontSize, scale),
     whiteSpace: 'nowrap' as const,
     pointerEvents: 'none' as const,
   });
@@ -530,7 +533,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           fontFamily: 'var(--card-title-font)',
           fontWeight: 'var(--card-title-weight)',
           color: 'var(--card-primary)',
-          fontSize: isPortrait ? '1.3rem' : '1rem',
+          fontSize: scaledFontSize(isPortrait ? '1.3rem' : '1rem', positions.name.fontScale ?? 1),
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
         }}>
@@ -549,7 +552,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           onMove={(x, y) => updatePos('tagline', x, y)}
           onMoveEnd={(x, y) => commitPos('tagline', x, y)}
         >
-          <div style={textStyle('--card-secondary', '0.7rem', '0.875rem')}>
+          <div style={textStyle('--card-secondary', '0.7rem', '0.875rem', positions.tagline.fontScale ?? 1)}>
             {data.tagline || '(한 줄 소개)'}
           </div>
         </DraggableElement>
@@ -567,7 +570,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           onMoveEnd={(x, y) => commitPos('major', x, y)}
         >
           <div style={{
-            ...textStyle('--card-accent', '0.6rem', '0.75rem'),
+            ...textStyle('--card-accent', '0.6rem', '0.75rem', positions.major.fontScale ?? 1),
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
           }}>
@@ -589,13 +592,13 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
             {data.email && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>{data.email}</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>{data.email}</span>
             )}
             {data.phone && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>{data.phone}</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>{data.phone}</span>
             )}
             {!data.email && !data.phone && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>(연락처)</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>(연락처)</span>
             )}
           </div>
         </DraggableElement>
@@ -614,22 +617,22 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
             {data.links?.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
                 <Instagram size={9} />{data.links.instagram}
               </span>
             )}
             {data.links?.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
                 <Github size={9} />{data.links.github}
               </span>
             )}
             {data.links?.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem') }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
                 <Globe size={9} />{data.links.website}
               </span>
             )}
             {!data.links?.instagram && !data.links?.github && !data.links?.website && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem')}>(링크)</span>
+              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1)}>(링크)</span>
             )}
           </div>
         </DraggableElement>

@@ -738,6 +738,7 @@ function StickerTab({
             abbr,
             opacity: theme.elementPositions?.[key]?.opacity ?? 1,
             zIndex: theme.elementPositions?.[key]?.zIndex ?? 100,
+            fontScale: theme.elementPositions?.[key]?.fontScale ?? 1,
           }));
 
         const stickerItems = stickers.map((s) => ({
@@ -747,6 +748,7 @@ function StickerTab({
           label: s.type === 'emoji' ? s.src : '이미지',
           opacity: s.opacity,
           zIndex: s.zIndex,
+          rotation: s.rotation,
         }));
 
         const allLayers = [...textItems, ...stickerItems].sort((a, b) => b.zIndex - a.zIndex);
@@ -802,13 +804,24 @@ function StickerTab({
                   }
                 };
 
+                const setRotation = (val: number) => {
+                  if (item.kind !== 'sticker') return;
+                  onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, rotation: val } : s) });
+                };
+
+                const setFontScale = (val: number) => {
+                  if (item.kind !== 'text') return;
+                  const prevPos = theme.elementPositions ?? {};
+                  onChange({ elementPositions: { ...prevPos, [item.key]: { ...(prevPos[item.key] ?? {}), fontScale: val } } });
+                };
+
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-white'}`}
+                    className={`flex items-start gap-2 rounded-xl border px-3 py-2 ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-white'}`}
                   >
                     {/* 썸네일 */}
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50 text-indigo-400' : 'border-slate-100 bg-slate-50'}`}>
+                    <div className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50 text-indigo-400' : 'border-slate-100 bg-slate-50'}`}>
                       {item.kind === 'sticker' ? (
                         item.sticker.type === 'emoji' ? (
                           <span className="text-xl">{item.sticker.src}</span>
@@ -820,60 +833,81 @@ function StickerTab({
                       )}
                     </div>
 
-                    {/* 투명도 슬라이더 */}
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-slate-500">{item.kind === 'text' ? item.label : '투명도'}</span>
-                        <span className="font-mono text-[10px] text-slate-400">
-                          {Math.round(item.opacity * 100)}%
-                        </span>
+                    {/* 슬라이더 그룹 */}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      {/* 레이블 (텍스트만) */}
+                      {item.kind === 'text' && (
+                        <span className="text-[10px] font-medium text-indigo-500">{item.label}</span>
+                      )}
+
+                      {/* 투명도 */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500">투명도</span>
+                          <span className="font-mono text-[10px] text-slate-400">{Math.round(item.opacity * 100)}%</span>
+                        </div>
+                        <input
+                          type="range" min={0} max={1} step={0.05}
+                          value={item.opacity}
+                          onChange={(e) => setOpacity(Number(e.target.value))}
+                          className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                        />
                       </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={item.opacity}
-                        onChange={(e) => setOpacity(Number(e.target.value))}
-                        className="h-1.5 w-full cursor-pointer accent-indigo-500"
-                      />
+
+                      {/* 회전 (스티커만) */}
+                      {item.kind === 'sticker' && (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">회전</span>
+                            <span className="font-mono text-[10px] text-slate-400">{Math.round(item.rotation)}°</span>
+                          </div>
+                          <input
+                            type="range" min={-180} max={180} step={1}
+                            value={item.rotation}
+                            onChange={(e) => setRotation(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+                      )}
+
+                      {/* 폰트 크기 (텍스트만, 프로필 제외) */}
+                      {item.kind === 'text' && item.key !== 'profile' && (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">크기</span>
+                            <span className="font-mono text-[10px] text-slate-400">{item.fontScale.toFixed(1)}x</span>
+                          </div>
+                          <input
+                            type="range" min={0.5} max={2.0} step={0.1}
+                            value={item.fontScale}
+                            onChange={(e) => setFontScale(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    {/* 순서 버튼 */}
-                    <div className="flex flex-col gap-0.5">
+                    {/* 순서 버튼 + 삭제 */}
+                    <div className="mt-1 flex flex-col gap-0.5">
                       <button
-                        type="button"
-                        disabled={isFirst}
-                        onClick={moveUp}
-                        title="위로"
+                        type="button" disabled={isFirst} onClick={moveUp} title="위로"
                         className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
-                      >
-                        ▲
-                      </button>
+                      >▲</button>
                       <button
-                        type="button"
-                        disabled={isLast}
-                        onClick={moveDown}
-                        title="아래로"
+                        type="button" disabled={isLast} onClick={moveDown} title="아래로"
                         className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
-                      >
-                        ▼
-                      </button>
+                      >▼</button>
+                      {item.kind === 'sticker' ? (
+                        <button
+                          type="button"
+                          onClick={() => removeSticker(item.id)}
+                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg text-[10px] text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                          title="삭제"
+                        >✕</button>
+                      ) : (
+                        <div className="h-5 w-5" />
+                      )}
                     </div>
-
-                    {/* 스티커만 삭제 가능 */}
-                    {item.kind === 'sticker' ? (
-                      <button
-                        type="button"
-                        onClick={() => removeSticker(item.id)}
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] text-red-400 transition hover:bg-red-50 hover:text-red-600"
-                        title="삭제"
-                      >
-                        ✕
-                      </button>
-                    ) : (
-                      <div className="w-6 shrink-0" />
-                    )}
                   </div>
                 );
               })}

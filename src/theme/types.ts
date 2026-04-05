@@ -152,6 +152,8 @@ export interface ElementPosition {
   opacity?: number;
   /** 레이어 순서 (높을수록 위), 기본 undefined (자동) */
   zIndex?: number;
+  /** 폰트 크기 배율, 기본 1 (0.5~2.0) */
+  fontScale?: number;
 }
 
 /**
