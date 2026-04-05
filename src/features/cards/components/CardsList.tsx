@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Instagram, Github, Globe } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
@@ -235,14 +236,32 @@ export function CardsList({
 
                       {/* 중앙: 텍스트 정보 */}
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {card.display_name || '이름 없음'}
-                        </p>
-                        {card.organization && (
-                          <p className="truncate text-xs text-slate-500">{card.organization}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-slate-900">
+                          <p className="truncate">{card.display_name || '이름 없음'}</p>
+                          {card.organization && (
+                            <p className="truncate text-xs text-slate-500">{card.organization}
+                            </p>
                         )}
+                        </div>
+
                         {card.headline && (
-                          <p className="truncate text-xs text-slate-400">{card.headline}</p>
+                          <p className="truncate text-xs text-slate-500">{card.headline}</p>
+                        )}
+
+                        { (card.email || card.phone) && (
+                          <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-300">
+                            {card.email && <p className="truncate">{card.email}</p>}
+                            {card.email && card.phone && <span className="text-[10px] opacity-50">•</span>}
+                            {card.phone && <p className="truncate">{card.phone}</p>}
+                          </div>
+                        )}
+              
+                      {(card.links?.instagram || card.links?.github || card.links?.website) && (
+                          <div className="flex items-center gap-2 text-slate-300">
+                            {card.links.instagram && <Instagram size={12} />}
+                            {card.links.github && <Github size={12} />}
+                            {card.links.website && <Globe size={12} />}
+                          </div>
                         )}
                       </div>
 
