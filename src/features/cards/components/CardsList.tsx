@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
@@ -89,22 +90,25 @@ export function CardsList({
 }: Props) {
   const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
   const touchStartX = useRef<number>(0);
   const touchCurrentX = useRef<number>(0);
   const isDragging = useRef(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // 메뉴 외부 클릭 시 닫기
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenId(null);
-      }
+    function handleClickOutside() {
+      setMenuOpenId(null);
+      setMenuRect(null);
     }
     if (menuOpenId) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, [menuOpenId]);
 
   function handleTouchStart(e: React.TouchEvent, cardId: string) {
@@ -243,12 +247,18 @@ export function CardsList({
                       </div>
 
                       {/* 오른쪽: 케밥 메뉴 */}
-                      <div className="relative shrink-0" ref={isMenuOpen ? menuRef : undefined}>
+                      <div className="shrink-0">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setMenuOpenId(isMenuOpen ? null : card.id);
-                            setSwipedCardId(null);
+                            if (isMenuOpen) {
+                              setMenuOpenId(null);
+                              setMenuRect(null);
+                            } else {
+                              setMenuRect(e.currentTarget.getBoundingClientRect());
+                              setMenuOpenId(card.id);
+                              setSwipedCardId(null);
+                            }
                           }}
                           className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                         >
@@ -258,22 +268,6 @@ export function CardsList({
                             <circle cx="12" cy="19" r="1.5" />
                           </svg>
                         </button>
-
-                        {/* 드롭다운 메뉴 */}
-                        {isMenuOpen && (
-                          <div className="absolute right-0 top-9 z-50 min-w-[110px] overflow-hidden rounded-xl border border-slate-100 bg-white"
-                            style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
-                            <button
-                              onClick={(e) => handleDelete(e, card.id)}
-                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              삭제
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -282,6 +276,29 @@ export function CardsList({
             </div>
           )}
         </>
+      )}
+      {/* 케밥 드롭다운 — overflow:hidden 밖으로 portal 렌더링 */}
+      {menuOpenId && menuRect && createPortal(
+        <div
+          className="fixed z-[9999] min-w-[110px] overflow-hidden rounded-xl border border-slate-100 bg-white"
+          style={{
+            top: menuRect.bottom + 4,
+            left: menuRect.right - 110,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={(e) => handleDelete(e, menuOpenId)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            삭제
+          </button>
+        </div>,
+        document.body
       )}
     </aside>
   );
