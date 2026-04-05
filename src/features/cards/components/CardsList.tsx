@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { CardData } from '../types';
-import { CardPreview } from './CardPreview';
 
 type Props = {
   cards: CardData[];
@@ -11,8 +10,8 @@ type Props = {
   onDeleteDirect: (id: string) => void;
 };
 
-const SWIPE_THRESHOLD = 60; // px
-const DELETE_REVEAL_WIDTH = 88; // px
+const SWIPE_THRESHOLD = 60;
+const DELETE_REVEAL_WIDTH = 80;
 
 export function CardsList({
   cards,
@@ -23,59 +22,65 @@ export function CardsList({
   onDeleteDirect,
 }: Props) {
   const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const touchStartX = useRef<number>(0);
   const touchCurrentX = useRef<number>(0);
   const isDragging = useRef(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    }
+    if (menuOpenId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpenId]);
 
   function handleTouchStart(e: React.TouchEvent, cardId: string) {
     touchStartX.current = e.touches[0].clientX;
     touchCurrentX.current = e.touches[0].clientX;
     isDragging.current = false;
-
-    if (swipedCardId && swipedCardId !== cardId) {
-      setSwipedCardId(null);
-    }
+    if (swipedCardId && swipedCardId !== cardId) setSwipedCardId(null);
   }
 
   function handleTouchMove(e: React.TouchEvent) {
     touchCurrentX.current = e.touches[0].clientX;
-    const delta = touchCurrentX.current - touchStartX.current;
-    if (Math.abs(delta) > 10) {
+    if (Math.abs(touchCurrentX.current - touchStartX.current) > 10) {
       isDragging.current = true;
     }
   }
 
   function handleTouchEnd(cardId: string) {
     const delta = touchCurrentX.current - touchStartX.current;
-
-    if (delta < -SWIPE_THRESHOLD) {
-      setSwipedCardId(cardId);
-    } else if (delta > 10) {
-      setSwipedCardId(null);
-    }
+    if (delta < -SWIPE_THRESHOLD) setSwipedCardId(cardId);
+    else if (delta > 10) setSwipedCardId(null);
   }
 
   function handleCardClick(cardId: string) {
     if (isDragging.current) return;
-    if (swipedCardId === cardId) {
-      setSwipedCardId(null);
-      return;
-    }
+    if (swipedCardId === cardId) { setSwipedCardId(null); return; }
+    if (menuOpenId) { setMenuOpenId(null); return; }
     onSelect(cardId);
   }
 
   function handleDelete(e: React.MouseEvent, cardId: string) {
     e.stopPropagation();
+    setMenuOpenId(null);
+    setSwipedCardId(null);
     if (confirm('정말 삭제하시겠습니까?')) {
       onDeleteDirect(cardId);
-      setSwipedCardId(null);
     }
   }
 
   return (
     <aside>
       {/* 헤더 */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-slate-900">내 명함</h2>
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
@@ -107,34 +112,23 @@ export function CardsList({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {/* 스와이프 안내 힌트 */}
-              <div className="flex items-center gap-1.5 rounded-xl bg-blue-50/60 px-3 py-2">
-                {/* 손가락 스와이프 아이콘 */}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 text-blue-400" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 11V6a2 2 0 0 1 4 0v5" />
-                  <path d="M13 11V8a2 2 0 0 1 4 0v3" />
-                  <path d="M17 11v-1a2 2 0 0 1 4 0v4a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V9a2 2 0 0 1 4 0v3" />
-                  <path d="M3 9V7a2 2 0 0 1 2-2" />
-                </svg>
-                <p className="text-xs font-medium text-blue-500">카드를 왼쪽으로 밀면 삭제할 수 있어요</p>
-              </div>
-
-              {cards.map((card) => {
+            <div className="w-full overflow-hidden rounded-2xl border border-slate-100 bg-white"
+              style={{ boxShadow: '0 1px 8px 0 rgba(0,0,0,0.06)' }}>
+              {cards.map((card, index) => {
                 const isActive = selectedId === card.id;
                 const isSwiped = swipedCardId === card.id;
+                const isMenuOpen = menuOpenId === card.id;
+                const isLast = index === cards.length - 1;
 
                 return (
                   <div
                     key={card.id}
-                    className="relative overflow-hidden rounded-2xl"
-                    style={{
-                      boxShadow: '0 2px 12px 0 rgba(0,0,0,0.07), 0 1px 3px 0 rgba(0,0,0,0.04)',
-                    }}
+                    className="relative overflow-hidden"
+                    style={{ borderBottom: isLast ? 'none' : '1px solid #f1f5f9' }}
                   >
-                    {/* 삭제 버튼 */}
+                    {/* 스와이프 삭제 버튼 */}
                     <div
-                      className="absolute inset-y-0 right-0 flex items-center justify-center transition-all duration-200"
+                      className="absolute inset-y-0 right-0 flex items-center justify-center"
                       style={{
                         width: DELETE_REVEAL_WIDTH,
                         background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
@@ -142,12 +136,12 @@ export function CardsList({
                     >
                       <button
                         onClick={(e) => handleDelete(e, card.id)}
-                        className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-white"
+                        className="flex h-full w-full flex-col items-center justify-center gap-1 text-white"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span className="text-[11px] font-semibold tracking-wide">삭제</span>
+                        <span className="text-[11px] font-semibold">삭제</span>
                       </button>
                     </div>
 
@@ -157,24 +151,79 @@ export function CardsList({
                       onTouchMove={handleTouchMove}
                       onTouchEnd={() => handleTouchEnd(card.id)}
                       onClick={() => handleCardClick(card.id)}
-                      className="relative cursor-pointer overflow-hidden rounded-2xl transition-transform duration-200 active:scale-[0.99] bg-slate-50"
+                      className="relative flex w-full cursor-pointer items-center gap-3 bg-white px-3 py-3 transition-transform duration-200 active:bg-slate-50"
                       style={{
                         transform: isSwiped ? `translateX(-${DELETE_REVEAL_WIDTH}px)` : 'translateX(0)',
                         outline: isActive ? '2px solid #3182f6' : 'none',
-                        outlineOffset: '2px',
-                        padding: '10px',
+                        outlineOffset: '-2px',
                       }}
                     >
-                      <CardPreview card={card} />
+                      {/* 왼쪽: 썸네일 */}
+                      <div
+                        className="shrink-0 overflow-hidden rounded-lg bg-slate-100"
+                        style={{ width: 100, height: 65 }}
+                      >
+                        {card.card_image_url ? (
+                          <img
+                            src={card.card_image_url}
+                            alt={card.display_name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
 
-                      {/* 스와이프 방향 힌트 화살표 (열리지 않은 상태에서만) */}
-                      {!isSwiped && (
-                        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center opacity-20">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      {/* 중앙: 텍스트 정보 */}
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {card.display_name || '이름 없음'}
+                        </p>
+                        {card.organization && (
+                          <p className="truncate text-xs text-slate-500">{card.organization}</p>
+                        )}
+                        {card.headline && (
+                          <p className="truncate text-xs text-slate-400">{card.headline}</p>
+                        )}
+                      </div>
+
+                      {/* 오른쪽: 케밥 메뉴 */}
+                      <div className="relative shrink-0" ref={isMenuOpen ? menuRef : undefined}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenId(isMenuOpen ? null : card.id);
+                            setSwipedCardId(null);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="5" r="1.5" />
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="12" cy="19" r="1.5" />
                           </svg>
-                        </div>
-                      )}
+                        </button>
+
+                        {/* 드롭다운 메뉴 */}
+                        {isMenuOpen && (
+                          <div className="absolute right-0 top-9 z-50 min-w-[110px] overflow-hidden rounded-xl border border-slate-100 bg-white"
+                            style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+                            <button
+                              onClick={(e) => handleDelete(e, card.id)}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
