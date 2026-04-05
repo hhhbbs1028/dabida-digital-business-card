@@ -521,26 +521,24 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
         </div>
         
         <div className="sticky top-6">
-          <div className="flex items-start gap-2">
-            <div className="flex-1">
-              <CardCanvas
-                theme={theme}
-                data={themePreviewData}
-                onPositionsChange={(positions) =>{
-                  setTheme((prev) => ({ ...prev, elementPositions: positions }))}
-                }
-                onStickersChange={(stickers) => {
-                  setTheme((prev) => ({ ...prev, stickers }))}
-                }
-              />
-            </div>
+          <div className="relative">
+            <CardCanvas
+              theme={theme}
+              data={themePreviewData}
+              onPositionsChange={(positions) =>{
+                setTheme((prev) => ({ ...prev, elementPositions: positions }))}
+              }
+              onStickersChange={(stickers) => {
+                setTheme((prev) => ({ ...prev, stickers }))}
+              }
+            />
             {hasPositions && (
               <button
                 type="button"
                 onClick={() =>
                   setTheme((prev) => ({ ...prev, elementPositions: undefined }))
                 }
-                className="shrink-0 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                className="absolute right-0 top-0 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
                 title="위치를 기본값으로 초기화"
               >
                 <RotateCcw size={14} />
