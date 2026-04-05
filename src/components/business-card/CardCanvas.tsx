@@ -12,11 +12,12 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { Instagram, Github, Globe } from 'lucide-react';
-import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, LayoutId, CardOrientation, StickerElement } from '../../theme/types';
+import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, StickerElement } from '../../theme/types';
 import { applyThemeToStyle } from '../../theme/applyTheme';
+import { resolvePositions } from '../../theme/defaultPositions';
 
 // ============================================================================
-// 기본 위치 테이블
+// 기본 위치 테이블 (공유 모듈로 이동됨 → defaultPositions.ts)
 // ============================================================================
 
 type DefaultPositionMap = {
@@ -27,51 +28,6 @@ type DefaultPositionMap = {
   contact: ElementPosition;
   links: ElementPosition;
 };
-
-function getDefaultPositions(layoutId: LayoutId, orientation: CardOrientation, hasProfile: boolean): DefaultPositionMap {
-  if (orientation === 'portrait') {
-    return {
-      profile: { x: 50, y: 18, size: 28 },
-      name:    { x: 50, y: hasProfile ? 42 : 28 },
-      tagline: { x: 50, y: hasProfile ? 53 : 40 },
-      major:   { x: 50, y: hasProfile ? 63 : 52 },
-      contact: { x: 50, y: hasProfile ? 73 : 65 },
-      links:   { x: 50, y: hasProfile ? 83 : 78 },
-    };
-  }
-
-  // landscape
-  if (layoutId === 'split_01') {
-    return {
-      profile: { x: 13, y: 38, size: 22 },
-      major:   { x: 13, y: 72 },
-      name:    { x: 58, y: 28 },
-      tagline: { x: 58, y: 48 },
-      contact: { x: 58, y: 66 },
-      links:   { x: 58, y: 82 },
-    };
-  }
-
-  // minimal_01 landscape
-  if (hasProfile) {
-    return {
-      profile: { x: 13, y: 50, size: 22 },
-      name:    { x: 56, y: 25 },
-      tagline: { x: 56, y: 44 },
-      major:   { x: 56, y: 58 },
-      contact: { x: 56, y: 72 },
-      links:   { x: 56, y: 85 },
-    };
-  }
-  return {
-    profile: { x: 50, y: 50, size: 22 },
-    name:    { x: 50, y: 25 },
-    tagline: { x: 50, y: 44 },
-    major:   { x: 50, y: 58 },
-    contact: { x: 50, y: 72 },
-    links:   { x: 50, y: 85 },
-  };
-}
 
 // ============================================================================
 // 드래그 훅
@@ -363,17 +319,9 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
 
   // 기본 위치 + 저장된 위치 병합
-  const defaults = getDefaultPositions(theme.layoutId, orientation, hasProfile);
-  const saved = theme.elementPositions ?? {};
-
-  const [positions, setPositions] = useState<DefaultPositionMap>(() => ({
-    profile: { ...defaults.profile, ...saved.profile },
-    name:    { ...defaults.name,    ...saved.name    },
-    tagline: { ...defaults.tagline, ...saved.tagline },
-    major:   { ...defaults.major,   ...saved.major   },
-    contact: { ...defaults.contact, ...saved.contact },
-    links:   { ...defaults.links,   ...saved.links   },
-  }));
+  const [positions, setPositions] = useState<DefaultPositionMap>(
+    () => resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile),
+  );
 
   // selected: 텍스트 요소 키 또는 스티커 ID
   const [selected, setSelected] = useState<string | null>(null);
@@ -381,16 +329,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
 
   // theme.elementPositions 외부 변경 시 동기화 (위치 초기화 등)
   React.useEffect(() => {
-    const newSaved = theme.elementPositions ?? {};
-    const newDefaults = getDefaultPositions(theme.layoutId, orientation, hasProfile);
-    setPositions({
-      profile: { ...newDefaults.profile, ...newSaved.profile },
-      name:    { ...newDefaults.name,    ...newSaved.name    },
-      tagline: { ...newDefaults.tagline, ...newSaved.tagline },
-      major:   { ...newDefaults.major,   ...newSaved.major   },
-      contact: { ...newDefaults.contact, ...newSaved.contact },
-      links:   { ...newDefaults.links,   ...newSaved.links   },
-    });
+    setPositions(resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile));
   }, [theme.elementPositions, theme.layoutId, orientation, hasProfile]);
 
   // theme.stickers 외부 변경 시 동기화
