@@ -6,16 +6,17 @@
   html {
     font-size: 16px;
     line-height: 1.6;
+    background-color: #f2f4f6; /* bg-bg-gray — 오버스크롤 시 흰 화면 방지 */
+    overscroll-behavior: none;  /* 불필요한 바운스 스크롤 방지 */
   }
-  
+
   body {
     @apply bg-bg-gray text-text-primary;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'kern' 1;
-    /* 상태바가 WebView를 오버레이할 때 콘텐츠가 가려지지 않도록 (iOS) */
-    padding-top: env(safe-area-inset-top);
+    overscroll-behavior: none;
   }
   
   /* 토스 스타일 버튼 애니메이션 */
