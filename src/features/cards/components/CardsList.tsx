@@ -76,12 +76,12 @@ export function CardsList({
     <aside>
       {/* 헤더 */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-extrabold tracking-tight text-gray-900">내 명함</h2>
-        {cards.length > 0 && (
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-600">
-            {cards.length}장
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-slate-900">내 명함</h2>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+            {cards.length}
           </span>
-        )}
+        </div>
       </div>
 
       {loading ? (
