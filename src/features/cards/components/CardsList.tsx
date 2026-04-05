@@ -1,5 +1,71 @@
 import { useRef, useState, useEffect } from 'react';
 import type { CardData } from '../types';
+import { BusinessCard } from '../../../components/business-card/BusinessCard';
+import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
+import type { CardContentTokens } from '../../../theme/types';
+
+const THUMB_W = 100;
+const THUMB_H = 65;
+
+function CardThumbnail({ card }: { card: CardData }) {
+  if (!card.theme) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-slate-300">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      </div>
+    );
+  }
+
+  const isPortrait = card.theme.orientation === 'portrait';
+  const RENDER_W = isPortrait ? 160 : 280;
+  const RENDER_H = isPortrait ? (RENDER_W * 9) / 5 : (RENDER_W * 5) / 9;
+
+  const scale = Math.min(THUMB_W / RENDER_W, THUMB_H / RENDER_H);
+  const scaledW = RENDER_W * scale;
+  const scaledH = RENDER_H * scale;
+  const offsetX = (THUMB_W - scaledW) / 2;
+  const offsetY = (THUMB_H - scaledH) / 2;
+
+  const storage = card.theme as any;
+  const theme = storage.colors ? storageToTheme(card.theme) : mergeTheme('minimal_light');
+
+  const contentTokens: CardContentTokens = {
+    name: card.display_name,
+    major: card.organization,
+    tagline: card.headline,
+    email: card.email || undefined,
+    phone: card.phone || undefined,
+    links: {
+      instagram: card.links.instagram || undefined,
+      github: card.links.github || undefined,
+      website: card.links.website || undefined,
+    },
+    logoUrl: card.logo_url || undefined,
+    profileUrl: card.profile_url || undefined,
+  };
+
+  return (
+    <div
+      className="overflow-hidden"
+      style={{ width: THUMB_W, height: THUMB_H, position: 'relative', flexShrink: 0 }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          width: RENDER_W,
+          height: RENDER_H,
+          transformOrigin: 'top left',
+          transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+          pointerEvents: 'none',
+        }}
+      >
+        <BusinessCard theme={theme} data={contentTokens} />
+      </div>
+    </div>
+  );
+}
 
 type Props = {
   cards: CardData[];
@@ -159,23 +225,8 @@ export function CardsList({
                       }}
                     >
                       {/* 왼쪽: 썸네일 */}
-                      <div
-                        className="shrink-0 overflow-hidden rounded-lg bg-slate-100"
-                        style={{ width: 100, height: 65 }}
-                      >
-                        {card.card_image_url ? (
-                          <img
-                            src={card.card_image_url}
-                            alt={card.display_name}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                          </div>
-                        )}
+                      <div className="shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        <CardThumbnail card={card} />
                       </div>
 
                       {/* 중앙: 텍스트 정보 */}
