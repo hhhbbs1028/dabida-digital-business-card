@@ -270,6 +270,11 @@ export function CardsList({
                           </div>
                         )}
                       </div>
+
+                      {/* 오른쪽: 스와이프 힌트 */}
+                      <div className="shrink-0 text-sm opacity-30 select-none">
+                        ⬅️
+                      </div>
                     </div>
                   </div>
                 );
