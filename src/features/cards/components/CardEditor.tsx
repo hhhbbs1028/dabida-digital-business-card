@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw, Maximize2, X } from 'lucide-react';
+import { RotateCcw, Maximize2 } from 'lucide-react';
+import { FullscreenCardEditor } from './FullscreenCardEditor';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
@@ -491,30 +492,14 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
 
   return (
     <>
-    {/* 전체화면 캔버스 오버레이 */}
+    {/* 전체화면 카드 편집기 */}
     {isCanvasFullscreen && (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-        <button
-          type="button"
-          onClick={() => setIsCanvasFullscreen(false)}
-          className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
-          title="닫기"
-        >
-          <X size={20} />
-        </button>
-        <div className="w-full max-w-2xl px-6">
-          <CardCanvas
-            theme={theme}
-            data={themePreviewData}
-            onPositionsChange={(positions) =>
-              setTheme((prev) => ({ ...prev, elementPositions: positions }))
-            }
-            onStickersChange={(stickers) =>
-              setTheme((prev) => ({ ...prev, stickers }))
-            }
-          />
-        </div>
-      </div>
+      <FullscreenCardEditor
+        theme={theme}
+        data={themePreviewData}
+        onThemeChange={(newTheme) => setTheme(newTheme)}
+        onClose={() => setIsCanvasFullscreen(false)}
+      />
     )}
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <style>{`
