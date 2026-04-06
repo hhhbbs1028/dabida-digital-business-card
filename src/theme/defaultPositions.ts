@@ -22,36 +22,36 @@ export function getDefaultPositions(
     };
   }
 
-  // landscape
+  // landscape (9:5)
   if (layoutId === 'split_01') {
     return {
-      profile: { x: 13, y: 38, size: 22 },
-      major:   { x: 13, y: 72 },
-      name:    { x: 58, y: 28 },
-      tagline: { x: 58, y: 48 },
-      contact: { x: 58, y: 66 },
-      links:   { x: 58, y: 82 },
+      profile: { x: 22, y: 38, size: 30 },
+      major:   { x: 22, y: 72 },
+      name:    { x: 65, y: 22 },
+      tagline: { x: 65, y: 42 },
+      contact: { x: 65, y: 62 },
+      links:   { x: 65, y: 80 },
     };
   }
 
-  // minimal_01 landscape
+  // minimal_01 landscape (9:5)
   if (hasProfile) {
     return {
-      profile: { x: 13, y: 50, size: 22 },
-      name:    { x: 56, y: 25 },
-      tagline: { x: 56, y: 44 },
-      major:   { x: 56, y: 58 },
-      contact: { x: 56, y: 72 },
-      links:   { x: 56, y: 85 },
+      profile: { x: 22, y: 50, size: 30 },
+      name:    { x: 64, y: 22 },
+      tagline: { x: 64, y: 40 },
+      major:   { x: 64, y: 57 },
+      contact: { x: 64, y: 72 },
+      links:   { x: 64, y: 85 },
     };
   }
   return {
-    profile: { x: 50, y: 50, size: 22 },
-    name:    { x: 50, y: 25 },
-    tagline: { x: 50, y: 44 },
-    major:   { x: 50, y: 58 },
-    contact: { x: 50, y: 72 },
-    links:   { x: 50, y: 85 },
+    profile: { x: 50, y: 50, size: 30 },
+    name:    { x: 50, y: 22 },
+    tagline: { x: 50, y: 40 },
+    major:   { x: 50, y: 56 },
+    contact: { x: 50, y: 70 },
+    links:   { x: 50, y: 84 },
   };
 }
 
