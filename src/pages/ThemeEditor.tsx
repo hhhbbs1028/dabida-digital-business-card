@@ -6,21 +6,19 @@ import { FullScreenModal } from '../shared/ui/FullScreenModal';
 import type {
   CardTheme,
   ThemePresetId,
-  ColorPaletteId,
   FontSetId,
-  ProfileShape,
   CardContentTokens,
-  CardStyleTokens,
   StickerElement,
   CardElementPositions,
 } from '../theme/types';
-import { THEME_PRESETS, COLOR_PALETTES, FONT_SETS, GRADIENT_PRESETS, PATTERN_PRESETS } from '../theme/presets';
-import { getLayoutCapabilities } from '../theme/capabilities';
+import { THEME_PRESETS, FONT_SETS } from '../theme/presets';
 import { CardCanvas } from '../components/business-card/CardCanvas';
 import type { CardData } from '../features/cards/types';
 import { uploadToStorage } from '../shared/infrastructure/storageApi';
 import { supabase } from '../shared/infrastructure/supabaseClient';
 import { setBackInterceptor } from '../shared/utils/backIntercept';
+import { ColorTab } from '../features/cards/components/editor-tabs/ColorTab';
+import { BackgroundTab } from '../features/cards/components/editor-tabs/BackgroundTab';
 
 type Props = {
   isOpen: boolean;
