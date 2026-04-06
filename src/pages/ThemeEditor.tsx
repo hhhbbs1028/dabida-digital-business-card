@@ -1054,7 +1054,7 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
           {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
           {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
           {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
+          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
         </div>
       </div>
     </FullScreenModal>
