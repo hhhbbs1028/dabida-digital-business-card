@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Maximize2, X } from 'lucide-react';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
@@ -69,6 +69,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
   );
 
   const [showThemeEditor, setShowThemeEditor] = useState(false);
+  const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -490,6 +491,31 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
 
   return (
     <>
+    {/* 전체화면 캔버스 오버레이 */}
+    {isCanvasFullscreen && (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => setIsCanvasFullscreen(false)}
+          className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+          title="닫기"
+        >
+          <X size={20} />
+        </button>
+        <div className="w-full max-w-2xl px-6">
+          <CardCanvas
+            theme={theme}
+            data={themePreviewData}
+            onPositionsChange={(positions) =>
+              setTheme((prev) => ({ ...prev, elementPositions: positions }))
+            }
+            onStickersChange={(stickers) =>
+              setTheme((prev) => ({ ...prev, stickers }))
+            }
+          />
+        </div>
+      </div>
+    )}
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <style>{`
         @media (max-width: 1023px) {
@@ -522,12 +548,20 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
                 onClick={() =>
                   setTheme((prev) => ({ ...prev, elementPositions: undefined }))
                 }
-                className={`absolute bottom-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500 ${theme.orientation === 'portrait' ? 'right-10' : 'right-0'}`}
+                className={`absolute bottom-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500 ${theme.orientation === 'portrait' ? 'right-10' : 'right-10'}`}
                 title="위치를 기본값으로 초기화"
               >
                 <RotateCcw size={14} />
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setIsCanvasFullscreen(true)}
+              className="absolute bottom-0 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
+              title="전체화면으로 보기"
+            >
+              <Maximize2 size={14} />
+            </button>
           </div>
         </div>
       </div>
