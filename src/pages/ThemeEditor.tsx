@@ -32,8 +32,8 @@ type Props = {
 type TabId = 'preset' | 'color' | 'font' | 'background' | 'sticker';
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'preset',     label: '프리셋' },
-  { id: 'color',      label: '색상'   },
+  { id: 'preset',     label: '테마' },
+  { id: 'color',      label: '폰트 색상'   },
   { id: 'font',       label: '폰트'   },
   { id: 'background', label: '배경'   },
   { id: 'sticker',    label: '꾸미기' },
@@ -97,7 +97,7 @@ function PresetTab({ theme, onChange, hasProfileUrl }: {
       </button>
 
       <div className="border-t border-slate-100 pt-3">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">프리셋</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">테마</p>
         <div className="grid grid-cols-2 gap-2">
           {NAMED_PRESET_IDS.map((presetId) => {
             const isSelected = theme.presetId === presetId;
@@ -586,7 +586,6 @@ const TEXT_LAYER_DEFS: { key: keyof CardElementPositions; label: string; abbr: s
   { key: 'major',   label: '소속',      abbr: '소속' },
   { key: 'contact', label: '연락처',    abbr: '연락' },
   { key: 'links',   label: '링크',      abbr: '링크' },
-  { key: 'profile', label: '프로필',    abbr: '사진' },
 ];
 
 function StickerTab({
@@ -718,8 +717,11 @@ function StickerTab({
 
       {/* ── 레이어 패널 ── */}
       {(() => {
-        // 텍스트 레이어 아이템 (실제 데이터가 있는 것만)
-        const textItems = TEXT_LAYER_DEFS
+        type StickerLayer = { kind: 'sticker'; id: string; sticker: typeof stickers[0]; opacity: number; zIndex: number; rotation: number; };
+        type ProfileLayer = { kind: 'profile'; id: 'profile'; src: string; opacity: number; zIndex: number; };
+        type TextLayer    = { kind: 'text'; id: string; key: keyof CardElementPositions; label: string; abbr: string; opacity: number; zIndex: number; fontScale: number; };
+
+        const textLayers: TextLayer[] = TEXT_LAYER_DEFS
           .filter(({ key }) => {
             if (!data) return false;
             if (key === 'name')    return !!data.name;
@@ -727,31 +729,38 @@ function StickerTab({
             if (key === 'major')   return !!data.major;
             if (key === 'contact') return !!(data.email || data.phone);
             if (key === 'links')   return !!(data.links?.instagram || data.links?.github || data.links?.website);
-            if (key === 'profile') return !!data.profileUrl;
             return false;
           })
           .map(({ key, label, abbr }) => ({
+            kind: 'text',
             id: `text_${key}`,
-            kind: 'text' as const,
             key,
             label,
             abbr,
-            opacity: theme.elementPositions?.[key]?.opacity ?? 1,
-            zIndex: theme.elementPositions?.[key]?.zIndex ?? 100,
-            fontScale: theme.elementPositions?.[key]?.fontScale ?? 1,
+            opacity:   theme.elementPositions?.[key]?.opacity   ?? 1,
+            zIndex:    theme.elementPositions?.[key]?.zIndex     ?? 100,
+            fontScale: theme.elementPositions?.[key]?.fontScale  ?? 1,
           }));
 
-        const stickerItems = stickers.map((s) => ({
+        const stickerLayers: StickerLayer[] = stickers.map((s) => ({
+          kind: 'sticker',
           id: s.id,
-          kind: 'sticker' as const,
           sticker: s,
-          label: s.type === 'emoji' ? s.src : '이미지',
           opacity: s.opacity,
           zIndex: s.zIndex,
           rotation: s.rotation,
         }));
 
-        const allLayers = [...textItems, ...stickerItems].sort((a, b) => b.zIndex - a.zIndex);
+        const profileLayers: ProfileLayer[] = data?.profileUrl ? [{
+          kind: 'profile',
+          id: 'profile',
+          src: data.profileUrl,
+          opacity: theme.elementPositions?.profile?.opacity ?? 1,
+          zIndex:  theme.elementPositions?.profile?.zIndex  ?? 100,
+        }] : [];
+
+        const allLayers = ([...textLayers, ...stickerLayers, ...profileLayers] as (TextLayer | StickerLayer | ProfileLayer)[])
+          .sort((a, b) => b.zIndex - a.zIndex);
 
         if (allLayers.length === 0) return null;
 
@@ -764,9 +773,11 @@ function StickerTab({
             return s;
           });
           const prevPos = theme.elementPositions ?? {};
-          let newPos = { ...prevPos };
-          if (itemA.kind === 'text') newPos = { ...newPos, [itemA.key]: { ...(prevPos[itemA.key] ?? {}), zIndex: zB } };
-          if (itemB.kind === 'text') newPos = { ...newPos, [itemB.key]: { ...(prevPos[itemB.key] ?? {}), zIndex: zA } };
+          let newPos: CardElementPositions = { ...prevPos };
+          if (itemA.kind === 'text'    && prevPos[itemA.key]) newPos = { ...newPos, [itemA.key]: { ...prevPos[itemA.key]!, zIndex: zB } };
+          if (itemB.kind === 'text'    && prevPos[itemB.key]) newPos = { ...newPos, [itemB.key]: { ...prevPos[itemB.key]!, zIndex: zA } };
+          if (itemA.kind === 'profile' && prevPos.profile)    newPos = { ...newPos, profile: { ...prevPos.profile, zIndex: zB } };
+          if (itemB.kind === 'profile' && prevPos.profile)    newPos = { ...newPos, profile: { ...prevPos.profile, zIndex: zA } };
           onChange({ stickers: newStickers, elementPositions: newPos });
         };
 
@@ -798,21 +809,19 @@ function StickerTab({
                 const setOpacity = (val: number) => {
                   if (item.kind === 'sticker') {
                     onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, opacity: val } : s) });
+                  } else if (item.kind === 'profile') {
+                    const prevPos = theme.elementPositions ?? {};
+                    if (prevPos.profile) onChange({ elementPositions: { ...prevPos, profile: { ...prevPos.profile, opacity: val } } });
                   } else {
                     const prevPos = theme.elementPositions ?? {};
-                    onChange({ elementPositions: { ...prevPos, [item.key]: { ...(prevPos[item.key] ?? {}), opacity: val } } });
+                    if (prevPos[item.key]) onChange({ elementPositions: { ...prevPos, [item.key]: { ...prevPos[item.key]!, opacity: val } } });
                   }
-                };
-
-                const setRotation = (val: number) => {
-                  if (item.kind !== 'sticker') return;
-                  onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, rotation: val } : s) });
                 };
 
                 const setFontScale = (val: number) => {
                   if (item.kind !== 'text') return;
                   const prevPos = theme.elementPositions ?? {};
-                  onChange({ elementPositions: { ...prevPos, [item.key]: { ...(prevPos[item.key] ?? {}), fontScale: val } } });
+                  if (prevPos[item.key]) onChange({ elementPositions: { ...prevPos, [item.key]: { ...prevPos[item.key]!, fontScale: val } } });
                 };
 
                 return (
@@ -821,12 +830,14 @@ function StickerTab({
                     className={`flex items-start gap-2 rounded-xl border px-3 py-2 ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50/40' : 'border-slate-100 bg-white'}`}
                   >
                     {/* 썸네일 */}
-                    <div className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50 text-indigo-400' : 'border-slate-100 bg-slate-50'}`}>
-                      {item.kind === 'sticker' ? (
+                    <div className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border overflow-hidden text-xs font-semibold ${item.kind === 'text' ? 'border-indigo-100 bg-indigo-50 text-indigo-400' : 'border-slate-100 bg-slate-50'}`}>
+                      {item.kind === 'profile' ? (
+                        <img src={item.src} alt="프로필" className="h-full w-full object-cover" />
+                      ) : item.kind === 'sticker' ? (
                         item.sticker.type === 'emoji' ? (
                           <span className="text-xl">{item.sticker.src}</span>
                         ) : (
-                          <img src={item.sticker.src} alt="" className="h-full w-full rounded-lg object-cover" />
+                          <img src={item.sticker.src} alt="" className="h-full w-full object-cover" />
                         )
                       ) : (
                         item.abbr
@@ -835,9 +846,11 @@ function StickerTab({
 
                     {/* 슬라이더 그룹 */}
                     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      {/* 레이블 (텍스트만) */}
                       {item.kind === 'text' && (
                         <span className="text-[10px] font-medium text-indigo-500">{item.label}</span>
+                      )}
+                      {item.kind === 'profile' && (
+                        <span className="text-[10px] font-medium text-slate-400">프로필 사진</span>
                       )}
 
                       {/* 투명도 */}
@@ -854,6 +867,22 @@ function StickerTab({
                         />
                       </div>
 
+                      {/* 폰트 크기 (텍스트만) */}
+                      {item.kind === 'text' && (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">크기</span>
+                            <span className="font-mono text-[10px] text-slate-400">{item.fontScale.toFixed(1)}x</span>
+                          </div>
+                          <input
+                            type="range" min={0.5} max={2.0} step={0.1}
+                            value={item.fontScale}
+                            onChange={(e) => setFontScale(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                          />
+                        </div>
+                      )}
+
                       {/* 회전 (스티커만) */}
                       {item.kind === 'sticker' && (
                         <div>
@@ -864,23 +893,7 @@ function StickerTab({
                           <input
                             type="range" min={-180} max={180} step={1}
                             value={item.rotation}
-                            onChange={(e) => setRotation(Number(e.target.value))}
-                            className="h-1.5 w-full cursor-pointer accent-indigo-500"
-                          />
-                        </div>
-                      )}
-
-                      {/* 폰트 크기 (텍스트만, 프로필 제외) */}
-                      {item.kind === 'text' && item.key !== 'profile' && (
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-slate-500">크기</span>
-                            <span className="font-mono text-[10px] text-slate-400">{item.fontScale.toFixed(1)}x</span>
-                          </div>
-                          <input
-                            type="range" min={0.5} max={2.0} step={0.1}
-                            value={item.fontScale}
-                            onChange={(e) => setFontScale(Number(e.target.value))}
+                            onChange={(e) => onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, rotation: Number(e.target.value) } : s) })}
                             className="h-1.5 w-full cursor-pointer accent-indigo-500"
                           />
                         </div>
@@ -905,7 +918,7 @@ function StickerTab({
                           title="삭제"
                         >✕</button>
                       ) : (
-                        <div className="h-5 w-5" />
+                        <div className="h-5 w-5 mt-0.5" />
                       )}
                     </div>
                   </div>
@@ -1041,7 +1054,7 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
           {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
           {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
           {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
+          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
         </div>
       </div>
     </FullScreenModal>
