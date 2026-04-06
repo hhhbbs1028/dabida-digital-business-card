@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Instagram, Github, Globe } from 'lucide-react';
+import { Instagram, Github, Globe, ChevronLeft } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
@@ -272,8 +272,8 @@ export function CardsList({
                       </div>
 
                       {/* 오른쪽: 스와이프 힌트 */}
-                      <div className="shrink-0 text-sm opacity-30 select-none">
-                        ⬅️
+                      <div className="shrink-0 text-slate-300 select-none">
+                        <ChevronLeft size={16} />
                       </div>
                     </div>
                   </div>
