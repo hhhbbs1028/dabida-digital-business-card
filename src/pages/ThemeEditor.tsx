@@ -602,6 +602,7 @@ function StickerTab({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(true);
 
   const stickers = theme.stickers ?? [];
 
@@ -654,26 +655,41 @@ function StickerTab({
   return (
     <div className="space-y-6">
       {/* 이모지 스티커 */}
-      {EMOJI_GROUPS.map((group) => (
-        <div key={group.label}>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {group.label}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {group.items.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => addSticker(emoji)}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-100 bg-white text-2xl shadow-sm transition hover:border-slate-300 hover:scale-110 active:scale-95"
-                title={`${emoji} 추가`}
-              >
-                {emoji}
-              </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => setEmojiOpen((v) => !v)}
+          className="flex w-full items-center justify-between mb-2"
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">이모지</span>
+          <span className="text-slate-400 text-xs">{emojiOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {emojiOpen && (
+          <div className="space-y-4">
+            {EMOJI_GROUPS.map((group) => (
+              <div key={group.label}>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {group.label}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addSticker(emoji)}
+                      className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-100 bg-white text-2xl shadow-sm transition hover:border-slate-300 hover:scale-110 active:scale-95"
+                      title={`${emoji} 추가`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
 
       {/* 갤러리 이미지 업로드 */}
       {onUploadImage && (
