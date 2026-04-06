@@ -3,7 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
-import type { CardTheme, CardThemeStorage, CardContentTokens } from '../../../theme/types';
+import type { CardTheme, CardThemeStorage, CardContentTokens, ProfileShape } from '../../../theme/types';
 import { mergeTheme, themeToStorage, storageToTheme } from '../../../theme/mergeTheme';
 
 /** profileUrl이 있을 때 profileShape가 'none'이면 'circle'로 자동 전환 */
@@ -293,78 +293,141 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
           {/* 프로필 사진 */}
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">프로필 사진</p>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
-                disabled={avatarUploading}
-                className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-slate-100 ring-2 ring-offset-2 ring-transparent hover:ring-slate-300 transition focus:outline-none disabled:opacity-60"
-                title={profileSrc ? '사진 변경' : '사진 추가'}
-              >
-                {profileSrc ? (
-                  <img src={profileSrc} alt="프로필" className="h-full w-full object-cover" />
-                ) : avatarUrl ? (
-                  <>
-                    <img src={avatarUrl} alt="프로필" className="h-full w-full object-cover opacity-25" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] font-medium text-slate-500 leading-tight text-center">사진<br/>추가</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-                    <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                    </svg>
-                    <span className="text-[10px] text-slate-400">추가</span>
-                  </div>
-                )}
-                {avatarUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
-                  </div>
-                )}
-              </button>
-              <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-medium text-slate-700">
-                  {profileSrc ? '사진이 명함에 표시됩니다' : '사진 없음'}
-                </p>
-                <div className="flex flex-wrap gap-2">
+            {/* 모양 선택 버튼 */}
+            <div className="flex gap-3 mb-4">
+              {(
+                [
+                  {
+                    id: 'none' as ProfileShape,
+                    label: '없음',
+                    icon: (
+                      <div className="flex h-10 w-10 items-center justify-center">
+                        <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                      </div>
+                    ),
+                  },
+                  {
+                    id: 'circle' as ProfileShape,
+                    label: '원형',
+                    icon: <div className="h-10 w-10 rounded-full bg-slate-300" />,
+                  },
+                  {
+                    id: 'rounded' as ProfileShape,
+                    label: '둥근 모서리',
+                    icon: <div className="h-10 w-10 rounded-xl bg-slate-300" />,
+                  },
+                ] as { id: ProfileShape; label: string; icon: React.ReactNode }[]
+              ).map((shape) => {
+                const isSelected = theme.style.profileShape === shape.id;
+                return (
                   <button
+                    key={shape.id}
                     type="button"
-                    onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
-                    disabled={avatarUploading}
-                    className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 transition disabled:opacity-50"
+                    onClick={() => {
+                      if (shape.id === 'none') {
+                        handleAvatarDelete();
+                      } else {
+                        setTheme((prev) => ({ ...prev, style: { ...prev.style, profileShape: shape.id } }));
+                      }
+                    }}
+                    className={[
+                      'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 py-3 transition',
+                      isSelected
+                        ? 'border-slate-900 bg-slate-50'
+                        : 'border-slate-200 bg-white hover:border-slate-300',
+                    ].join(' ')}
                   >
-                    {profileSrc ? '사진 변경' : '업로드'}
+                    {shape.icon}
+                    <span className={[
+                      'text-xs font-medium',
+                      isSelected ? 'text-slate-900' : 'text-slate-400',
+                    ].join(' ')}>{shape.label}</span>
                   </button>
-                  {!profileSrc && avatarUrl && (
+                );
+              })}
+            </div>
+
+            {/* 사진 업로드 영역 (모양이 선택된 경우에만 표시) */}
+            {theme.style.profileShape !== 'none' && (
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className={[
+                    'relative h-16 w-16 shrink-0 overflow-hidden bg-slate-100 ring-2 ring-offset-2 ring-transparent hover:ring-slate-300 transition focus:outline-none disabled:opacity-60',
+                    theme.style.profileShape === 'rounded' ? 'rounded-xl' : 'rounded-full',
+                  ].join(' ')}
+                  title={profileSrc ? '사진 변경' : '사진 추가'}
+                >
+                  {profileSrc ? (
+                    <img src={profileSrc} alt="프로필" className="h-full w-full object-cover" />
+                  ) : avatarUrl ? (
+                    <>
+                      <img src={avatarUrl} alt="프로필" className="h-full w-full object-cover opacity-25" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[10px] font-medium text-slate-500 leading-tight text-center">사진<br/>추가</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+                      <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                      </svg>
+                      <span className="text-[10px] text-slate-400">추가</span>
+                    </div>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+                    </div>
+                  )}
+                </button>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium text-slate-700">
+                    {profileSrc ? '사진이 명함에 표시됩니다' : '사진 없음'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => handleUseProfileAvatar(avatarUrl)}
-                      className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 transition"
+                      onClick={() => Capacitor.isNativePlatform() ? handleAvatarUpload() : avatarFileInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 transition disabled:opacity-50"
                     >
-                      내 프로필 사진 사용
+                      {profileSrc ? '사진 변경' : '업로드'}
                     </button>
-                  )}
-                  {profileSrc && (
-                    <button
-                      type="button"
-                      onClick={handleAvatarDelete}
-                      className="text-xs text-red-400 hover:text-red-600 transition"
-                    >
-                      삭제
-                    </button>
-                  )}
+                    {!profileSrc && avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleUseProfileAvatar(avatarUrl)}
+                        className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 transition"
+                      >
+                        내 프로필 사진 사용
+                      </button>
+                    )}
+                    {profileSrc && (
+                      <button
+                        type="button"
+                        onClick={handleAvatarDelete}
+                        className="text-xs text-red-400 hover:text-red-600 transition"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <input
-                ref={avatarFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-            </div>
+            )}
+
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
             {avatarError && (
               <p className="mt-2 text-xs text-red-500">{avatarError}</p>
             )}
