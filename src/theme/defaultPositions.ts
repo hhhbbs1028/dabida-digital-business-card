@@ -25,11 +25,11 @@ export function getDefaultPositions(
   // landscape (9:5)
   if (layoutId === 'split_01') {
     return {
-      profile: { x: 22, y: 38, size: 30 },
-      major:   { x: 22, y: 72 },
-      name:    { x: 65, y: 22 },
-      tagline: { x: 65, y: 42 },
-      contact: { x: 65, y: 62 },
+      profile: { x: 24, y: 45, size: 32 },
+      major:   { x: 24, y: 76 },
+      name:    { x: 65, y: 20 },
+      tagline: { x: 65, y: 38 },
+      contact: { x: 65, y: 60 },
       links:   { x: 65, y: 80 },
     };
   }
@@ -37,21 +37,21 @@ export function getDefaultPositions(
   // minimal_01 landscape (9:5)
   if (hasProfile) {
     return {
-      profile: { x: 22, y: 50, size: 30 },
-      name:    { x: 64, y: 22 },
-      tagline: { x: 64, y: 40 },
-      major:   { x: 64, y: 57 },
-      contact: { x: 64, y: 72 },
-      links:   { x: 64, y: 85 },
+      profile: { x: 24, y: 50, size: 32 },
+      name:    { x: 64, y: 20 },
+      tagline: { x: 64, y: 38 },
+      major:   { x: 64, y: 54 },
+      contact: { x: 64, y: 70 },
+      links:   { x: 64, y: 84 },
     };
   }
   return {
     profile: { x: 50, y: 50, size: 30 },
-    name:    { x: 50, y: 22 },
-    tagline: { x: 50, y: 40 },
-    major:   { x: 50, y: 56 },
-    contact: { x: 50, y: 70 },
-    links:   { x: 50, y: 84 },
+    name:    { x: 50, y: 20 },
+    tagline: { x: 50, y: 36 },
+    major:   { x: 50, y: 52 },
+    contact: { x: 50, y: 67 },
+    links:   { x: 50, y: 82 },
   };
 }
 
