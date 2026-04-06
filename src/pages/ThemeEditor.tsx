@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ImageIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { FullScreenModal } from '../shared/ui/FullScreenModal';
@@ -695,7 +696,7 @@ function StickerTab({
       {onUploadImage && (
         <div>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            내 사진 추가
+            갤러리에서 이미지 추가
           </div>
           <button
             type="button"
@@ -710,8 +711,7 @@ function StickerTab({
               </>
             ) : (
               <>
-                <span className="text-xl">🖼️</span>
-                갤러리에서 사진 선택
+                <ImageIcon size={20} className="text-slate-500" />
               </>
             )}
           </button>
