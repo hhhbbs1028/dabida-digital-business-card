@@ -41,8 +41,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const sheetOpenPadding = '52vh';
   const sheetClosedPadding = '68px';
   const canvasTopPadding = '52px';
-  // landscape: 세로 공간이 좁으므로 패널 높이를 28vh로 제한
-  const landscapeSheetMaxHeight = '28vh';
+  const landscapeSheetMaxHeight = '28vh'; // landscape: 패널 높이 (가로 화면 세로 여백 절약)
 
   useEffect(() => {
     setTheme(externalTheme);
@@ -153,16 +152,16 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   );
 
   // ── 가로 명함: 네이티브 가로 레이아웃 ───────────────────────────────────────
-  // 가로 뷰포트(100vh = 짧은 쪽)를 기준으로 카드 너비를 제한해 카드가 세로로 넘치지 않게 함:
-  //   카드 높이 = cardWidth * 5/9,  cardWidth = parentWidth * 0.75
-  //   → parentWidth ≤ (availableHeight / (5/9)) / 0.75 = availableHeight * 2.4
-  //   availableHeight ≈ 100vh - 120px (툴바 + 여백)
+  // 핵심 원리: 너비 기반이 아닌 높이 기반으로 카드 크기를 결정
+  //   - 컨테이너: height:100% + aspectRatio:9/5 → 가용 높이를 꽉 채우고 너비는 자동
+  //   - maxWidthOverride="100%": 카드가 컨테이너를 완전히 채움
+  //   - 패널이 열리면 flex-1이 줄어들면서 카드도 비례 축소 (overflow 없음)
 
   if (isLandscape) {
     return (
       <div className="fixed inset-0 z-50">
         <div className="relative flex h-full w-full flex-col bg-black">
-          {/* 닫기 버튼 — 우상단 */}
+          {/* 닫기 버튼 — 우상단 오버레이 */}
           <div className="absolute right-3 top-3 z-30">
             <button
               type="button"
@@ -174,22 +173,22 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </button>
           </div>
 
-          {/* 캔버스 영역 — flex-1, 남은 세로 공간 전체 차지 */}
-          {/*
-            maxWidth 계산 근거 (드래그 좌표 정확도를 위해 카드가 절대 overflow되지 않게):
-              카드높이 = parentWidth × maxWidthPct × (5/9)
-              사용가능높이 ≈ 100vh - 60px (툴바 ~48px + 여백 12px)
-              → parentWidth_max = (100vh - 60px) × (9/5) / maxWidthPct
-              maxWidthPct = 0.95 → parentWidth_max = (100vh - 60px) × 1.895
-          */}
-          <div className="flex flex-1 items-center justify-center overflow-hidden px-2">
-            <div style={{ width: '100%', maxWidth: 'calc((100vh - 60px) * 1.895)' }}>
+          {/* 캔버스 영역 — flex-1, 가용 높이 전부 차지 */}
+          <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
+            {/*
+              height:100% + aspectRatio:9/5 조합:
+              - height = flex-1 영역의 전체 높이
+              - width = height × (9/5) (landscape 비율)
+              - maxWidth:100% = 뷰포트를 넘지 않도록 보호
+              → 카드가 항상 가용 높이를 꽉 채우고, 패널 열림에 따라 자연스럽게 스케일 조정
+            */}
+            <div style={{ height: '100%', aspectRatio: '9 / 5', maxWidth: '100%' }}>
               <CardCanvas
                 theme={theme}
                 data={data}
                 onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
                 onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
-                maxWidthOverride="95%"
+                maxWidthOverride="100%"
               />
             </div>
           </div>
@@ -219,9 +218,9 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
 
-          {/* 탭바 — 항상 하단에 고정 */}
+          {/* 탭바 — 항상 하단 */}
           <div className="flex shrink-0 items-center border-t border-slate-800 bg-black">
-            <div className="flex-1 px-4 py-1.5">
+            <div className="flex-1 px-3 py-1">
               <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
             </div>
             <div className="flex">
@@ -232,7 +231,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
                     key={tab.id}
                     type="button"
                     onClick={() => toggleTab(tab.id)}
-                    className={['flex flex-col items-center gap-0.5 px-5 py-2 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                    className={['flex flex-col items-center gap-0.5 px-4 py-1.5 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
                   >
                     {tab.icon}
                     <span className="text-[10px] font-medium">{tab.label}</span>
