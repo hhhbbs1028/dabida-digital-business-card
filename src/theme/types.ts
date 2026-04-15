@@ -62,7 +62,7 @@ export type ColorPaletteId =
  * 폰트 세트 식별자
  * title/body 폰트와 weight 조합
  */
-export type FontSetId = 'gothic' | 'myeongjo' | 'round';
+export type FontSetId = 'gothic' | 'myeongjo' | 'round' | 'paperlogy';
 
 // ============================================================================
 // Background Token
@@ -76,7 +76,8 @@ export type FontSetId = 'gothic' | 'myeongjo' | 'round';
 export type BackgroundToken =
   | { type: 'solid'; color: string }
   | { type: 'gradient'; presetId: string }
-  | { type: 'pattern'; patternId: string };
+  | { type: 'pattern'; patternId: string }
+  | { type: 'image'; url: string };
 
 // ============================================================================
 // Profile Shape
@@ -234,6 +235,7 @@ export interface CardThemeStorage {
   profileShape: ProfileShape;
   stickers?: StickerElement[];
   elementPositions?: CardElementPositions;
+  customFont?: { name: string; url: string };
 }
 
 // ============================================================================
@@ -254,6 +256,8 @@ export interface CardTheme {
   elementPositions?: CardElementPositions;
   /** 스티커 / 갤러리 이미지 레이어 목록 */
   stickers?: StickerElement[];
+  /** 사용자가 업로드한 커스텀 폰트 */
+  customFont?: { name: string; url: string };
 }
 
 // ============================================================================

@@ -142,6 +142,7 @@ export function themeToStorage(theme: CardTheme): CardThemeStorage {
     profileShape: theme.style.profileShape,
     ...(theme.stickers ? { stickers: theme.stickers } : {}),
     ...(theme.elementPositions ? { elementPositions: theme.elementPositions } : {}),
+    ...(theme.customFont ? { customFont: theme.customFont } : {}),
   };
 }
 
@@ -172,6 +173,7 @@ export function storageToTheme(storage: CardThemeStorage): CardTheme {
     },
     stickers: storage.stickers,
     elementPositions: storage.elementPositions,
+    customFont: storage.customFont,
   };
 }
 

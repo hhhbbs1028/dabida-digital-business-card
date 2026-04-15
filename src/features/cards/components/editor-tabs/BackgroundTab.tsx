@@ -1,24 +1,30 @@
-import React from 'react';
-import type { CardTheme, CardStyleTokens, ProfileShape } from '../../../../theme/types';
+import React, { useRef, useState } from 'react';
+import { ImageIcon } from 'lucide-react';
+import type { CardTheme, CardStyleTokens } from '../../../../theme/types';
 import { GRADIENT_PRESETS, PATTERN_PRESETS } from '../../../../theme/presets';
 import { getLayoutCapabilities } from '../../../../theme/capabilities';
 import { isValidHex, saveRecentColor } from './ColorTab';
 
 const SOLID_COLORS = ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#0f172a', '#1e293b', '#334155', '#475569'];
 
-export function BackgroundTab({ theme, onChange }: {
+type BackgroundTabProps = {
   theme: CardTheme;
   onChange: (partial: Partial<CardTheme>) => void;
-}) {
+  onUploadImage?: (file: File) => Promise<string>;
+};
+
+export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabProps) {
   const capabilities = getLayoutCapabilities(theme.layoutId);
   const currentBg = theme.style.background;
-  const currentShape = theme.style.profileShape;
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   const applyStyle = (patch: Partial<CardStyleTokens>) =>
     onChange({ presetId: 'custom', style: { ...theme.style, ...patch } });
 
   const customSolidColor = currentBg.type === 'solid' ? currentBg.color : '#ffffff';
-  const [customHex, setCustomHex] = React.useState(customSolidColor);
+  const [customHex, setCustomHex] = useState(customSolidColor);
   React.useEffect(() => {
     if (currentBg.type === 'solid') setCustomHex(currentBg.color);
   }, [currentBg]);
@@ -29,10 +35,20 @@ export function BackgroundTab({ theme, onChange }: {
     applyStyle({ background: { type: 'solid', color: val } });
   };
 
-  const shapes: { id: ProfileShape; label: string; icon: React.ReactNode }[] = [
-    { id: 'circle', label: '원형', icon: <div className="h-8 w-8 rounded-full bg-slate-300" /> },
-    { id: 'rounded', label: '둥근 모서리', icon: <div className="h-8 w-8 rounded-xl bg-slate-300" /> },
-  ];
+  const handleImageUpload = async (file: File) => {
+    if (!onUploadImage) return;
+    setImageUploading(true);
+    setImageUploadError(null);
+    try {
+      const url = await onUploadImage(file);
+      applyStyle({ background: { type: 'image', url } });
+    } catch (e: any) {
+      setImageUploadError(e?.message ?? '업로드 중 오류가 발생했습니다.');
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -151,36 +167,58 @@ export function BackgroundTab({ theme, onChange }: {
         </div>
       )}
 
-      {/* 프로필 모양 */}
-      <div>
-        <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">프로필 모양</div>
-        <div className="grid grid-cols-3 gap-2">
-          {shapes.map((shape) => {
-            const isSelected = currentShape === shape.id;
-            return (
-              <button
-                key={shape.id}
-                type="button"
-                onClick={() => applyStyle({ profileShape: shape.id })}
-                className={[
-                  'flex flex-col items-center gap-2 rounded-2xl border-2 py-3 px-2 transition',
-                  isSelected ? 'border-slate-900 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300',
-                ].join(' ')}
-              >
-                {shape.icon}
-                <div className={['text-xs font-medium', isSelected ? 'text-slate-900' : 'text-slate-600'].join(' ')}>
-                  {shape.label}
-                </div>
-                {isSelected && (
-                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-[8px] text-white">
-                    ✓
-                  </div>
-                )}
-              </button>
-            );
-          })}
+      {/* 이미지 배경 */}
+      {onUploadImage && (
+        <div>
+          <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">이미지</div>
+          <button
+            type="button"
+            disabled={imageUploading}
+            onClick={() => imageInputRef.current?.click()}
+            className={[
+              'flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed py-4 text-sm font-medium transition',
+              currentBg.type === 'image'
+                ? 'border-slate-900 bg-slate-50 text-slate-900'
+                : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:bg-slate-50',
+              imageUploading ? 'opacity-60 cursor-not-allowed' : '',
+            ].join(' ')}
+          >
+            {imageUploading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+                업로드 중...
+              </>
+            ) : (
+              <>
+                <ImageIcon size={18} className="text-slate-500" />
+                <span>{currentBg.type === 'image' ? '이미지 교체' : '갤러리에서 배경 선택'}</span>
+              </>
+            )}
+          </button>
+          {currentBg.type === 'image' && (
+            <button
+              type="button"
+              onClick={() => applyStyle({ background: { type: 'solid', color: '#ffffff' } })}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white py-2 text-xs text-slate-500 transition hover:border-red-200 hover:text-red-500"
+            >
+              이미지 배경 제거
+            </button>
+          )}
+          {imageUploadError && (
+            <p className="mt-1 text-xs text-red-500">{imageUploadError}</p>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageUpload(file);
+            }}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 }

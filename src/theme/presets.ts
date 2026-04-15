@@ -147,6 +147,12 @@ export const FONT_SETS: Record<FontSetId, {
     titleWeight: 600,
     bodyWeight: 400,
   },
+  paperlogy: {
+    titleFont: '"Paperlogy-4Regular", "Apple SD Gothic Neo", sans-serif',
+    bodyFont: '"Paperlogy-4Regular", "Apple SD Gothic Neo", sans-serif',
+    titleWeight: 400,
+    bodyWeight: 400,
+  },
 };
 
 // ============================================================================

@@ -34,6 +34,11 @@ export function applyThemeToStyle(theme: CardTheme): React.CSSProperties {
     backgroundStyle.backgroundImage = getPatternPreset(background.patternId);
     backgroundStyle.backgroundRepeat = 'repeat';
     backgroundStyle.backgroundSize = 'auto';
+  } else if (background.type === 'image') {
+    backgroundStyle.backgroundImage = `url("${background.url}")`;
+    backgroundStyle.backgroundSize = 'cover';
+    backgroundStyle.backgroundPosition = 'center';
+    backgroundStyle.backgroundRepeat = 'no-repeat';
   }
 
   // CSS Variables 정의
@@ -73,6 +78,8 @@ export function applyThemeToCSSString(theme: CardTheme): string {
     backgroundCSS = `background-image: ${getGradientPreset(background.presetId)};`;
   } else if (background.type === 'pattern') {
     backgroundCSS = `background-image: ${getPatternPreset(background.patternId)}; background-repeat: repeat; background-size: auto;`;
+  } else if (background.type === 'image') {
+    backgroundCSS = `background-image: url("${background.url}"); background-size: cover; background-position: center; background-repeat: no-repeat;`;
   }
 
   return `

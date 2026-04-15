@@ -163,19 +163,21 @@ export function LayerPanel({ theme, stickers, data, onChange, onClearStickers }:
                   <span className="text-[10px] font-medium text-slate-400">프로필 사진</span>
                 )}
 
-                {/* 투명도 */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-500">투명도</span>
-                    <span className="font-mono text-[10px] text-slate-400">{Math.round(item.opacity * 100)}%</span>
+                {/* 투명도 (텍스트 레이어 제외) */}
+                {item.kind !== 'text' && (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">투명도</span>
+                      <span className="font-mono text-[10px] text-slate-400">{Math.round(item.opacity * 100)}%</span>
+                    </div>
+                    <input
+                      type="range" min={0} max={1} step={0.05}
+                      value={item.opacity}
+                      onChange={(e) => setOpacity(Number(e.target.value))}
+                      className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                    />
                   </div>
-                  <input
-                    type="range" min={0} max={1} step={0.05}
-                    value={item.opacity}
-                    onChange={(e) => setOpacity(Number(e.target.value))}
-                    className="h-1.5 w-full cursor-pointer accent-indigo-500"
-                  />
-                </div>
+                )}
 
                 {/* 폰트 크기 (텍스트만) */}
                 {item.kind === 'text' && (

@@ -147,24 +147,64 @@ function PresetTab({ theme, onChange, hasProfileUrl }: {
 
 // ── 폰트 탭 ───────────────────────────────────────────────────────────────────
 
-const FONT_SET_IDS: FontSetId[] = ['gothic', 'myeongjo', 'round'];
+const FONT_SET_IDS: FontSetId[] = ['gothic', 'myeongjo', 'round', 'paperlogy'];
 
 const FONT_SET_LABELS: Record<FontSetId, string> = {
   gothic: '고딕',
   myeongjo: '명조',
   round: '라운드',
+  paperlogy: '페이퍼로지',
 };
 
 const FONT_SAMPLE = '안녕하세요 Hello 123';
 
-function FontTab({ theme, onChange }: {
+function injectFontFace(name: string, url: string) {
+  const id = `custom-font-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+  if (document.getElementById(id)) return;
+  const style = document.createElement('style');
+  style.id = id;
+  style.textContent = `@font-face { font-family: "${name}"; src: url("${url}"); font-display: swap; }`;
+  document.head.appendChild(style);
+}
+
+function FontTab({ theme, onChange, onUploadFont }: {
   theme: CardTheme;
   onChange: (partial: Partial<CardTheme>) => void;
+  onUploadFont?: (file: File) => Promise<string>;
 }) {
+  const fontInputRef = useRef<HTMLInputElement>(null);
+  const [fontUploading, setFontUploading] = useState(false);
+  const [fontUploadError, setFontUploadError] = useState<string | null>(null);
+
+  const isCustomFont = theme.customFont && theme.fontSetId === ('custom' as FontSetId);
+
+  const handleFontUpload = async (file: File) => {
+    if (!onUploadFont) return;
+    setFontUploading(true);
+    setFontUploadError(null);
+    try {
+      const url = await onUploadFont(file);
+      const fontName = file.name.replace(/\.[^.]+$/, '');
+      injectFontFace(fontName, url);
+      const fontFamily = `"${fontName}", sans-serif`;
+      onChange({
+        fontSetId: 'gothic',
+        presetId: 'custom',
+        customFont: { name: fontName, url },
+        style: { ...theme.style, titleFont: fontFamily, bodyFont: fontFamily },
+      });
+    } catch (e: any) {
+      setFontUploadError(e?.message ?? '폰트 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setFontUploading(false);
+      if (fontInputRef.current) fontInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-2">
       {FONT_SET_IDS.map((fontSetId) => {
-        const isSelected = theme.fontSetId === fontSetId;
+        const isSelected = !isCustomFont && theme.fontSetId === fontSetId;
         const fontSet = FONT_SETS[fontSetId];
 
         return (
@@ -174,6 +214,7 @@ function FontTab({ theme, onChange }: {
             onClick={() => onChange({
               fontSetId,
               presetId: 'custom',
+              customFont: undefined,
               style: { ...theme.style, ...fontSet },
             })}
             className={[
@@ -206,6 +247,48 @@ function FontTab({ theme, onChange }: {
           </button>
         );
       })}
+
+      {/* 사용자 폰트 업로드 */}
+      {onUploadFont && (
+        <div className="pt-2">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">내 폰트 업로드</div>
+          {isCustomFont && theme.customFont && (
+            <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-50 px-3 py-2">
+              <span className="flex-1 truncate text-sm font-semibold text-slate-900"
+                style={{ fontFamily: `"${theme.customFont.name}", sans-serif` }}>
+                {theme.customFont.name} — {FONT_SAMPLE}
+              </span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] text-white">✓</div>
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={fontUploading}
+            onClick={() => fontInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white py-4 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {fontUploading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+                업로드 중...
+              </>
+            ) : (
+              <span>{isCustomFont ? '다른 폰트로 교체' : '.ttf / .woff2 폰트 업로드'}</span>
+            )}
+          </button>
+          {fontUploadError && <p className="mt-1 text-xs text-red-500">{fontUploadError}</p>}
+          <input
+            ref={fontInputRef}
+            type="file"
+            accept=".ttf,.woff,.woff2,.otf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFontUpload(file);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -506,19 +589,21 @@ function StickerTab({
                         <span className="text-[10px] font-medium text-slate-400">프로필 사진</span>
                       )}
 
-                      {/* 투명도 */}
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-500">투명도</span>
-                          <span className="font-mono text-[10px] text-slate-400">{Math.round(item.opacity * 100)}%</span>
+                      {/* 투명도 (텍스트 레이어 제외) */}
+                      {item.kind !== 'text' && (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">투명도</span>
+                            <span className="font-mono text-[10px] text-slate-400">{Math.round(item.opacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range" min={0} max={1} step={0.05}
+                            value={item.opacity}
+                            onChange={(e) => setOpacity(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer accent-indigo-500"
+                          />
                         </div>
-                        <input
-                          type="range" min={0} max={1} step={0.05}
-                          value={item.opacity}
-                          onChange={(e) => setOpacity(Number(e.target.value))}
-                          className="h-1.5 w-full cursor-pointer accent-indigo-500"
-                        />
-                      </div>
+                      )}
 
                       {/* 폰트 크기 (텍스트만) */}
                       {item.kind === 'text' && (
@@ -641,6 +726,19 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
     return uploadToStorage('stickers', file, authData.user.id);
   };
 
+  const handleUploadFont = async (file: File): Promise<string> => {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) throw new Error('로그인이 필요합니다.');
+    return uploadToStorage('stickers', file, authData.user.id, 'fonts');
+  };
+
+  // 커스텀 폰트 복원 (저장된 URL에서 @font-face 주입)
+  useEffect(() => {
+    if (isOpen && theme.customFont) {
+      injectFontFace(theme.customFont.name, theme.customFont.url);
+    }
+  }, [isOpen, theme.customFont]);
+
   const previewData: CardContentTokens = {
     name: data?.display_name ?? '',
     major: data?.organization || undefined,
@@ -651,6 +749,8 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
       instagram: data?.links?.instagram || undefined,
       github: data?.links?.github || undefined,
       website: data?.links?.website || undefined,
+      linkedin: data?.links?.linkedin || undefined,
+      google_drive: data?.links?.google_drive || undefined,
     },
     profileUrl: data?.profile_url || undefined,
   };
@@ -705,8 +805,8 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
         <div className="flex-1 overflow-y-auto p-4">
           {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
           {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
-          {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} />}
-          {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+          {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} onUploadFont={handleUploadFont} />}
+          {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
           {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
         </div>
       </div>
