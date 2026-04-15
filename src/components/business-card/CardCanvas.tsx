@@ -11,22 +11,46 @@
  */
 
 import React, { useRef, useState, useCallback } from 'react';
-import { Instagram, Github, Globe } from 'lucide-react';
+import { Globe, HardDrive } from 'lucide-react';
+
+// lucide-react에서 deprecated된 소셜 아이콘 → 인라인 SVG로 대체
+const IgIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>
+);
+const GhIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>
+  </svg>
+);
+const LiIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+  </svg>
+);
 import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, StickerElement } from '../../theme/types';
 import { applyThemeToStyle } from '../../theme/applyTheme';
 import { resolvePositions } from '../../theme/defaultPositions';
 
 // ============================================================================
-// 기본 위치 테이블 (공유 모듈로 이동됨 → defaultPositions.ts)
+// 위치 맵 타입
 // ============================================================================
 
-type DefaultPositionMap = {
+type FullPositionMap = {
   profile: ElementPosition;
   name: ElementPosition;
   tagline: ElementPosition;
   major: ElementPosition;
   contact: ElementPosition;
   links: ElementPosition;
+  email: ElementPosition;
+  phone: ElementPosition;
+  instagram: ElementPosition;
+  github: ElementPosition;
+  website: ElementPosition;
+  linkedin: ElementPosition;
+  google_drive: ElementPosition;
 };
 
 // ============================================================================
@@ -54,8 +78,7 @@ function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     dragging.current = true;
-    const pos = toPercent(e.clientX, e.clientY);
-    posRef.current = pos;
+    posRef.current = toPercent(e.clientX, e.clientY);
   }, [toPercent]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>, onMove: (x: number, y: number) => void) => {
@@ -65,7 +88,7 @@ function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
     onMove(pos.x, pos.y);
   }, [toPercent]);
 
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  const onPointerUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
     dragging.current = false;
     onDragEnd(posRef.current.x, posRef.current.y);
@@ -75,7 +98,7 @@ function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
 }
 
 // ============================================================================
-// DraggableElement
+// DraggableElement (텍스트용, 선택적 fontScale 리사이즈 핸들 포함)
 // ============================================================================
 
 type DraggableProps = {
@@ -87,33 +110,52 @@ type DraggableProps = {
   onMove: (x: number, y: number) => void;
   onMoveEnd: (x: number, y: number) => void;
   children: React.ReactNode;
-  /** 요소 앵커: 기본 center. 이미지는 center 사용 */
   anchor?: 'center' | 'top-left';
+  onFontScale?: (scale: number) => void;
+  onFontScaleEnd?: (scale: number) => void;
 };
 
 function DraggableElement({
-  pos, containerRef, isSelected, label, onSelect, onMove, onMoveEnd, children, anchor = 'center',
+  pos, containerRef, isSelected, label, onSelect, onMove, onMoveEnd, children,
+  anchor = 'center', onFontScale, onFontScaleEnd,
 }: DraggableProps) {
   const { onPointerDown, onPointerMove, onPointerUp } = useDrag({
     containerRef,
     onDragEnd: onMoveEnd,
   });
 
-  const transform = anchor === 'center' ? 'translate(-50%, -50%)' : 'none';
+  const calcFontScale = useCallback((e: React.PointerEvent): number => {
+    if (!containerRef.current) return pos.fontScale ?? 1;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cx = rect.left + (pos.x / 100) * rect.width;
+    const cy = rect.top + (pos.y / 100) * rect.height;
+    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    return Math.max(0.5, Math.min(2.0, (dist / rect.width) * 10));
+  }, [containerRef, pos.x, pos.y, pos.fontScale]);
+
+  const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    onFontScale?.(calcFontScale(e));
+  };
+  const handleResizeUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    onFontScaleEnd?.(calcFontScale(e));
+  };
 
   return (
     <div
-      onPointerDown={(e) => {
-        onSelect();
-        onPointerDown(e);
-      }}
+      onPointerDown={(e) => { onSelect(); onPointerDown(e); }}
       onPointerMove={(e) => onPointerMove(e, onMove)}
       onPointerUp={onPointerUp}
       style={{
         position: 'absolute',
         left: `${pos.x}%`,
         top: `${pos.y}%`,
-        transform,
+        transform: anchor === 'center' ? 'translate(-50%, -50%)' : 'none',
         cursor: 'grab',
         userSelect: 'none',
         touchAction: 'none',
@@ -129,26 +171,48 @@ function DraggableElement({
       title={`${label} — 드래그하여 이동`}
     >
       {children}
+
       {/* 선택 시 라벨 */}
       {isSelected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-1.4rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(99,102,241,0.9)',
-            color: '#fff',
-            fontSize: '0.6rem',
-            fontWeight: 600,
-            padding: '1px 6px',
-            borderRadius: '4px',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-          }}
-        >
+        <div style={{
+          position: 'absolute',
+          top: '-1.4rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(99,102,241,0.9)',
+          color: '#fff',
+          fontSize: '0.6rem',
+          fontWeight: 600,
+          padding: '1px 6px',
+          borderRadius: '4px',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+        }}>
           {label}
         </div>
+      )}
+
+      {/* fontScale 리사이즈 핸들 (텍스트 전용, 선택 시 표시) */}
+      {isSelected && onFontScale && (
+        <div
+          onPointerDown={handleResizeDown}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeUp}
+          style={{
+            position: 'absolute',
+            bottom: '-6px',
+            right: '-6px',
+            width: '10px',
+            height: '10px',
+            background: 'rgba(99,102,241,0.9)',
+            border: '2px solid #fff',
+            borderRadius: '50%',
+            cursor: 'nwse-resize',
+            zIndex: 30,
+            touchAction: 'none',
+          }}
+          title="크기 조절"
+        />
       )}
     </div>
   );
@@ -183,33 +247,26 @@ function ProfileCanvas({
   const size = pos.size ?? 22;
   const shapeClass = shape === 'circle' ? '50%' : shape === 'rounded' ? '12px' : '0';
 
-  // 리사이즈: 핸들 드래그 → 컨테이너 기준 거리로 size 계산
-  const resizeDragging = useRef(false);
+  const calcSize = (e: React.PointerEvent): number => {
+    if (!containerRef.current) return size;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cx = rect.left + (pos.x / 100) * rect.width;
+    const cy = rect.top + (pos.y / 100) * rect.height;
+    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    return Math.max(8, Math.min(60, (dist / rect.width) * 200));
+  };
+
   const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    resizeDragging.current = true;
   };
   const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!resizeDragging.current || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    // 이미지 중심에서 포인터까지의 거리 → size
-    const cx = rect.left + (pos.x / 100) * rect.width;
-    const cy = rect.top + (pos.y / 100) * rect.height;
-    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-    const newSize = Math.max(8, Math.min(60, (dist / rect.width) * 200));
-    onResize(newSize);
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    onResize(calcSize(e));
   };
   const handleResizeUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!resizeDragging.current) return;
-    resizeDragging.current = false;
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const cx = rect.left + (pos.x / 100) * rect.width;
-    const cy = rect.top + (pos.y / 100) * rect.height;
-    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-    const newSize = Math.max(8, Math.min(60, (dist / rect.width) * 200));
-    onResizeEnd(newSize);
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    onResizeEnd(calcSize(e));
   };
 
   return (
@@ -241,55 +298,32 @@ function ProfileCanvas({
         src={url}
         alt="프로필"
         draggable={false}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          borderRadius: shapeClass,
-          display: 'block',
-        }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: shapeClass, display: 'block' }}
       />
 
-      {/* 선택 시 라벨 */}
       {isSelected && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-1.4rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(99,102,241,0.9)',
-            color: '#fff',
-            fontSize: '0.6rem',
-            fontWeight: 600,
-            padding: '1px 6px',
-            borderRadius: '4px',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-          }}
-        >
+        <div style={{
+          position: 'absolute', top: '-1.4rem', left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(99,102,241,0.9)', color: '#fff',
+          fontSize: '0.6rem', fontWeight: 600,
+          padding: '1px 6px', borderRadius: '4px',
+          whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}>
           사진
         </div>
       )}
 
-      {/* 리사이즈 핸들 */}
       {isSelected && (
         <div
           onPointerDown={handleResizeDown}
           onPointerMove={handleResizeMove}
           onPointerUp={handleResizeUp}
           style={{
-            position: 'absolute',
-            bottom: '-6px',
-            right: '-6px',
-            width: '14px',
-            height: '14px',
-            background: 'rgba(99,102,241,0.9)',
-            border: '2px solid #fff',
-            borderRadius: '50%',
-            cursor: 'nwse-resize',
-            zIndex: 30,
-            touchAction: 'none',
+            position: 'absolute', bottom: '-6px', right: '-6px',
+            width: '10px', height: '10px',
+            background: 'rgba(99,102,241,0.9)', border: '2px solid #fff',
+            borderRadius: '50%', cursor: 'nwse-resize', zIndex: 30, touchAction: 'none',
           }}
           title="크기 조절"
         />
@@ -305,9 +339,7 @@ function ProfileCanvas({
 type Props = {
   theme: CardTheme;
   data: CardContentTokens;
-  /** 위치가 바뀔 때마다 호출 (실시간 미리보기용) */
   onPositionsChange?: (positions: CardElementPositions) => void;
-  /** 스티커 변경 시 호출 */
   onStickersChange?: (stickers: StickerElement[]) => void;
   className?: string;
 };
@@ -318,21 +350,16 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const isPortrait = orientation === 'portrait';
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
 
-  // 기본 위치 + 저장된 위치 병합
-  const [positions, setPositions] = useState<DefaultPositionMap>(
-    () => resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile),
+  const [positions, setPositions] = useState<FullPositionMap>(
+    () => resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile) as FullPositionMap,
   );
-
-  // selected: 텍스트 요소 키 또는 스티커 ID
   const [selected, setSelected] = useState<string | null>(null);
   const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
 
-  // theme.elementPositions 외부 변경 시 동기화 (위치 초기화 등)
   React.useEffect(() => {
-    setPositions(resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile));
+    setPositions(resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile) as FullPositionMap);
   }, [theme.elementPositions, theme.layoutId, orientation, hasProfile]);
 
-  // theme.stickers 외부 변경 시 동기화
   React.useEffect(() => {
     setStickers(theme.stickers ?? []);
   }, [theme.stickers]);
@@ -352,24 +379,26 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
     commitSticker(next);
   }, [stickers, commitSticker]);
 
-  const updatePos = useCallback((key: keyof DefaultPositionMap, x: number, y: number) => {
-    setPositions((prev) => {
-      const next = { ...prev, [key]: { ...prev[key], x, y } };
-      return next;
-    });
+  const updatePos = useCallback((key: keyof FullPositionMap, x: number, y: number) => {
+    setPositions((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
   }, []);
 
-  const commitPos = useCallback((key: keyof DefaultPositionMap, x: number, y: number) => {
+  const commitPos = useCallback((key: keyof FullPositionMap, x: number, y: number) => {
     setPositions((prev) => {
       const next = { ...prev, [key]: { ...prev[key], x, y } };
-      onPositionsChange?.({
-        profile: next.profile,
-        name: next.name,
-        tagline: next.tagline,
-        major: next.major,
-        contact: next.contact,
-        links: next.links,
-      });
+      onPositionsChange?.(next);
+      return next;
+    });
+  }, [onPositionsChange]);
+
+  const updateFontScale = useCallback((key: keyof FullPositionMap, fontScale: number) => {
+    setPositions((prev) => ({ ...prev, [key]: { ...prev[key], fontScale } }));
+  }, []);
+
+  const commitFontScale = useCallback((key: keyof FullPositionMap, fontScale: number) => {
+    setPositions((prev) => {
+      const next = { ...prev, [key]: { ...prev[key], fontScale } };
+      onPositionsChange?.(next);
       return next;
     });
   }, [onPositionsChange]);
@@ -381,30 +410,36 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const commitSize = useCallback((key: 'profile', size: number) => {
     setPositions((prev) => {
       const next = { ...prev, [key]: { ...prev[key], size } };
-      onPositionsChange?.({
-        profile: next.profile,
-        name: next.name,
-        tagline: next.tagline,
-        major: next.major,
-        contact: next.contact,
-        links: next.links,
-      });
+      onPositionsChange?.(next);
       return next;
     });
   }, [onPositionsChange]);
 
   const bgStyle = applyThemeToStyle(theme);
 
-  const scaledFontSize = (base: string, scale: number) =>
-    scale === 1 ? base : `calc(${base} * ${scale})`;
+  const scaledFs = (base: string, baseP: string, scale = 1) =>
+    `calc(${isPortrait ? baseP : base} * ${scale})`;
 
-  const textStyle = (colorVar: string, fontSize: string, fontSizePortrait?: string, scale = 1) => ({
+  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1): React.CSSProperties => ({
     fontFamily: 'var(--card-body-font)',
     fontWeight: 'var(--card-body-weight)',
     color: `var(${colorVar})`,
-    fontSize: scaledFontSize(isPortrait ? (fontSizePortrait ?? fontSize) : fontSize, scale),
-    whiteSpace: 'nowrap' as const,
-    pointerEvents: 'none' as const,
+    fontSize: scaledFs(fs, fsP ?? fs, scale),
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+  });
+
+  // 텍스트 DraggableElement의 공통 props 생성 헬퍼
+  const textElemProps = (key: keyof FullPositionMap, label: string) => ({
+    pos: positions[key],
+    containerRef,
+    isSelected: selected === key,
+    label,
+    onSelect: () => setSelected(key as string),
+    onMove: (x: number, y: number) => updatePos(key, x, y),
+    onMoveEnd: (x: number, y: number) => commitPos(key, x, y),
+    onFontScale: (scale: number) => updateFontScale(key, scale),
+    onFontScaleEnd: (scale: number) => commitFontScale(key, scale),
   });
 
   return (
@@ -419,30 +454,20 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       }}
       ref={containerRef}
       onPointerDown={(e) => {
-        // 빈 곳 클릭 시 선택 해제
         if (e.target === containerRef.current) setSelected(null);
       }}
     >
-      {/* ── 안내 텍스트 ── */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 4,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: '0.55rem',
-          color: 'rgba(99,102,241,0.7)',
-          pointerEvents: 'none',
-          zIndex: 50,
-          fontWeight: 600,
-          letterSpacing: '0.02em',
-        }}
-      >
+      {/* 안내 텍스트 */}
+      <div style={{
+        position: 'absolute', top: 4, left: 0, right: 0,
+        textAlign: 'center', fontSize: '0.55rem',
+        color: 'rgba(99,102,241,0.7)', pointerEvents: 'none',
+        zIndex: 50, fontWeight: 600, letterSpacing: '0.02em',
+      }}>
         요소를 클릭 후 드래그하여 위치 조정
       </div>
 
-      {/* ── 프로필 사진 ── */}
+      {/* 프로필 사진 */}
       {hasProfile && (
         <ProfileCanvas
           pos={positions.profile}
@@ -458,21 +483,13 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         />
       )}
 
-      {/* ── 이름 ── */}
-      <DraggableElement
-        pos={positions.name}
-        containerRef={containerRef}
-        isSelected={selected === 'name'}
-        label="이름"
-        onSelect={() => setSelected('name')}
-        onMove={(x, y) => updatePos('name', x, y)}
-        onMoveEnd={(x, y) => commitPos('name', x, y)}
-      >
+      {/* 이름 */}
+      <DraggableElement {...textElemProps('name', '이름')}>
         <div style={{
           fontFamily: 'var(--card-title-font)',
           fontWeight: 'var(--card-title-weight)',
           color: 'var(--card-primary)',
-          fontSize: scaledFontSize(isPortrait ? '1.3rem' : '1rem', positions.name.fontScale ?? 1),
+          fontSize: scaledFs(isPortrait ? '1.3rem' : '1rem', '1.3rem', positions.name.fontScale ?? 1),
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
         }}>
@@ -480,110 +497,97 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         </div>
       </DraggableElement>
 
-      {/* ── 한 줄 소개 ── */}
+      {/* 한 줄 소개 */}
       {(data.tagline || selected === 'tagline') && (
-        <DraggableElement
-          pos={positions.tagline}
-          containerRef={containerRef}
-          isSelected={selected === 'tagline'}
-          label="한 줄 소개"
-          onSelect={() => setSelected('tagline')}
-          onMove={(x, y) => updatePos('tagline', x, y)}
-          onMoveEnd={(x, y) => commitPos('tagline', x, y)}
-        >
-          <div style={textStyle('--card-secondary', '0.7rem', '0.875rem', positions.tagline.fontScale ?? 1)}>
+        <DraggableElement {...textElemProps('tagline', '한 줄 소개')}>
+          <div style={ts('--card-secondary', '0.7rem', '0.875rem', positions.tagline.fontScale ?? 1)}>
             {data.tagline || '(한 줄 소개)'}
           </div>
         </DraggableElement>
       )}
 
-      {/* ── 소속 ── */}
+      {/* 소속 */}
       {(data.major || selected === 'major') && (
-        <DraggableElement
-          pos={positions.major}
-          containerRef={containerRef}
-          isSelected={selected === 'major'}
-          label="소속"
-          onSelect={() => setSelected('major')}
-          onMove={(x, y) => updatePos('major', x, y)}
-          onMoveEnd={(x, y) => commitPos('major', x, y)}
-        >
+        <DraggableElement {...textElemProps('major', '소속')}>
           <div style={{
-            ...textStyle('--card-accent', '0.6rem', '0.75rem', positions.major.fontScale ?? 1),
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
+            ...ts('--card-accent', '0.6rem', '0.75rem', positions.major.fontScale ?? 1),
+            textTransform: 'uppercase', letterSpacing: '0.05em',
           }}>
             {data.major || '(소속)'}
           </div>
         </DraggableElement>
       )}
 
-      {/* ── 연락처 (이메일 + 전화) ── */}
-      {(data.email || data.phone || selected === 'contact') && (
-        <DraggableElement
-          pos={positions.contact}
-          containerRef={containerRef}
-          isSelected={selected === 'contact'}
-          label="연락처"
-          onSelect={() => setSelected('contact')}
-          onMove={(x, y) => updatePos('contact', x, y)}
-          onMoveEnd={(x, y) => commitPos('contact', x, y)}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
-            {data.email && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>{data.email}</span>
-            )}
-            {data.phone && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>{data.phone}</span>
-            )}
-            {!data.email && !data.phone && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.contact.fontScale ?? 1)}>(연락처)</span>
-            )}
-          </div>
+      {/* 이메일 (개별) */}
+      {(data.email || selected === 'email') && (
+        <DraggableElement {...textElemProps('email', '이메일')}>
+          <span style={ts('--card-text', '0.58rem', '0.7rem', positions.email.fontScale ?? 1)}>
+            {data.email || '(이메일)'}
+          </span>
         </DraggableElement>
       )}
 
-      {/* ── 링크 ── */}
-      {((data.links?.instagram || data.links?.github || data.links?.website) || selected === 'links') && (
-        <DraggableElement
-          pos={positions.links}
-          containerRef={containerRef}
-          isSelected={selected === 'links'}
-          label="링크"
-          onSelect={() => setSelected('links')}
-          onMove={(x, y) => updatePos('links', x, y)}
-          onMoveEnd={(x, y) => commitPos('links', x, y)}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', pointerEvents: 'none' }}>
-            {data.links?.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
-                <Instagram size={9} />{data.links.instagram}
-              </span>
-            )}
-            {data.links?.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
-                <Github size={9} />{data.links.github}
-              </span>
-            )}
-            {data.links?.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1) }}>
-                <Globe size={9} />{data.links.website}
-              </span>
-            )}
-            {!data.links?.instagram && !data.links?.github && !data.links?.website && (
-              <span style={textStyle('--card-text', '0.58rem', '0.7rem', positions.links.fontScale ?? 1)}>(링크)</span>
-            )}
-          </div>
+      {/* 전화 (개별) */}
+      {(data.phone || selected === 'phone') && (
+        <DraggableElement {...textElemProps('phone', '전화')}>
+          <span style={ts('--card-text', '0.58rem', '0.7rem', positions.phone.fontScale ?? 1)}>
+            {data.phone || '(전화)'}
+          </span>
         </DraggableElement>
       )}
 
-      {/* ── 스티커 레이어 ── */}
+      {/* 인스타그램 (개별) */}
+      {(data.links?.instagram || selected === 'instagram') && (
+        <DraggableElement {...textElemProps('instagram', '인스타')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.instagram.fontScale ?? 1) }}>
+            <IgIcon size={9} />{data.links?.instagram || '(인스타그램)'}
+          </span>
+        </DraggableElement>
+      )}
+
+      {/* 깃허브 (개별) */}
+      {(data.links?.github || selected === 'github') && (
+        <DraggableElement {...textElemProps('github', '깃허브')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.github.fontScale ?? 1) }}>
+            <GhIcon size={9} />{data.links?.github || '(깃허브)'}
+          </span>
+        </DraggableElement>
+      )}
+
+      {/* 웹사이트 (개별) */}
+      {(data.links?.website || selected === 'website') && (
+        <DraggableElement {...textElemProps('website', '웹사이트')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.website.fontScale ?? 1) }}>
+            <Globe size={9} />{data.links?.website || '(웹사이트)'}
+          </span>
+        </DraggableElement>
+      )}
+
+      {/* 링크드인 (개별) */}
+      {(data.links?.linkedin || selected === 'linkedin') && (
+        <DraggableElement {...textElemProps('linkedin', '링크드인')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.linkedin.fontScale ?? 1) }}>
+            <LiIcon size={9} />{data.links?.linkedin || '(링크드인)'}
+          </span>
+        </DraggableElement>
+      )}
+
+      {/* 구글 드라이브 (개별) */}
+      {(data.links?.google_drive || selected === 'google_drive') && (
+        <DraggableElement {...textElemProps('google_drive', '드라이브')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.google_drive.fontScale ?? 1) }}>
+            <HardDrive size={9} />{data.links?.google_drive || '(드라이브)'}
+          </span>
+        </DraggableElement>
+      )}
+
+      {/* 스티커 레이어 */}
       {stickers
         .slice()
         .sort((a, b) => a.zIndex - b.zIndex)
         .map((sticker) => {
           const isSel = selected === sticker.id;
-          // 스티커용 드래그: pointerCapture 방식
+
           const handleStickerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -604,32 +608,28 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
             commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, x, y } : s));
           };
 
-          // 리사이즈 핸들
           const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
           };
-          const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+          const calcStickerWidth = (e: React.PointerEvent): number => {
+            if (!containerRef.current) return sticker.width;
             const rect = containerRef.current.getBoundingClientRect();
             const cx = rect.left + (sticker.x / 100) * rect.width;
             const cy = rect.top + (sticker.y / 100) * rect.height;
             const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-            const newW = Math.max(5, Math.min(70, (dist / rect.width) * 200));
-            updateSticker(sticker.id, { width: newW });
+            return Math.max(5, Math.min(70, (dist / rect.width) * 200));
+          };
+          const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            updateSticker(sticker.id, { width: calcStickerWidth(e) });
           };
           const handleResizeUp = (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
-            const rect = containerRef.current.getBoundingClientRect();
-            const cx = rect.left + (sticker.x / 100) * rect.width;
-            const cy = rect.top + (sticker.y / 100) * rect.height;
-            const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-            const newW = Math.max(5, Math.min(70, (dist / rect.width) * 200));
-            commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, width: newW } : s));
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, width: calcStickerWidth(e) } : s));
           };
 
-          // 회전 핸들 — 스티커 중심에서 포인터까지의 절대 각도로 회전값 계산
-          const stickerAngle = (clientX: number, clientY: number) => {
+          const calcRotation = (clientX: number, clientY: number): number => {
             if (!containerRef.current) return sticker.rotation;
             const rect = containerRef.current.getBoundingClientRect();
             const cx = rect.left + (sticker.x / 100) * rect.width;
@@ -642,11 +642,11 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           };
           const handleRotateMove = (e: React.PointerEvent<HTMLDivElement>) => {
             if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-            updateSticker(sticker.id, { rotation: stickerAngle(e.clientX, e.clientY) });
+            updateSticker(sticker.id, { rotation: calcRotation(e.clientX, e.clientY) });
           };
           const handleRotateUp = (e: React.PointerEvent<HTMLDivElement>) => {
             if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-            const rotation = stickerAngle(e.clientX, e.clientY);
+            const rotation = calcRotation(e.clientX, e.clientY);
             commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, rotation } : s));
           };
 
@@ -676,104 +676,63 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
             >
               {sticker.type === 'emoji' ? (
                 <div style={{
-                  fontSize: '80cqw',
-                  lineHeight: 1,
-                  textAlign: 'center',
-                  pointerEvents: 'none',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  fontSize: '80cqw', lineHeight: 1, textAlign: 'center',
+                  pointerEvents: 'none', width: '100%', height: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {sticker.src}
                 </div>
               ) : (
-                <img
-                  src={sticker.src}
-                  alt="sticker"
-                  draggable={false}
-                  style={{ width: '100%', display: 'block', pointerEvents: 'none' }}
-                />
+                <img src={sticker.src} alt="sticker" draggable={false}
+                  style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
               )}
 
-              {/* 선택 시 삭제 버튼 */}
+              {/* 삭제 버튼 */}
               {isSel && (
                 <button
                   type="button"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); deleteSticker(sticker.id); }}
                   style={{
-                    position: 'absolute',
-                    top: '-10px',
-                    right: '-10px',
-                    width: '18px',
-                    height: '18px',
-                    background: 'rgba(239,68,68,0.9)',
-                    border: '2px solid #fff',
-                    borderRadius: '50%',
-                    color: '#fff',
-                    fontSize: '0.6rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 40,
+                    position: 'absolute', top: '-10px', right: '-10px',
+                    width: '16px', height: '16px',
+                    background: 'rgba(239,68,68,0.9)', border: '2px solid #fff',
+                    borderRadius: '50%', color: '#fff', fontSize: '0.55rem',
+                    cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', zIndex: 40,
                   }}
-                >
-                  ✕
-                </button>
+                >✕</button>
               )}
 
-              {/* 선택 시 회전 핸들 (상단 중앙) */}
+              {/* 회전 핸들 (단순 점) */}
               {isSel && (
                 <div
                   onPointerDown={handleRotateDown}
                   onPointerMove={handleRotateMove}
                   onPointerUp={handleRotateUp}
                   style={{
-                    position: 'absolute',
-                    top: '-22px',
-                    left: '50%',
+                    position: 'absolute', top: '-18px', left: '50%',
                     transform: 'translateX(-50%)',
-                    width: '14px',
-                    height: '14px',
-                    background: 'rgba(34,197,94,0.9)',
-                    border: '2px solid #fff',
-                    borderRadius: '50%',
-                    cursor: 'grab',
-                    zIndex: 40,
-                    touchAction: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '8px',
-                    color: '#fff',
-                    userSelect: 'none',
+                    width: '10px', height: '10px',
+                    background: 'rgba(34,197,94,0.9)', border: '2px solid #fff',
+                    borderRadius: '50%', cursor: 'grab', zIndex: 40,
+                    touchAction: 'none', userSelect: 'none',
                   }}
                   title="드래그하여 회전"
-                >
-                  ↻
-                </div>
+                />
               )}
 
-              {/* 선택 시 리사이즈 핸들 */}
+              {/* 리사이즈 핸들 (단순 점) */}
               {isSel && (
                 <div
                   onPointerDown={handleResizeDown}
                   onPointerMove={handleResizeMove}
                   onPointerUp={handleResizeUp}
                   style={{
-                    position: 'absolute',
-                    bottom: '-8px',
-                    right: '-8px',
-                    width: '14px',
-                    height: '14px',
-                    background: 'rgba(99,102,241,0.9)',
-                    border: '2px solid #fff',
-                    borderRadius: '50%',
-                    cursor: 'nwse-resize',
-                    zIndex: 40,
+                    position: 'absolute', bottom: '-6px', right: '-6px',
+                    width: '10px', height: '10px',
+                    background: 'rgba(99,102,241,0.9)', border: '2px solid #fff',
+                    borderRadius: '50%', cursor: 'nwse-resize', zIndex: 40,
                     touchAction: 'none',
                   }}
                 />

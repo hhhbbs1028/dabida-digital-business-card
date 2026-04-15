@@ -168,8 +168,19 @@ export interface CardElementPositions {
   name?: ElementPosition;
   tagline?: ElementPosition;
   major?: ElementPosition;
+  /** @deprecated 개별 email/phone 위치 사용 권장 (하위 호환 유지) */
   contact?: ElementPosition;
+  /** @deprecated 개별 링크 위치 사용 권장 (하위 호환 유지) */
   links?: ElementPosition;
+  // 개별 연락처 요소
+  email?: ElementPosition;
+  phone?: ElementPosition;
+  // 개별 링크 요소
+  instagram?: ElementPosition;
+  github?: ElementPosition;
+  website?: ElementPosition;
+  linkedin?: ElementPosition;
+  google_drive?: ElementPosition;
 }
 
 // ============================================================================

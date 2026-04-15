@@ -1,11 +1,16 @@
 import type { CardTheme, CardContentTokens, CardElementPositions, StickerElement } from '../../../../theme/types';
 
 const TEXT_LAYER_DEFS: { key: keyof CardElementPositions; label: string; abbr: string }[] = [
-  { key: 'name',    label: '이름',       abbr: '이름' },
-  { key: 'tagline', label: '한 줄 소개', abbr: '소개' },
-  { key: 'major',   label: '소속',       abbr: '소속' },
-  { key: 'contact', label: '연락처',     abbr: '연락' },
-  { key: 'links',   label: '링크',       abbr: '링크' },
+  { key: 'name',         label: '이름',       abbr: '이름' },
+  { key: 'tagline',      label: '한 줄 소개', abbr: '소개' },
+  { key: 'major',        label: '소속',       abbr: '소속' },
+  { key: 'email',        label: '이메일',     abbr: '이메일' },
+  { key: 'phone',        label: '전화',       abbr: '전화' },
+  { key: 'instagram',    label: '인스타',     abbr: 'IG' },
+  { key: 'github',       label: '깃허브',     abbr: 'GH' },
+  { key: 'website',      label: '웹사이트',   abbr: 'WEB' },
+  { key: 'linkedin',     label: '링크드인',   abbr: 'LI' },
+  { key: 'google_drive', label: '드라이브',   abbr: 'GD' },
 ];
 
 type Props = {
@@ -25,11 +30,16 @@ export function LayerPanel({ theme, stickers, data, onChange, onClearStickers }:
   const textLayers: TextLayer[] = TEXT_LAYER_DEFS
     .filter(({ key }) => {
       if (!data) return false;
-      if (key === 'name')    return !!data.name;
-      if (key === 'tagline') return !!data.tagline;
-      if (key === 'major')   return !!data.major;
-      if (key === 'contact') return !!(data.email || data.phone);
-      if (key === 'links')   return !!(data.links?.instagram || data.links?.github || data.links?.website);
+      if (key === 'name')         return !!data.name;
+      if (key === 'tagline')      return !!data.tagline;
+      if (key === 'major')        return !!data.major;
+      if (key === 'email')        return !!data.email;
+      if (key === 'phone')        return !!data.phone;
+      if (key === 'instagram')    return !!data.links?.instagram;
+      if (key === 'github')       return !!data.links?.github;
+      if (key === 'website')      return !!data.links?.website;
+      if (key === 'linkedin')     return !!data.links?.linkedin;
+      if (key === 'google_drive') return !!data.links?.google_drive;
       return false;
     })
     .map(({ key, label, abbr }) => ({
@@ -84,10 +94,22 @@ export function LayerPanel({ theme, stickers, data, onChange, onClearStickers }:
     });
     const prevPos = theme.elementPositions ?? {};
     let newPos: CardElementPositions = { ...prevPos };
-    if (itemA.kind === 'text'    && prevPos[itemA.key]) newPos = { ...newPos, [itemA.key]: { ...prevPos[itemA.key]!, zIndex: zB } };
-    if (itemB.kind === 'text'    && prevPos[itemB.key]) newPos = { ...newPos, [itemB.key]: { ...prevPos[itemB.key]!, zIndex: zA } };
-    if (itemA.kind === 'profile' && prevPos.profile)    newPos = { ...newPos, profile: { ...prevPos.profile, zIndex: zB } };
-    if (itemB.kind === 'profile' && prevPos.profile)    newPos = { ...newPos, profile: { ...prevPos.profile, zIndex: zA } };
+
+    // 위치 항목이 없어도 zIndex를 설정할 수 있도록 생성
+    if (itemA.kind === 'text') {
+      const existing = prevPos[itemA.key] ?? {};
+      newPos = { ...newPos, [itemA.key]: { ...existing, zIndex: zB } };
+    }
+    if (itemB.kind === 'text') {
+      const existing = prevPos[itemB.key] ?? {};
+      newPos = { ...newPos, [itemB.key]: { ...existing, zIndex: zA } };
+    }
+    if (itemA.kind === 'profile') {
+      newPos = { ...newPos, profile: { ...(prevPos.profile ?? {}), zIndex: zB } };
+    }
+    if (itemB.kind === 'profile') {
+      newPos = { ...newPos, profile: { ...(prevPos.profile ?? {}), zIndex: zA } };
+    }
     onChange({ stickers: newStickers, elementPositions: newPos });
   };
 
@@ -121,17 +143,19 @@ export function LayerPanel({ theme, stickers, data, onChange, onClearStickers }:
               onChange({ stickers: stickers.map((s) => s.id === item.id ? { ...s, opacity: val } : s) });
             } else if (item.kind === 'profile') {
               const prevPos = theme.elementPositions ?? {};
-              if (prevPos.profile) onChange({ elementPositions: { ...prevPos, profile: { ...prevPos.profile, opacity: val } } });
+              onChange({ elementPositions: { ...prevPos, profile: { ...(prevPos.profile ?? {}), opacity: val } } });
             } else {
               const prevPos = theme.elementPositions ?? {};
-              if (prevPos[item.key]) onChange({ elementPositions: { ...prevPos, [item.key]: { ...prevPos[item.key]!, opacity: val } } });
+              const existing = prevPos[item.key] ?? {};
+              onChange({ elementPositions: { ...prevPos, [item.key]: { ...existing, opacity: val } } });
             }
           };
 
           const setFontScale = (val: number) => {
             if (item.kind !== 'text') return;
             const prevPos = theme.elementPositions ?? {};
-            if (prevPos[item.key]) onChange({ elementPositions: { ...prevPos, [item.key]: { ...prevPos[item.key]!, fontScale: val } } });
+            const existing = prevPos[item.key] ?? {};
+            onChange({ elementPositions: { ...prevPos, [item.key]: { ...existing, fontScale: val } } });
           };
 
           return (

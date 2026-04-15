@@ -11,10 +11,27 @@
  */
 
 import React from 'react';
-import { Instagram, Github, Globe } from "lucide-react";
+import { Globe, HardDrive } from 'lucide-react';
 import type { CardTheme, CardContentTokens, ElementPosition } from '../../theme/types';
 import { resolvePositions } from '../../theme/defaultPositions';
 import { applyThemeToStyle } from '../../theme/applyTheme';
+
+// lucide-react deprecated 소셜 아이콘 → 인라인 SVG
+const IgIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>
+);
+const GhIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65S8.93 17.38 9 18v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>
+  </svg>
+);
+const LiIcon = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+  </svg>
+);
 
 type Props = {
   theme: CardTheme;
@@ -23,63 +40,20 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-/**
- * 프로필 이미지 컴포넌트
- */
-function ProfileImage({
-  url,
-  shape,
-  alt,
-  size = '4rem',
-}: {
-  url?: string;
-  shape: CardTheme['style']['profileShape'];
-  alt: string;
-  size?: string;
-}) {
-  if (shape === 'none' || !url) {
-    return null;
-  }
-
-  const shapeClass =
-    shape === 'circle'
-      ? 'rounded-full'
-      : shape === 'rounded'
-      ? 'rounded-xl'
-      : '';
-
-  return (
-    <img
-      src={url}
-      alt={alt}
-      className={`object-cover shrink-0 ${shapeClass}`}
-      style={{ width: size, height: size }}
-    />
-  );
-}
-
 // ============================================================================
 // PositionedView — elementPositions가 저장된 카드의 정적 뷰 렌더러
 // ============================================================================
 
-function AbsElem({
-  pos,
-  children,
-}: {
-  pos: ElementPosition;
-  children: React.ReactNode;
-}) {
+function AbsElem({ pos, children }: { pos: ElementPosition; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        left: `${pos.x}%`,
-        top: `${pos.y}%`,
-        transform: 'translate(-50%, -50%)',
-        opacity: pos.opacity ?? 1,
-        zIndex: pos.zIndex != null ? pos.zIndex : undefined,
-      }}
-    >
+    <div style={{
+      position: 'absolute',
+      left: `${pos.x}%`,
+      top: `${pos.y}%`,
+      transform: 'translate(-50%, -50%)',
+      opacity: pos.opacity ?? 1,
+      zIndex: pos.zIndex != null ? pos.zIndex : undefined,
+    }}>
       {children}
     </div>
   );
@@ -90,47 +64,45 @@ function PositionedView({ theme, data }: Props) {
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
-  // 저장된 위치가 없으면 기본 위치로 대체 → CardCanvas와 동일한 좌표 사용
   const pos = resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile);
   const { profileShape } = theme.style;
 
-  const shapeRadius =
-    profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
+  const shapeRadius = profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
 
   const scaledFs = (fs: string, scale: number) =>
     scale === 1 ? fs : `calc(${fs} * ${scale})`;
 
-  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1) => ({
+  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1): React.CSSProperties => ({
     fontFamily: 'var(--card-body-font)',
     fontWeight: 'var(--card-body-weight)',
     color: `var(${colorVar})`,
     fontSize: scaledFs(isPortrait ? (fsP ?? fs) : fs, scale),
-    whiteSpace: 'nowrap' as const,
+    whiteSpace: 'nowrap',
+  });
+
+  const linkStyle = (scale = 1): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: '3px',
+    ...ts('--card-text', '0.58rem', '0.7rem', scale),
   });
 
   return (
     <div className="absolute inset-0" style={bgStyle}>
       {/* 프로필 */}
       {hasProfile && pos.profile && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${pos.profile.x}%`,
-            top: `${pos.profile.y}%`,
-            transform: 'translate(-50%, -50%)',
-            width: `${pos.profile.size ?? 22}%`,
-            aspectRatio: '1',
-            borderRadius: shapeRadius,
-            overflow: 'hidden',
-            opacity: pos.profile.opacity ?? 1,
-            zIndex: pos.profile.zIndex != null ? pos.profile.zIndex : undefined,
-          }}
-        >
-          <img
-            src={data.profileUrl!}
-            alt={data.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+        <div style={{
+          position: 'absolute',
+          left: `${pos.profile.x}%`,
+          top: `${pos.profile.y}%`,
+          transform: 'translate(-50%, -50%)',
+          width: `${pos.profile.size ?? 22}%`,
+          aspectRatio: '1',
+          borderRadius: shapeRadius,
+          overflow: 'hidden',
+          opacity: pos.profile.opacity ?? 1,
+          zIndex: pos.profile.zIndex != null ? pos.profile.zIndex : undefined,
+        }}>
+          <img src={data.profileUrl!} alt={data.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
       )}
 
@@ -152,7 +124,9 @@ function PositionedView({ theme, data }: Props) {
       {/* 한 줄 소개 */}
       {data.tagline && pos.tagline && (
         <AbsElem pos={pos.tagline}>
-          <div style={ts('--card-secondary', '0.7rem', '0.875rem', pos.tagline.fontScale ?? 1)}>{data.tagline}</div>
+          <div style={ts('--card-secondary', '0.7rem', '0.875rem', pos.tagline.fontScale ?? 1)}>
+            {data.tagline}
+          </div>
         </AbsElem>
       )}
 
@@ -165,39 +139,68 @@ function PositionedView({ theme, data }: Props) {
         </AbsElem>
       )}
 
-      {/* 연락처 */}
-      {(data.email || data.phone) && pos.contact && (
-        <AbsElem pos={pos.contact}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {data.email && <span style={ts('--card-text', '0.58rem', '0.7rem', pos.contact.fontScale ?? 1)}>{data.email}</span>}
-            {data.phone && <span style={ts('--card-text', '0.58rem', '0.7rem', pos.contact.fontScale ?? 1)}>{data.phone}</span>}
-          </div>
+      {/* 이메일 (개별) */}
+      {data.email && pos.email && (
+        <AbsElem pos={pos.email}>
+          <span style={ts('--card-text', '0.58rem', '0.7rem', pos.email.fontScale ?? 1)}>
+            {data.email}
+          </span>
         </AbsElem>
       )}
 
-      {/* 링크 */}
-      {(data.links?.instagram || data.links?.github || data.links?.website) && pos.links && (
-        <AbsElem pos={pos.links}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {data.links.instagram && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
-                <Instagram size={9} />{data.links.instagram}
-              </span>
-            )}
-            {data.links.github && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
-                <Github size={9} />{data.links.github}
-              </span>
-            )}
-            {data.links.website && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', pos.links.fontScale ?? 1) }}>
-                <Globe size={9} />{data.links.website}
-              </span>
-            )}
-          </div>
+      {/* 전화 (개별) */}
+      {data.phone && pos.phone && (
+        <AbsElem pos={pos.phone}>
+          <span style={ts('--card-text', '0.58rem', '0.7rem', pos.phone.fontScale ?? 1)}>
+            {data.phone}
+          </span>
         </AbsElem>
       )}
 
+      {/* 인스타그램 (개별) */}
+      {data.links?.instagram && pos.instagram && (
+        <AbsElem pos={pos.instagram}>
+          <span style={linkStyle(pos.instagram.fontScale ?? 1)}>
+            <IgIcon size={9} />{data.links.instagram}
+          </span>
+        </AbsElem>
+      )}
+
+      {/* 깃허브 (개별) */}
+      {data.links?.github && pos.github && (
+        <AbsElem pos={pos.github}>
+          <span style={linkStyle(pos.github.fontScale ?? 1)}>
+            <GhIcon size={9} />{data.links.github}
+          </span>
+        </AbsElem>
+      )}
+
+      {/* 웹사이트 (개별) */}
+      {data.links?.website && pos.website && (
+        <AbsElem pos={pos.website}>
+          <span style={linkStyle(pos.website.fontScale ?? 1)}>
+            <Globe size={9} />{data.links.website}
+          </span>
+        </AbsElem>
+      )}
+
+      {/* 링크드인 (개별) */}
+      {data.links?.linkedin && pos.linkedin && (
+        <AbsElem pos={pos.linkedin}>
+          <span style={linkStyle(pos.linkedin.fontScale ?? 1)}>
+            <LiIcon size={9} />{data.links.linkedin}
+          </span>
+        </AbsElem>
+      )}
+
+      {/* 구글 드라이브 (개별) */}
+      {data.links?.google_drive && pos.google_drive && (
+        <AbsElem pos={pos.google_drive}>
+          <span style={linkStyle(pos.google_drive.fontScale ?? 1)}>
+            <HardDrive size={9} />{data.links.google_drive}
+          </span>
+        </AbsElem>
+      )}
     </div>
   );
 }
@@ -225,7 +228,7 @@ export function BusinessCard({ theme, data, className, style }: Props) {
     >
       <PositionedView theme={theme} data={data} />
 
-      {/* 스티커 레이어 — 렌더링 경로와 무관하게 항상 최상단에 표시 */}
+      {/* 스티커 레이어 */}
       {(theme.stickers ?? [])
         .slice()
         .sort((a, b) => a.zIndex - b.zIndex)
@@ -247,14 +250,9 @@ export function BusinessCard({ theme, data, className, style }: Props) {
           >
             {sticker.type === 'emoji' ? (
               <div style={{
-                fontSize: '80cqw',
-                lineHeight: 1,
-                textAlign: 'center',
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                fontSize: '80cqw', lineHeight: 1, textAlign: 'center',
+                width: '100%', height: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {sticker.src}
               </div>
