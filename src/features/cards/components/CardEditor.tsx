@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { RotateCcw, Maximize2, RefreshCw } from 'lucide-react';
 import { FullscreenCardEditor } from './FullscreenCardEditor';
 import { CardPreview } from './CardPreview';
@@ -574,8 +575,9 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
 
   return (
     <>
-    {/* 전체화면 카드 편집기 */}
-    {isCanvasFullscreen && (
+    {/* 전체화면 카드 편집기 — Portal로 document.body에 직접 렌더링
+        (부모의 CSS transform이 fixed 포지셔닝 기준을 바꾸는 문제 방지) */}
+    {isCanvasFullscreen && createPortal(
       <FullscreenCardEditor
         theme={showBack ? backTheme : theme}
         data={themePreviewData}
@@ -584,7 +586,8 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
           else setTheme(newTheme);
         }}
         onClose={() => setIsCanvasFullscreen(false)}
-      />
+      />,
+      document.body,
     )}
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <style>{`
