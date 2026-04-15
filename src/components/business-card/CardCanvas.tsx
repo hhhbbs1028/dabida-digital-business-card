@@ -60,9 +60,39 @@ type FullPositionMap = {
 type UseDragOptions = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onDragEnd: (x: number, y: number) => void;
+  rotation?: number;
 };
 
-function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
+// 화면 포인터 좌표 → 카드 로컬 % 좌표 변환
+// rotation=90(CW)일 때: 화면 X → 로컬 Y, 화면 Y → 로컬 X(반전)
+function screenToLocal(clientX: number, clientY: number, rect: DOMRect, rotation: number) {
+  if (rotation === 90) {
+    return {
+      x: (1 - (clientY - rect.top) / rect.height) * 100,
+      y: ((clientX - rect.left) / rect.width) * 100,
+    };
+  }
+  return {
+    x: ((clientX - rect.left) / rect.width) * 100,
+    y: ((clientY - rect.top) / rect.height) * 100,
+  };
+}
+
+// 카드 로컬 % 좌표 → 화면 픽셀 좌표 변환 (리사이즈 핸들 거리 계산용)
+function localToScreen(localX: number, localY: number, rect: DOMRect, rotation: number) {
+  if (rotation === 90) {
+    return {
+      cx: rect.left + (localY / 100) * rect.width,
+      cy: rect.top + (1 - localX / 100) * rect.height,
+    };
+  }
+  return {
+    cx: rect.left + (localX / 100) * rect.width,
+    cy: rect.top + (localY / 100) * rect.height,
+  };
+}
+
+function useDrag({ containerRef, onDragEnd, rotation = 0 }: UseDragOptions) {
   const dragging = useRef(false);
   const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // 클릭 지점과 요소 중심 사이의 오프셋 — 클릭 시 점프 방지
@@ -71,11 +101,8 @@ function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
   const toRaw = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    return {
-      x: ((clientX - rect.left) / rect.width) * 100,
-      y: ((clientY - rect.top) / rect.height) * 100,
-    };
-  }, [containerRef]);
+    return screenToLocal(clientX, clientY, rect, rotation);
+  }, [containerRef, rotation]);
 
   // elemX, elemY: 요소 중심의 현재 % 위치 (클릭 오프셋 계산용)
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, elemX: number, elemY: number) => {
@@ -121,25 +148,26 @@ type DraggableProps = {
   anchor?: 'center' | 'top-left';
   onFontScale?: (scale: number) => void;
   onFontScaleEnd?: (scale: number) => void;
+  rotation?: number;
 };
 
 function DraggableElement({
   pos, containerRef, isSelected, label, onSelect, onMove, onMoveEnd, children,
-  anchor = 'center', onFontScale, onFontScaleEnd,
+  anchor = 'center', onFontScale, onFontScaleEnd, rotation = 0,
 }: DraggableProps) {
   const { onPointerDown, onPointerMove, onPointerUp } = useDrag({
     containerRef,
     onDragEnd: onMoveEnd,
+    rotation,
   });
 
   const calcFontScale = useCallback((e: React.PointerEvent): number => {
     if (!containerRef.current) return pos.fontScale ?? 1;
     const rect = containerRef.current.getBoundingClientRect();
-    const cx = rect.left + (pos.x / 100) * rect.width;
-    const cy = rect.top + (pos.y / 100) * rect.height;
+    const { cx, cy } = localToScreen(pos.x, pos.y, rect, rotation);
     const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
     return Math.max(0.5, Math.min(2.0, (dist / rect.width) * 10));
-  }, [containerRef, pos.x, pos.y, pos.fontScale]);
+  }, [containerRef, pos.x, pos.y, pos.fontScale, rotation]);
 
   const handleResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -241,15 +269,17 @@ type ProfileCanvasProps = {
   onMoveEnd: (x: number, y: number) => void;
   onResize: (size: number) => void;
   onResizeEnd: (size: number) => void;
+  rotation?: number;
 };
 
 function ProfileCanvas({
   pos, url, shape, containerRef, isSelected,
-  onSelect, onMove, onMoveEnd, onResize, onResizeEnd,
+  onSelect, onMove, onMoveEnd, onResize, onResizeEnd, rotation = 0,
 }: ProfileCanvasProps) {
   const { onPointerDown, onPointerMove, onPointerUp } = useDrag({
     containerRef,
     onDragEnd: onMoveEnd,
+    rotation,
   });
 
   const size = pos.size ?? 22;
@@ -258,8 +288,7 @@ function ProfileCanvas({
   const calcSize = (e: React.PointerEvent): number => {
     if (!containerRef.current) return size;
     const rect = containerRef.current.getBoundingClientRect();
-    const cx = rect.left + (pos.x / 100) * rect.width;
-    const cy = rect.top + (pos.y / 100) * rect.height;
+    const { cx, cy } = localToScreen(pos.x, pos.y, rect, rotation);
     const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
     return Math.max(8, Math.min(60, (dist / rect.width) * 200));
   };
@@ -350,9 +379,10 @@ type Props = {
   onPositionsChange?: (positions: CardElementPositions) => void;
   onStickersChange?: (stickers: StickerElement[]) => void;
   className?: string;
+  canvasRotation?: number;
 };
 
-export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, className }: Props) {
+export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, className, canvasRotation = 0 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
@@ -450,6 +480,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
     onMoveEnd: (x: number, y: number) => commitPos(key, x, y),
     onFontScale: (scale: number) => updateFontScale(key, scale),
     onFontScaleEnd: (scale: number) => commitFontScale(key, scale),
+    rotation: canvasRotation,
   });
 
   return (
@@ -490,6 +521,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           onMoveEnd={(x, y) => commitPos('profile', x, y)}
           onResize={(size) => updateSize('profile', size)}
           onResizeEnd={(size) => commitSize('profile', size)}
+          rotation={canvasRotation}
         />
       )}
 
@@ -601,8 +633,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           const toStickerPos = (clientX: number, clientY: number) => {
             if (!containerRef.current) return { x: sticker.x, y: sticker.y };
             const rect = containerRef.current.getBoundingClientRect();
-            const ptrX = ((clientX - rect.left) / rect.width) * 100;
-            const ptrY = ((clientY - rect.top) / rect.height) * 100;
+            const { x: ptrX, y: ptrY } = screenToLocal(clientX, clientY, rect, canvasRotation);
             return {
               x: Math.max(2, Math.min(98, ptrX + stickerDragOffset.current.dx)),
               y: Math.max(2, Math.min(98, ptrY + stickerDragOffset.current.dy)),
@@ -614,8 +645,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
             setSelected(sticker.id);
             if (containerRef.current) {
               const rect = containerRef.current.getBoundingClientRect();
-              const ptrX = ((e.clientX - rect.left) / rect.width) * 100;
-              const ptrY = ((e.clientY - rect.top) / rect.height) * 100;
+              const { x: ptrX, y: ptrY } = screenToLocal(e.clientX, e.clientY, rect, canvasRotation);
               stickerDragOffset.current = { dx: sticker.x - ptrX, dy: sticker.y - ptrY };
             }
           };
@@ -637,8 +667,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           const calcStickerWidth = (e: React.PointerEvent): number => {
             if (!containerRef.current) return sticker.width;
             const rect = containerRef.current.getBoundingClientRect();
-            const cx = rect.left + (sticker.x / 100) * rect.width;
-            const cy = rect.top + (sticker.y / 100) * rect.height;
+            const { cx, cy } = localToScreen(sticker.x, sticker.y, rect, canvasRotation);
             const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
             return Math.max(5, Math.min(70, (dist / rect.width) * 200));
           };

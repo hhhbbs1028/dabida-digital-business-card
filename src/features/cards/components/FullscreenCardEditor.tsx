@@ -192,6 +192,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             data={data}
             onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
             onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
+            canvasRotation={90}
           />
         </div>
       </div>
