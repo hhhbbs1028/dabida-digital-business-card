@@ -3,7 +3,7 @@
  *
  * 전체화면 명함 편집기 — 모바일 최적화
  * - 세로 명함: 일반 세로 레이아웃 (캔버스 상단, 바텀시트 하단)
- * - 가로 명함: 전체 UI를 90도 회전 → 핸드폰 가로모드처럼 표시
+ * - 가로 명함: 네이티브 가로 레이아웃 (회전 없음, 캔버스 상단, 바텀시트 하단)
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -40,8 +40,9 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const sheetMaxHeight = '52vh';
   const sheetOpenPadding = '52vh';
   const sheetClosedPadding = '68px';
-  // landscape: 사이드 시트 최대 너비 (내부 width = 화면 landscape height 기준)
-  const landscapeSheetMaxW = '50vw';
+  // landscape: 가로 화면은 세로 공간이 좁으므로 더 작은 시트 높이 사용
+  const landscapeSheetMaxHeight = '40vh';
+  const landscapeSheetOpenPadding = '40vh';
   const canvasTopPadding = '52px';
 
   useEffect(() => {
@@ -152,117 +153,91 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
     </div>
   );
 
-  // ── 가로 명함: 90도 회전 레이아웃 ────────────────────────────────────────────
-  // rotate(90deg) CW 좌표 변환: 내부 TOP→화면 RIGHT, 내부 RIGHT→화면 BOTTOM
-  // → 탭바를 내부 RIGHT(flex-row 마지막)에 두면 화면 하단 수평 바로 표시
+  // ── 가로 명함: 네이티브 가로 레이아웃 ───────────────────────────────────────
 
-  // 내부 flex-row에서 오른쪽에 세로로 쌓인 탭 버튼 순서:
-  // 내부 TOP(=화면 RIGHT) → 내부 BOTTOM(=화면 LEFT)
-  // 화면에서 좌→우로 [레이어|색상|배경]이 되려면 내부에서 [배경,색상,레이어] 순
-  const landscapeTabsOrdered = [...BOTTOM_TABS].reverse();
-
-  const landscapeContent = (
-    // paddingRight = env(safe-area-inset-bottom):
-    // rotate(90deg) CW → 물리 화면 하단(nav bar) = 내부 RIGHT
-    // 탭바가 내비게이션 바와 겹치지 않도록 우측에 safe area 여백 확보
+  const landscapeSheetContent = (
     <div
-      className="relative flex h-full w-full flex-row bg-black"
-      style={{ paddingRight: 'env(safe-area-inset-bottom)' }}
+      ref={sheetRef}
+      className="overflow-y-auto bg-white px-4 pb-4 pt-3"
+      style={{
+        maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
+        opacity: activeTab ? 1 : 0,
+        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+        overscrollBehavior: 'contain',
+      }}
     >
-      {/* 닫기 버튼 — 내부 left-3 top-3 → 90도 CW 후 화면 우상단 (nav bar 안전 위치) */}
-      <div className="absolute left-3 top-3 z-30">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
-          title="닫기"
-        >
-          <X size={18} />
-        </button>
+      <div className="mb-3 flex justify-center">
+        <div className="h-1 w-10 rounded-full bg-slate-200" />
       </div>
-
-      {/* 캔버스 영역 — flex-1, 나머지 공간 차지 */}
-      <div
-        className="flex flex-1 items-center justify-center overflow-hidden"
-        style={{ padding: `${canvasTopPadding} 8px 8px 8px` }}
-      >
-        <div className="h-full w-full">
-          <CardCanvas
-            theme={theme}
-            data={data}
-            onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
-            onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
-            canvasRotation={90}
-          />
-        </div>
-      </div>
-
-      {/* 시트 패널 — 캔버스와 탭바 사이 (화면에서는 탭바 위에 위치) */}
-      <div
-        ref={sheetRef}
-        className="flex-shrink-0 overflow-y-auto rounded-l-2xl bg-white"
-        style={{
-          width: activeTab ? landscapeSheetMaxW : 0,
-          opacity: activeTab ? 1 : 0,
-          transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-          overscrollBehavior: 'contain',
-        }}
-      >
-        {activeTab && (
-          <div className="px-4 pb-4 pt-3">
-            <div className="mb-3 flex justify-center">
-              <div className="h-1 w-10 rounded-full bg-slate-200" />
-            </div>
-            {activeTab === 'layer' && (
-              <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
-            )}
-            {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-            {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-          </div>
-        )}
-      </div>
-
-      {/* 탭 바 — 내부 오른쪽(flex-row 마지막) → 90도 CW 후 화면 하단 수평 바 */}
-      <div className="flex flex-col border-l border-slate-800 bg-black" style={{ width: '64px' }}>
-        {landscapeTabsOrdered.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => toggleTab(tab.id)}
-              className={[
-                'flex flex-1 flex-col items-center justify-center gap-0.5 transition',
-                isActive ? 'text-white' : 'text-slate-500',
-              ].join(' ')}
-            >
-              {tab.icon}
-              <span className="text-[10px] font-medium">{tab.label}</span>
-              {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
-            </button>
-          );
-        })}
-      </div>
+      {activeTab === 'layer' && (
+        <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+      )}
+      {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+      {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
     </div>
   );
 
-  // ── 가로 명함: 90도 회전 컨테이너 ───────────────────────────────────────────
-
   if (isLandscape) {
     return (
-      <div className="fixed inset-0 z-50 bg-black">
-        {/* 회전된 내부 컨테이너: width↔height 교환, 중심 기준 90도 회전 */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: '100vh',   // 회전 후 가로 = 화면 세로길이
-            height: '100vw',  // 회전 후 세로 = 화면 가로길이
-            transform: 'translate(-50%, -50%) rotate(90deg)',
-          }}
-        >
-          {landscapeContent}
+      <div className="fixed inset-0 z-50">
+        <div className="relative flex h-full w-full flex-col bg-black">
+          {/* 닫기 버튼 — 우상단 */}
+          <div className="absolute right-3 top-3 z-30">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+              title="닫기"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* 캔버스 영역 */}
+          <div
+            className="flex flex-1 items-center justify-center overflow-hidden px-4"
+            style={{
+              paddingTop: canvasTopPadding,
+              paddingBottom: activeTab ? landscapeSheetOpenPadding : sheetClosedPadding,
+              transition: 'padding-bottom 0.3s cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
+            <div className="h-full w-full max-w-2xl">
+              <CardCanvas
+                theme={theme}
+                data={data}
+                onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
+                onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
+              />
+            </div>
+          </div>
+
+          {/* 바텀 시트 + 탭바 (하단) */}
+          <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col">
+            <div className="overflow-hidden rounded-t-2xl">{landscapeSheetContent}</div>
+            <div className="flex items-center border-t border-slate-800 bg-black">
+              <div className="flex-1 px-4 py-1.5">
+                <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
+              </div>
+              <div className="flex">
+                {BOTTOM_TABS.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => toggleTab(tab.id)}
+                      className={['flex flex-col items-center gap-0.5 px-5 py-2 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                    >
+                      {tab.icon}
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                      {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
