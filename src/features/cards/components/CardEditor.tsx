@@ -79,29 +79,22 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  // 뒷면 관련 상태
+  // 뒷면 관련 상태 — 앞면과 독립적으로 별도 기본 테마로 초기화
   const [showBack, setShowBack] = useState(false);
-  const [backTheme, setBackTheme] = useState<CardTheme | null>(
+  const [backTheme, setBackTheme] = useState<CardTheme>(
     () => (initialValue?.back_theme && (initialValue.back_theme as any).colors
       ? storageToTheme(initialValue.back_theme)
-      : null),
+      : mergeTheme('minimal_light')),
   );
   const [flipping, setFlipping] = useState(false);
 
   const handleFlip = useCallback(() => {
     setFlipping(true);
     setTimeout(() => {
-      setShowBack((prev) => {
-        const next = !prev;
-        // 뒷면으로 전환 시 backTheme이 없으면 앞면 테마를 복사해서 초기화
-        if (next && !backTheme) {
-          setBackTheme({ ...theme });
-        }
-        return next;
-      });
+      setShowBack((prev) => !prev);
       setFlipping(false);
     }, 220);
-  }, [backTheme, theme]);
+  }, []);
   const [isDirty, setIsDirty] = useState(false);
   const hydratedRef = useRef(false);
   const lastSavedRef = useRef<string>('');
@@ -173,7 +166,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
       restoredTheme = withNormalizedProfileShape(restoredTheme, !!rest.profile_url);
       const restoredBackTheme = rest.back_theme && (rest.back_theme as any).colors
         ? storageToTheme(rest.back_theme as CardThemeStorage)
-        : null;
+        : mergeTheme('minimal_light');
       setValue(newValue);
       setTheme(restoredTheme);
       setBackTheme(restoredBackTheme);
@@ -250,7 +243,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
         id: currentId,
         ...value,
         theme: themeToStorage(theme),
-        back_theme: backTheme ? themeToStorage(backTheme) : null,
+        back_theme: themeToStorage(backTheme),
       });
       lastSavedRef.current = JSON.stringify({ v: value, t: theme });
       setSaveStatus('saved');
@@ -584,7 +577,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
     {/* 전체화면 카드 편집기 */}
     {isCanvasFullscreen && (
       <FullscreenCardEditor
-        theme={showBack ? (backTheme ?? theme) : theme}
+        theme={showBack ? backTheme : theme}
         data={themePreviewData}
         onThemeChange={(newTheme) => {
           if (showBack) setBackTheme(newTheme);
@@ -637,18 +630,18 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
           >
             <div className="relative">
               <CardCanvas
-                theme={showBack ? (backTheme ?? theme) : theme}
+                theme={showBack ? backTheme : theme}
                 data={themePreviewData}
                 onPositionsChange={(positions) => {
                   if (showBack) {
-                    setBackTheme((prev) => prev ? { ...prev, elementPositions: positions } : null);
+                    setBackTheme((prev) => ({ ...prev, elementPositions: positions }));
                   } else {
                     setTheme((prev) => ({ ...prev, elementPositions: positions }));
                   }
                 }}
                 onStickersChange={(stickers) => {
                   if (showBack) {
-                    setBackTheme((prev) => prev ? { ...prev, stickers } : null);
+                    setBackTheme((prev) => ({ ...prev, stickers }));
                   } else {
                     setTheme((prev) => ({ ...prev, stickers }));
                   }
@@ -767,7 +760,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
 
     <ThemeEditor
       isOpen={showThemeEditor}
-      theme={showBack ? (backTheme ?? theme) : theme}
+      theme={showBack ? backTheme : theme}
       data={value}
       onChange={(newTheme) => {
         if (showBack) setBackTheme(newTheme);

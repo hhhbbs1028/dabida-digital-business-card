@@ -65,11 +65,69 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
     }
   }, [activeTab]);
 
-  // ── 공통 내부 레이아웃 (캔버스 + 바텀시트) ──────────────────────────────────
+  // ── 탭 시트 콘텐츠 (공통) ────────────────────────────────────────────────────
 
-  const innerContent = (
+  const sheetContent = (
+    <div
+      ref={sheetRef}
+      className="overflow-y-auto bg-white px-4 pb-4 pt-3"
+      style={{
+        maxHeight: activeTab ? sheetMaxHeight : 0,
+        opacity: activeTab ? 1 : 0,
+        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+        overscrollBehavior: 'contain',
+      }}
+    >
+      <div className="mb-3 flex justify-center">
+        <div className="h-1 w-10 rounded-full bg-slate-200" />
+      </div>
+      {activeTab === 'layer' && (
+        <LayerPanel
+          theme={theme}
+          stickers={stickers}
+          data={data}
+          onChange={handleChange}
+          onClearStickers={() => handleChange({ stickers: [] })}
+        />
+      )}
+      {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+      {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+    </div>
+  );
+
+  const tabBar = (isTop: boolean) => (
+    <div className={['flex items-center bg-black', isTop ? 'border-b border-slate-800' : 'border-t border-slate-800'].join(' ')}>
+      <div className="flex-1 px-4 py-2">
+        <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
+      </div>
+      <div className="flex">
+        {BOTTOM_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => toggleTab(tab.id)}
+              className={[
+                'flex flex-col items-center gap-0.5 px-5 py-3 transition',
+                isActive ? 'text-white' : 'text-slate-500',
+              ].join(' ')}
+            >
+              {tab.icon}
+              <span className="text-[10px] font-medium">{tab.label}</span>
+              {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ── 세로 명함: 일반 세로 레이아웃 (캔버스 상단, 탭바 하단) ─────────────────
+
+  const portraitContent = (
     <div className="relative flex h-full w-full flex-col bg-black">
-      {/* 닫기 버튼 */}
+      {/* 닫기 버튼 — portrait: 우상단 */}
       <div className="absolute right-3 top-3 z-30">
         <button
           type="button"
@@ -100,60 +158,52 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
         </div>
       </div>
 
-      {/* 바텀 시트 */}
+      {/* 바텀 시트 + 탭바 (하단) */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col">
-        {/* 시트 콘텐츠 */}
-        <div
-          ref={sheetRef}
-          className="overflow-y-auto rounded-t-2xl bg-white px-4 pb-4 pt-3"
-          style={{
-            maxHeight: activeTab ? sheetMaxHeight : 0,
-            opacity: activeTab ? 1 : 0,
-            transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-            overscrollBehavior: 'contain',
-          }}
-        >
-          <div className="mb-3 flex justify-center">
-            <div className="h-1 w-10 rounded-full bg-slate-200" />
-          </div>
-          {activeTab === 'layer' && (
-            <LayerPanel
-              theme={theme}
-              stickers={stickers}
-              data={data}
-              onChange={handleChange}
-              onClearStickers={() => handleChange({ stickers: [] })}
-            />
-          )}
-          {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-          {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-        </div>
+        <div className="rounded-t-2xl overflow-hidden">{sheetContent}</div>
+        {tabBar(false)}
+      </div>
+    </div>
+  );
 
-        {/* 탭 바 */}
-        <div className="flex items-center border-t border-slate-800 bg-black">
-          <div className="flex-1 px-4 py-2">
-            <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
-          </div>
-          <div className="flex">
-            {BOTTOM_TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => toggleTab(tab.id)}
-                  className={[
-                    'flex flex-col items-center gap-0.5 px-5 py-3 transition',
-                    isActive ? 'text-white' : 'text-slate-500',
-                  ].join(' ')}
-                >
-                  {tab.icon}
-                  <span className="text-[10px] font-medium">{tab.label}</span>
-                  {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
-                </button>
-              );
-            })}
-          </div>
+  // ── 가로 명함: 90도 회전 레이아웃 (탭바 상단 → 회전 후 화면 오른쪽) ──────
+
+  const landscapeContent = (
+    <div className="relative flex h-full w-full flex-col bg-black">
+      {/* 닫기 버튼 — landscape 내부 좌상단 → 회전 후 화면 우상단 (안전 위치) */}
+      <div className="absolute left-3 top-3 z-30">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+          title="닫기"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* 탭바 + 시트 (상단 → 회전 후 화면 오른쪽) */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex flex-col">
+        {tabBar(true)}
+        <div className="rounded-b-2xl overflow-hidden">{sheetContent}</div>
+      </div>
+
+      {/* 캔버스 영역 — paddingTop으로 탭바/시트 공간 확보 */}
+      <div
+        className="flex flex-1 items-center justify-center overflow-hidden px-4"
+        style={{
+          paddingTop: activeTab ? sheetOpenPadding : sheetClosedPadding,
+          paddingBottom: canvasTopPadding,
+          transition: 'padding-top 0.3s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <div className="w-full max-w-2xl">
+          <CardCanvas
+            theme={theme}
+            data={data}
+            onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
+            onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
+          />
         </div>
       </div>
     </div>
@@ -175,7 +225,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             transform: 'translate(-50%, -50%) rotate(90deg)',
           }}
         >
-          {innerContent}
+          {landscapeContent}
         </div>
       </div>
     );
@@ -185,7 +235,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
 
   return (
     <div className="fixed inset-0 z-50">
-      {innerContent}
+      {portraitContent}
     </div>
   );
 }
