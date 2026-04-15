@@ -43,10 +43,6 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const canvasTopPadding = '52px';
   // landscape: 세로 공간이 좁으므로 패널 높이를 28vh로 제한
   const landscapeSheetMaxHeight = '28vh';
-  // landscape: 패널 높이(28vh)와 툴바(~48px)를 뺀 가용 높이 기반으로 카드 너비 계산
-  // cardWidth = parentWidth * 0.75,  cardHeight = cardWidth * 5/9
-  // → parentWidth_max = (availableH) * 9/5 / 0.75 = availableH * 2.4
-  // availableH ≈ 100vh - 120px (패널 없을 때도 여유 있게 계산)
 
   useEffect(() => {
     setTheme(externalTheme);
@@ -179,17 +175,21 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </div>
 
           {/* 캔버스 영역 — flex-1, 남은 세로 공간 전체 차지 */}
-          <div className="flex flex-1 items-center justify-center overflow-hidden px-4 pt-2">
-            {/*
-              maxWidth = (100vh - 120px) * 2.4
-              가로 뷰포트에서 100vh = 짧은 변(기기 너비) → 카드 높이가 사용 가능한 높이를 넘지 않도록 제한
-            */}
-            <div style={{ width: '100%', maxWidth: 'calc((100vh - 120px) * 2.4)' }}>
+          {/*
+            maxWidth 계산 근거 (드래그 좌표 정확도를 위해 카드가 절대 overflow되지 않게):
+              카드높이 = parentWidth × maxWidthPct × (5/9)
+              사용가능높이 ≈ 100vh - 60px (툴바 ~48px + 여백 12px)
+              → parentWidth_max = (100vh - 60px) × (9/5) / maxWidthPct
+              maxWidthPct = 0.95 → parentWidth_max = (100vh - 60px) × 1.895
+          */}
+          <div className="flex flex-1 items-center justify-center overflow-hidden px-2">
+            <div style={{ width: '100%', maxWidth: 'calc((100vh - 60px) * 1.895)' }}>
               <CardCanvas
                 theme={theme}
                 data={data}
                 onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
                 onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
+                maxWidthOverride="95%"
               />
             </div>
           </div>

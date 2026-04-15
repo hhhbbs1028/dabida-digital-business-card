@@ -380,9 +380,11 @@ type Props = {
   onStickersChange?: (stickers: StickerElement[]) => void;
   className?: string;
   canvasRotation?: number;
+  /** 카드 루트 div의 maxWidth를 재정의. 기본값: portrait='50%', landscape='75%' */
+  maxWidthOverride?: string;
 };
 
-export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, className, canvasRotation = 0 }: Props) {
+export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, className, canvasRotation = 0, maxWidthOverride }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
@@ -488,7 +490,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       className={`mx-auto w-full overflow-hidden rounded-2xl border shadow-md ${className ?? ''}`}
       style={{
         aspectRatio: isPortrait ? '5 / 9' : '9 / 5',
-        maxWidth: isPortrait ? '50%' : '75%',
+        maxWidth: maxWidthOverride ?? (isPortrait ? '50%' : '75%'),
         position: 'relative',
         ...bgStyle,
         borderColor: 'var(--card-border, #e2e8f0)',
