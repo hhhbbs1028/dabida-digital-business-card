@@ -36,11 +36,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
 
   const isLandscape = theme.orientation === 'landscape';
 
-  // 가로 명함: 바텀시트 최대 높이는 vw 기준 (회전 후 세로 = 원래 vw)
-  // 세로 명함: 바텀시트 최대 높이는 vh 기준
-  const sheetMaxHeight = isLandscape ? '50vw' : '52vh';
-  const sheetOpenPadding = isLandscape ? '50vw' : '52vh';
+  // portrait: 바텀시트 최대 높이
+  const sheetMaxHeight = '52vh';
+  const sheetOpenPadding = '52vh';
   const sheetClosedPadding = '68px';
+  // landscape: 사이드 시트 최대 너비 (내부 width = 화면 landscape height 기준)
+  const landscapeSheetMaxW = '50vw';
   const canvasTopPadding = '52px';
 
   useEffect(() => {
@@ -65,9 +66,9 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
     }
   }, [activeTab]);
 
-  // ── 탭 시트 콘텐츠 (공통) ────────────────────────────────────────────────────
+  // ── 세로 명함: 일반 세로 레이아웃 (캔버스 상단, 탭바 하단) ─────────────────
 
-  const sheetContent = (
+  const portraitSheetContent = (
     <div
       ref={sheetRef}
       className="overflow-y-auto bg-white px-4 pb-4 pt-3"
@@ -82,52 +83,16 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
         <div className="h-1 w-10 rounded-full bg-slate-200" />
       </div>
       {activeTab === 'layer' && (
-        <LayerPanel
-          theme={theme}
-          stickers={stickers}
-          data={data}
-          onChange={handleChange}
-          onClearStickers={() => handleChange({ stickers: [] })}
-        />
+        <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
       )}
       {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
       {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
     </div>
   );
 
-  const tabBar = (isTop: boolean) => (
-    <div className={['flex items-center bg-black', isTop ? 'border-b border-slate-800' : 'border-t border-slate-800'].join(' ')}>
-      <div className="flex-1 px-4 py-2">
-        <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
-      </div>
-      <div className="flex">
-        {BOTTOM_TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => toggleTab(tab.id)}
-              className={[
-                'flex flex-col items-center gap-0.5 px-5 py-3 transition',
-                isActive ? 'text-white' : 'text-slate-500',
-              ].join(' ')}
-            >
-              {tab.icon}
-              <span className="text-[10px] font-medium">{tab.label}</span>
-              {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // ── 세로 명함: 일반 세로 레이아웃 (캔버스 상단, 탭바 하단) ─────────────────
-
   const portraitContent = (
     <div className="relative flex h-full w-full flex-col bg-black">
-      {/* 닫기 버튼 — portrait: 우상단 */}
+      {/* 닫기 버튼 — 우상단 */}
       <div className="absolute right-3 top-3 z-30">
         <button
           type="button"
@@ -160,17 +125,45 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
 
       {/* 바텀 시트 + 탭바 (하단) */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col">
-        <div className="rounded-t-2xl overflow-hidden">{sheetContent}</div>
-        {tabBar(false)}
+        <div className="overflow-hidden rounded-t-2xl">{portraitSheetContent}</div>
+        <div className="flex items-center border-t border-slate-800 bg-black">
+          <div className="flex-1 px-4 py-2">
+            <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
+          </div>
+          <div className="flex">
+            {BOTTOM_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => toggleTab(tab.id)}
+                  className={['flex flex-col items-center gap-0.5 px-5 py-3 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                >
+                  {tab.icon}
+                  <span className="text-[10px] font-medium">{tab.label}</span>
+                  {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  // ── 가로 명함: 90도 회전 레이아웃 (탭바 상단 → 회전 후 화면 오른쪽) ──────
+  // ── 가로 명함: 90도 회전 레이아웃 ────────────────────────────────────────────
+  // rotate(90deg) CW 좌표 변환: 내부 TOP→화면 RIGHT, 내부 RIGHT→화면 BOTTOM
+  // → 탭바를 내부 RIGHT(flex-row 마지막)에 두면 화면 하단 수평 바로 표시
+
+  // 내부 flex-row에서 오른쪽에 세로로 쌓인 탭 버튼 순서:
+  // 내부 TOP(=화면 RIGHT) → 내부 BOTTOM(=화면 LEFT)
+  // 화면에서 좌→우로 [레이어|색상|배경]이 되려면 내부에서 [배경,색상,레이어] 순
+  const landscapeTabsOrdered = [...BOTTOM_TABS].reverse();
 
   const landscapeContent = (
-    <div className="relative flex h-full w-full flex-col bg-black">
-      {/* 닫기 버튼 — landscape 내부 좌상단 → 회전 후 화면 우상단 (안전 위치) */}
+    <div className="relative flex h-full w-full flex-row bg-black">
+      {/* 닫기 버튼 — 내부 left-3 top-3 → 90도 CW 후 화면 우상단 (nav bar 안전 위치) */}
       <div className="absolute left-3 top-3 z-30">
         <button
           type="button"
@@ -182,22 +175,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
         </button>
       </div>
 
-      {/* 탭바 + 시트 (상단 → 회전 후 화면 오른쪽) */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex flex-col">
-        {tabBar(true)}
-        <div className="rounded-b-2xl overflow-hidden">{sheetContent}</div>
-      </div>
-
-      {/* 캔버스 영역 — paddingTop으로 탭바/시트 공간 확보 */}
+      {/* 캔버스 영역 — flex-1, 나머지 공간 차지 */}
       <div
-        className="flex flex-1 items-center justify-center overflow-hidden px-4"
-        style={{
-          paddingTop: activeTab ? sheetOpenPadding : sheetClosedPadding,
-          paddingBottom: canvasTopPadding,
-          transition: 'padding-top 0.3s cubic-bezier(0.4,0,0.2,1)',
-        }}
+        className="flex flex-1 items-center justify-center overflow-hidden"
+        style={{ padding: `${canvasTopPadding} 8px 8px 8px` }}
       >
-        <div className="w-full max-w-2xl">
+        <div className="h-full w-full">
           <CardCanvas
             theme={theme}
             data={data}
@@ -205,6 +188,53 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
           />
         </div>
+      </div>
+
+      {/* 시트 패널 — 캔버스와 탭바 사이 (화면에서는 탭바 위에 위치) */}
+      <div
+        ref={sheetRef}
+        className="flex-shrink-0 overflow-y-auto rounded-l-2xl bg-white"
+        style={{
+          width: activeTab ? landscapeSheetMaxW : 0,
+          opacity: activeTab ? 1 : 0,
+          transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+          overscrollBehavior: 'contain',
+        }}
+      >
+        {activeTab && (
+          <div className="px-4 pb-4 pt-3">
+            <div className="mb-3 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-slate-200" />
+            </div>
+            {activeTab === 'layer' && (
+              <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+            )}
+            {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+            {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+          </div>
+        )}
+      </div>
+
+      {/* 탭 바 — 내부 오른쪽(flex-row 마지막) → 90도 CW 후 화면 하단 수평 바 */}
+      <div className="flex flex-col border-l border-slate-800 bg-black" style={{ width: '64px' }}>
+        {landscapeTabsOrdered.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => toggleTab(tab.id)}
+              className={[
+                'flex flex-1 flex-col items-center justify-center gap-0.5 transition',
+                isActive ? 'text-white' : 'text-slate-500',
+              ].join(' ')}
+            >
+              {tab.icon}
+              <span className="text-[10px] font-medium">{tab.label}</span>
+              {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
