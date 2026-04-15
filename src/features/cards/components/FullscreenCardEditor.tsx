@@ -43,6 +43,17 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const canvasTopPadding = '52px';
   const landscapeSheetMaxHeight = '28vh'; // landscape: 패널 높이 (가로 화면 세로 여백 절약)
 
+  // 화면 방향 잠금: landscape 명함 → 가로 강제 / portrait 명함 → 세로 유지
+  useEffect(() => {
+    const orientationType = isLandscape ? 'landscape-primary' : 'portrait-primary';
+    screen.orientation?.lock(orientationType).catch(() => {
+      // 브라우저가 orientation lock을 지원하지 않는 경우 무시 (데스크톱 등)
+    });
+    return () => {
+      screen.orientation?.unlock();
+    };
+  }, [isLandscape]);
+
   useEffect(() => {
     setTheme(externalTheme);
   }, [externalTheme]);
@@ -181,7 +192,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
         </div>
 
         {/* ── 가로 모드: 편집기 (portrait:hidden = 세로 모드에서 자동 숨김) ── */}
-        <div className="portrait:hidden relative flex h-full w-full flex-col">
+        <div className="portrait:hidden absolute inset-0 flex flex-col">
           {/* 닫기 버튼 — 우상단 오버레이 */}
           <div className="absolute right-3 top-3 z-30">
             <button
