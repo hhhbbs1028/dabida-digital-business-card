@@ -131,6 +131,8 @@ export interface CardContentTokens {
     instagram?: string;
     github?: string;
     website?: string;
+    linkedin?: string;
+    google_drive?: string;
   };
   logoUrl?: string;
   profileUrl?: string;

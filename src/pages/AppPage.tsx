@@ -823,6 +823,7 @@ export function AppPage() {
         <CardEditor
           initialValue={selected}
           onSave={handleSave}
+          onSaved={() => { setShowCardEditor(false); setSelectedId(null); }}
           onDirtyChange={setIsEditorDirty}
           avatarUrl={profile?.avatar_url}
         />

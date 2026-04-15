@@ -25,6 +25,7 @@ import { ThemeEditor } from '../../../pages/ThemeEditor';
 type Props = {
   initialValue?: CardData | null;
   onSave: (card: CardData) => Promise<void>;
+  onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   avatarUrl?: string | null;
 };
@@ -50,6 +51,8 @@ const emptyCard: Omit<CardData, 'id'> = {
     instagram: '',
     github: '',
     website: '',
+    linkedin: '',
+    google_drive: '',
   },
   theme: null,
 };
@@ -57,7 +60,7 @@ const emptyCard: Omit<CardData, 'id'> = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition';
 
-export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: Props) {
+export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avatarUrl }: Props) {
   const baseEmpty = emptyCard;
   const { showToast } = useToast();
 
@@ -176,7 +179,9 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       !value.phone &&
       !value.links.instagram &&
       !value.links.github &&
-      !value.links.website
+      !value.links.website &&
+      !value.links.linkedin &&
+      !value.links.google_drive
     );
   }, [value, initialValue]);
 
@@ -190,6 +195,8 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       instagram: value.links.instagram || undefined,
       github: value.links.github || undefined,
       website: value.links.website || undefined,
+      linkedin: value.links.linkedin || undefined,
+      google_drive: value.links.google_drive || undefined,
     },
     profileUrl: value.profile_url ?? undefined,
   }), [value]);
@@ -219,6 +226,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
       onDirtyChange?.(false);
       showToast('저장이 완료되었습니다.', 'success');
       setActiveTab('basic');
+      onSaved?.();
     } catch (err: any) {
       setSaveStatus('error');
       setSaveMessage('저장 실패');
@@ -452,6 +460,24 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
               placeholder="https://example.com"
             />
           </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">LinkedIn</label>
+            <input
+              className={inputClass}
+              value={value.links.linkedin}
+              onChange={(e) => updateLink('linkedin', e.target.value)}
+              placeholder="https://linkedin.com/in/username"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Google Drive</label>
+            <input
+              className={inputClass}
+              value={value.links.google_drive}
+              onChange={(e) => updateLink('google_drive', e.target.value)}
+              placeholder="https://drive.google.com/..."
+            />
+          </div>
         </div>
       );
     }
@@ -533,7 +559,7 @@ export function CardEditor({ initialValue, onSave, onDirtyChange, avatarUrl }: P
                 onClick={() =>
                   setTheme((prev) => ({ ...prev, elementPositions: undefined }))
                 }
-                className={`absolute bottom-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500 ${theme.orientation === 'portrait' ? 'right-10' : 'right-10'}`}
+                className="absolute bottom-10 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
                 title="위치를 기본값으로 초기화"
               >
                 <RotateCcw size={14} />

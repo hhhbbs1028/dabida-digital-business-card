@@ -11,6 +11,8 @@ export type CardData = {
     instagram: string;
     github: string;
     website: string;
+    linkedin: string;
+    google_drive: string;
   };
   // 이미지 URL (Supabase Storage에 저장된 이미지의 URL)
   profile_url?: string | null;
