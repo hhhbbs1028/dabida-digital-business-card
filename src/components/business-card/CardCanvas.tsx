@@ -65,28 +65,36 @@ type UseDragOptions = {
 function useDrag({ containerRef, onDragEnd }: UseDragOptions) {
   const dragging = useRef(false);
   const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // 클릭 지점과 요소 중심 사이의 오프셋 — 클릭 시 점프 방지
+  const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
-  const toPercent = useCallback((clientX: number, clientY: number) => {
+  const toRaw = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(2, Math.min(98, ((clientY - rect.top) / rect.height) * 100));
-    return { x, y };
+    return {
+      x: ((clientX - rect.left) / rect.width) * 100,
+      y: ((clientY - rect.top) / rect.height) * 100,
+    };
   }, [containerRef]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  // elemX, elemY: 요소 중심의 현재 % 위치 (클릭 오프셋 계산용)
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, elemX: number, elemY: number) => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     dragging.current = true;
-    posRef.current = toPercent(e.clientX, e.clientY);
-  }, [toPercent]);
+    const ptr = toRaw(e.clientX, e.clientY);
+    offsetRef.current = { dx: elemX - ptr.x, dy: elemY - ptr.y };
+    posRef.current = { x: elemX, y: elemY };
+  }, [toRaw]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>, onMove: (x: number, y: number) => void) => {
     if (!dragging.current) return;
-    const pos = toPercent(e.clientX, e.clientY);
-    posRef.current = pos;
-    onMove(pos.x, pos.y);
-  }, [toPercent]);
+    const ptr = toRaw(e.clientX, e.clientY);
+    const x = Math.max(2, Math.min(98, ptr.x + offsetRef.current.dx));
+    const y = Math.max(2, Math.min(98, ptr.y + offsetRef.current.dy));
+    posRef.current = { x, y };
+    onMove(x, y);
+  }, [toRaw]);
 
   const onPointerUp = useCallback((_e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
@@ -148,7 +156,7 @@ function DraggableElement({
 
   return (
     <div
-      onPointerDown={(e) => { onSelect(); onPointerDown(e); }}
+      onPointerDown={(e) => { onSelect(); onPointerDown(e, pos.x, pos.y); }}
       onPointerMove={(e) => onPointerMove(e, onMove)}
       onPointerUp={onPointerUp}
       style={{
@@ -271,7 +279,7 @@ function ProfileCanvas({
 
   return (
     <div
-      onPointerDown={(e) => { onSelect(); onPointerDown(e); }}
+      onPointerDown={(e) => { onSelect(); onPointerDown(e, pos.x, pos.y); }}
       onPointerMove={(e) => onPointerMove(e, onMove)}
       onPointerUp={onPointerUp}
       style={{
@@ -355,6 +363,8 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   );
   const [selected, setSelected] = useState<string | null>(null);
   const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
+  // 스티커 드래그 클릭 오프셋 추적 (클릭 시 점프 방지)
+  const stickerDragOffset = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
   React.useEffect(() => {
     setPositions(resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile) as FullPositionMap);
@@ -588,23 +598,35 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
         .map((sticker) => {
           const isSel = selected === sticker.id;
 
+          const toStickerPos = (clientX: number, clientY: number) => {
+            if (!containerRef.current) return { x: sticker.x, y: sticker.y };
+            const rect = containerRef.current.getBoundingClientRect();
+            const ptrX = ((clientX - rect.left) / rect.width) * 100;
+            const ptrY = ((clientY - rect.top) / rect.height) * 100;
+            return {
+              x: Math.max(2, Math.min(98, ptrX + stickerDragOffset.current.dx)),
+              y: Math.max(2, Math.min(98, ptrY + stickerDragOffset.current.dy)),
+            };
+          };
           const handleStickerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
             setSelected(sticker.id);
+            if (containerRef.current) {
+              const rect = containerRef.current.getBoundingClientRect();
+              const ptrX = ((e.clientX - rect.left) / rect.width) * 100;
+              const ptrY = ((e.clientY - rect.top) / rect.height) * 100;
+              stickerDragOffset.current = { dx: sticker.x - ptrX, dy: sticker.y - ptrY };
+            }
           };
           const handleStickerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
-            const rect = containerRef.current.getBoundingClientRect();
-            const x = Math.max(2, Math.min(98, ((e.clientX - rect.left) / rect.width) * 100));
-            const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            const { x, y } = toStickerPos(e.clientX, e.clientY);
             updateSticker(sticker.id, { x, y });
           };
           const handleStickerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-            if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
-            const rect = containerRef.current.getBoundingClientRect();
-            const x = Math.max(2, Math.min(98, ((e.clientX - rect.left) / rect.width) * 100));
-            const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            const { x, y } = toStickerPos(e.clientX, e.clientY);
             commitSticker(stickers.map((s) => s.id === sticker.id ? { ...s, x, y } : s));
           };
 
