@@ -36,14 +36,17 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
 
   const isLandscape = theme.orientation === 'landscape';
 
-  // portrait: 바텀시트 최대 높이
+  // portrait: 바텀시트 최대 높이 / 캔버스 여백
   const sheetMaxHeight = '52vh';
   const sheetOpenPadding = '52vh';
   const sheetClosedPadding = '68px';
-  // landscape: 가로 화면은 세로 공간이 좁으므로 더 작은 시트 높이 사용
-  const landscapeSheetMaxHeight = '40vh';
-  const landscapeSheetOpenPadding = '40vh';
   const canvasTopPadding = '52px';
+  // landscape: 세로 공간이 좁으므로 패널 높이를 28vh로 제한
+  const landscapeSheetMaxHeight = '28vh';
+  // landscape: 패널 높이(28vh)와 툴바(~48px)를 뺀 가용 높이 기반으로 카드 너비 계산
+  // cardWidth = parentWidth * 0.75,  cardHeight = cardWidth * 5/9
+  // → parentWidth_max = (availableH) * 9/5 / 0.75 = availableH * 2.4
+  // availableH ≈ 100vh - 120px (패널 없을 때도 여유 있게 계산)
 
   useEffect(() => {
     setTheme(externalTheme);
@@ -154,28 +157,10 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   );
 
   // ── 가로 명함: 네이티브 가로 레이아웃 ───────────────────────────────────────
-
-  const landscapeSheetContent = (
-    <div
-      ref={sheetRef}
-      className="overflow-y-auto bg-white px-4 pb-4 pt-3"
-      style={{
-        maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
-        opacity: activeTab ? 1 : 0,
-        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <div className="mb-3 flex justify-center">
-        <div className="h-1 w-10 rounded-full bg-slate-200" />
-      </div>
-      {activeTab === 'layer' && (
-        <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
-      )}
-      {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-      {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-    </div>
-  );
+  // 가로 뷰포트(100vh = 짧은 쪽)를 기준으로 카드 너비를 제한해 카드가 세로로 넘치지 않게 함:
+  //   카드 높이 = cardWidth * 5/9,  cardWidth = parentWidth * 0.75
+  //   → parentWidth ≤ (availableHeight / (5/9)) / 0.75 = availableHeight * 2.4
+  //   availableHeight ≈ 100vh - 120px (툴바 + 여백)
 
   if (isLandscape) {
     return (
@@ -193,16 +178,13 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </button>
           </div>
 
-          {/* 캔버스 영역 */}
-          <div
-            className="flex flex-1 items-center justify-center overflow-hidden px-4"
-            style={{
-              paddingTop: canvasTopPadding,
-              paddingBottom: activeTab ? landscapeSheetOpenPadding : sheetClosedPadding,
-              transition: 'padding-bottom 0.3s cubic-bezier(0.4,0,0.2,1)',
-            }}
-          >
-            <div className="h-full w-full max-w-2xl">
+          {/* 캔버스 영역 — flex-1, 남은 세로 공간 전체 차지 */}
+          <div className="flex flex-1 items-center justify-center overflow-hidden px-4 pt-2">
+            {/*
+              maxWidth = (100vh - 120px) * 2.4
+              가로 뷰포트에서 100vh = 짧은 변(기기 너비) → 카드 높이가 사용 가능한 높이를 넘지 않도록 제한
+            */}
+            <div style={{ width: '100%', maxWidth: 'calc((100vh - 120px) * 2.4)' }}>
               <CardCanvas
                 theme={theme}
                 data={data}
@@ -212,30 +194,52 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
 
-          {/* 바텀 시트 + 탭바 (하단) */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col">
-            <div className="overflow-hidden rounded-t-2xl">{landscapeSheetContent}</div>
-            <div className="flex items-center border-t border-slate-800 bg-black">
-              <div className="flex-1 px-4 py-1.5">
-                <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
+          {/* 옵션 패널 — flex flow 안에서 위아래로 슬라이드 */}
+          <div
+            className="shrink-0 overflow-hidden rounded-t-2xl bg-white"
+            style={{
+              maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
+              opacity: activeTab ? 1 : 0,
+              transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+            }}
+          >
+            <div
+              ref={sheetRef}
+              className="overflow-y-auto px-4 pb-4 pt-3"
+              style={{ maxHeight: landscapeSheetMaxHeight, overscrollBehavior: 'contain' }}
+            >
+              <div className="mb-3 flex justify-center">
+                <div className="h-1 w-10 rounded-full bg-slate-200" />
               </div>
-              <div className="flex">
-                {BOTTOM_TABS.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => toggleTab(tab.id)}
-                      className={['flex flex-col items-center gap-0.5 px-5 py-2 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
-                    >
-                      {tab.icon}
-                      <span className="text-[10px] font-medium">{tab.label}</span>
-                      {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
-                    </button>
-                  );
-                })}
-              </div>
+              {activeTab === 'layer' && (
+                <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+              )}
+              {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+              {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+            </div>
+          </div>
+
+          {/* 탭바 — 항상 하단에 고정 */}
+          <div className="flex shrink-0 items-center border-t border-slate-800 bg-black">
+            <div className="flex-1 px-4 py-1.5">
+              <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
+            </div>
+            <div className="flex">
+              {BOTTOM_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => toggleTab(tab.id)}
+                    className={['flex flex-col items-center gap-0.5 px-5 py-2 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                  >
+                    {tab.icon}
+                    <span className="text-[10px] font-medium">{tab.label}</span>
+                    {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
