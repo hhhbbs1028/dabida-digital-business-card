@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Layers, Palette, Image as ImageBg } from 'lucide-react';
+import { X, Layers, Palette, Image as ImageBg, RotateCcw } from 'lucide-react';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
 import type { CardTheme, CardContentTokens } from '../../../theme/types';
 import { LayerPanel } from './editor-tabs/LayerPanel';
@@ -159,8 +159,29 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
 
   if (isLandscape) {
     return (
-      <div className="fixed inset-0 z-50">
-        <div className="relative flex h-full w-full flex-col bg-black">
+      <div className="fixed inset-0 z-50 bg-black">
+
+        {/* ── 세로 모드: 회전 안내 (landscape:hidden = 가로 모드에서 자동 숨김) ── */}
+        <div className="landscape:hidden flex h-full flex-col items-center justify-center gap-5">
+          <div className="absolute right-3 top-3 z-30">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+              title="닫기"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <RotateCcw size={44} className="text-white/40" />
+          <div className="text-center">
+            <p className="text-sm font-semibold text-white">핸드폰을 가로로 돌려주세요</p>
+            <p className="mt-1 text-xs text-white/40">가로 명함 편집기는 가로 모드에서 사용할 수 있습니다</p>
+          </div>
+        </div>
+
+        {/* ── 가로 모드: 편집기 (portrait:hidden = 세로 모드에서 자동 숨김) ── */}
+        <div className="portrait:hidden relative flex h-full w-full flex-col">
           {/* 닫기 버튼 — 우상단 오버레이 */}
           <div className="absolute right-3 top-3 z-30">
             <button
@@ -173,22 +194,11 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </button>
           </div>
 
-          {/* 캔버스 영역 — flex-1 */}
+          {/* 캔버스 영역 — flex-1
+              width = min(100%, availableHeight × 1.8)
+              가로 모드: 100vh = 짧은 변(~390px) → 높이 기반으로 카드 크게 표시
+              패널 열릴 때: -28vh 추가 차감 → 카드 비례 축소, width transition으로 부드럽게 */}
           <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
-            {/*
-              width = min(100%, calc(availableHeight * 1.8))
-
-              - 가로 모드 (100vh ≈ 390px):
-                  (390 - 64px) * 1.8 = 587px < 뷰포트 너비(~828px)
-                  → 카드가 높이 기반으로 크게 표시 (~587×326px)
-
-              - 세로 모드 (100vh ≈ 932px):
-                  (932 - 64px) * 1.8 = 1562px > 뷰포트 너비(~422px)
-                  → min()이 100% 선택, 너비 기반으로 표시 (~422×234px)
-
-              - 패널 열릴 때: 28vh를 추가로 빼서 카드가 적절히 축소됨
-                  카드-패널 전환 시 width transition으로 부드럽게 애니메이션
-            */}
             <div
               style={{
                 width: activeTab
@@ -209,7 +219,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
 
-          {/* 옵션 패널 — flex flow 안에서 위아래로 슬라이드 */}
+          {/* 옵션 패널 */}
           <div
             className="shrink-0 overflow-hidden rounded-t-2xl bg-white"
             style={{
@@ -234,7 +244,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
 
-          {/* 탭바 — 항상 하단 */}
+          {/* 탭바 */}
           <div className="flex shrink-0 items-center border-t border-slate-800 bg-black">
             <div className="flex-1 px-3 py-1">
               <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
@@ -258,6 +268,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
         </div>
+
       </div>
     );
   }
