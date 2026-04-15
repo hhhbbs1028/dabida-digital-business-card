@@ -173,16 +173,32 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </button>
           </div>
 
-          {/* 캔버스 영역 — flex-1, 가용 높이 전부 차지 */}
+          {/* 캔버스 영역 — flex-1 */}
           <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
             {/*
-              height:100% + aspectRatio:9/5 조합:
-              - height = flex-1 영역의 전체 높이
-              - width = height × (9/5) (landscape 비율)
-              - maxWidth:100% = 뷰포트를 넘지 않도록 보호
-              → 카드가 항상 가용 높이를 꽉 채우고, 패널 열림에 따라 자연스럽게 스케일 조정
+              width = min(100%, calc(availableHeight * 1.8))
+
+              - 가로 모드 (100vh ≈ 390px):
+                  (390 - 64px) * 1.8 = 587px < 뷰포트 너비(~828px)
+                  → 카드가 높이 기반으로 크게 표시 (~587×326px)
+
+              - 세로 모드 (100vh ≈ 932px):
+                  (932 - 64px) * 1.8 = 1562px > 뷰포트 너비(~422px)
+                  → min()이 100% 선택, 너비 기반으로 표시 (~422×234px)
+
+              - 패널 열릴 때: 28vh를 추가로 빼서 카드가 적절히 축소됨
+                  카드-패널 전환 시 width transition으로 부드럽게 애니메이션
             */}
-            <div style={{ height: '100%', aspectRatio: '9 / 5', maxWidth: '100%' }}>
+            <div
+              style={{
+                width: activeTab
+                  ? 'min(100%, calc((100vh - 64px - 28vh) * 1.8))'
+                  : 'min(100%, calc((100vh - 64px) * 1.8))',
+                aspectRatio: '9 / 5',
+                flexShrink: 0,
+                transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
               <CardCanvas
                 theme={theme}
                 data={data}
