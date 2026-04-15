@@ -32,17 +32,29 @@ function normalizeCard(row: any): CardData {
       instagram: row.links?.instagram ?? '',
       github: row.links?.github ?? '',
       website: row.links?.website ?? '',
+      linkedin: row.links?.linkedin ?? '',
+      google_drive: row.links?.google_drive ?? '',
     },
     profile_url: row.profile_url ?? null,
     logo_url: row.logo_url ?? null,
     theme: row.theme ?? null,
+    back_theme: row.back_theme ?? null,
+  };
+}
+
+function buildLinks(links: CardData['links']) {
+  return {
+    ...(links.instagram    && { instagram:    links.instagram    }),
+    ...(links.github       && { github:       links.github       }),
+    ...(links.website      && { website:      links.website      }),
+    ...(links.linkedin     && { linkedin:     links.linkedin     }),
+    ...(links.google_drive && { google_drive: links.google_drive }),
   };
 }
 
 export async function getMyCards(): Promise<CardData[]> {
   const user = await getCurrentUser();
 
-  console.log('[cardsApi] 카드 조회:', user.id);
   const { data, error } = await supabase
     .from('cards')
     .select('*')
@@ -60,7 +72,6 @@ export async function getMyCards(): Promise<CardData[]> {
 export async function createCard(card: Omit<CardData, 'id'>): Promise<CardData> {
   const user = await getCurrentUser();
 
-  console.log('[cardsApi] 카드 생성:', user.id);
   const { data, error } = await supabase
     .from('cards')
     .insert({
@@ -70,12 +81,9 @@ export async function createCard(card: Omit<CardData, 'id'>): Promise<CardData> 
       organization: card.organization,
       email: card.email,
       phone: card.phone,
-      links: {
-        ...(card.links.instagram && { instagram: card.links.instagram }),
-        ...(card.links.github && { github: card.links.github }),
-        ...(card.links.website && { website: card.links.website }),
-      },
+      links: buildLinks(card.links),
       theme: card.theme ?? null,
+      back_theme: card.back_theme ?? null,
       profile_url: card.profile_url ?? null,
     } as any)
     .select('*')
@@ -92,7 +100,6 @@ export async function createCard(card: Omit<CardData, 'id'>): Promise<CardData> 
 export async function updateCard(card: CardData): Promise<CardData> {
   const user = await getCurrentUser();
 
-  console.log('[cardsApi] 카드 수정:', user.id, card.id);
   const { error } = await supabase
     .from('cards')
     .update({
@@ -101,12 +108,9 @@ export async function updateCard(card: CardData): Promise<CardData> {
       organization: card.organization,
       email: card.email,
       phone: card.phone,
-      links: {
-        ...(card.links.instagram && { instagram: card.links.instagram }),
-        ...(card.links.github && { github: card.links.github }),
-        ...(card.links.website && { website: card.links.website }),
-      },
+      links: buildLinks(card.links),
       theme: card.theme ?? null,
+      back_theme: card.back_theme ?? null,
       profile_url: card.profile_url ?? null,
     } as any)
     .eq('id', card.id)
@@ -117,7 +121,6 @@ export async function updateCard(card: CardData): Promise<CardData> {
     throw error;
   }
 
-  // 업데이트 후 전체 카드 정보를 반환하기 위해 다시 조회
   const { data, error: fetchError } = await supabase
     .from('cards')
     .select('*')
@@ -136,7 +139,6 @@ export async function updateCard(card: CardData): Promise<CardData> {
 export async function deleteCard(id: string): Promise<void> {
   const user = await getCurrentUser();
 
-  console.log('[cardsApi] 카드 삭제:', user.id, id);
   const { error } = await supabase
     .from('cards')
     .delete()

@@ -10,8 +10,11 @@ export type ReceivedCardSnapshot = {
     instagram?: string;
     github?: string;
     website?: string;
+    linkedin?: string;
+    google_drive?: string;
   };
   theme?: CardThemeStorage | null;
+  back_theme?: CardThemeStorage | null;
   profile_url?: string | null;
   logo_url?: string | null;
 };
