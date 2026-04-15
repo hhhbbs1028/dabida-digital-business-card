@@ -469,6 +469,10 @@ export function AppPage() {
                 }}
                 onDeleteDirect={handleDeleteDirect}
                 onShare={handleNativeShare}
+                onCreateFromCard={(newCardData) => {
+                  const id = (crypto as any).randomUUID?.() ?? String(Date.now());
+                  handleSave({ id, ...newCardData });
+                }}
               />
 
               {/* 데스크탑: 우측 패널 */}

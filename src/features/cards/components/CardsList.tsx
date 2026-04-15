@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { Instagram, Github, Globe, ChevronLeft } from 'lucide-react';
+import { Instagram, Github, Globe, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
 import type { CardContentTokens } from '../../../theme/types';
+import { BottomSheet } from '../../../shared/ui/BottomSheet';
 
 const THUMB_W = 100;
 const THUMB_H = 65;
@@ -42,6 +43,8 @@ function CardThumbnail({ card }: { card: CardData }) {
       instagram: card.links.instagram || undefined,
       github: card.links.github || undefined,
       website: card.links.website || undefined,
+      linkedin: card.links.linkedin || undefined,
+      google_drive: card.links.google_drive || undefined,
     },
     logoUrl: card.logo_url || undefined,
     profileUrl: card.profile_url || undefined,
@@ -68,6 +71,76 @@ function CardThumbnail({ card }: { card: CardData }) {
   );
 }
 
+// ── 복사 필드 정의 ─────────────────────────────────────────────────────────────
+
+type CopyFieldKey =
+  | 'display_name' | 'headline' | 'organization'
+  | 'email' | 'phone'
+  | 'links.instagram' | 'links.github' | 'links.website'
+  | 'links.linkedin' | 'links.google_drive'
+  | 'profile_url' | 'theme';
+
+const COPY_FIELD_LABELS: Record<CopyFieldKey, string> = {
+  display_name: '이름',
+  headline: '한 줄 소개',
+  organization: '소속',
+  email: '이메일',
+  phone: '전화번호',
+  'links.instagram': 'Instagram',
+  'links.github': 'GitHub',
+  'links.website': '웹사이트',
+  'links.linkedin': 'LinkedIn',
+  'links.google_drive': 'Google Drive',
+  profile_url: '프로필 사진',
+  theme: '스타일/테마',
+};
+
+function getAvailableFields(card: CardData): CopyFieldKey[] {
+  const all: CopyFieldKey[] = [
+    'display_name', 'headline', 'organization',
+    'email', 'phone',
+    'links.instagram', 'links.github', 'links.website',
+    'links.linkedin', 'links.google_drive',
+    'profile_url', 'theme',
+  ];
+  return all.filter((key) => {
+    if (key === 'display_name') return !!card.display_name;
+    if (key === 'headline') return !!card.headline;
+    if (key === 'organization') return !!card.organization;
+    if (key === 'email') return !!card.email;
+    if (key === 'phone') return !!card.phone;
+    if (key === 'links.instagram') return !!card.links.instagram;
+    if (key === 'links.github') return !!card.links.github;
+    if (key === 'links.website') return !!card.links.website;
+    if (key === 'links.linkedin') return !!card.links.linkedin;
+    if (key === 'links.google_drive') return !!card.links.google_drive;
+    if (key === 'profile_url') return !!card.profile_url;
+    if (key === 'theme') return !!card.theme;
+    return false;
+  });
+}
+
+function buildNewCard(base: CardData, selected: Set<CopyFieldKey>): Omit<CardData, 'id'> {
+  return {
+    display_name: selected.has('display_name') ? base.display_name : '',
+    headline: selected.has('headline') ? base.headline : '',
+    organization: selected.has('organization') ? base.organization : '',
+    email: selected.has('email') ? base.email : '',
+    phone: selected.has('phone') ? base.phone : '',
+    links: {
+      instagram: selected.has('links.instagram') ? base.links.instagram : '',
+      github: selected.has('links.github') ? base.links.github : '',
+      website: selected.has('links.website') ? base.links.website : '',
+      linkedin: selected.has('links.linkedin') ? base.links.linkedin : '',
+      google_drive: selected.has('links.google_drive') ? base.links.google_drive : '',
+    },
+    profile_url: selected.has('profile_url') ? base.profile_url : null,
+    theme: selected.has('theme') ? base.theme : null,
+  };
+}
+
+// ── Props ──────────────────────────────────────────────────────────────────────
+
 type Props = {
   cards: CardData[];
   selectedId: string | null;
@@ -76,10 +149,12 @@ type Props = {
   onSelect: (id: string) => void;
   onDeleteDirect: (id: string) => void;
   onShare: (id: string) => void;
+  onCreateFromCard: (card: Omit<CardData, 'id'>) => void;
 };
 
 const SWIPE_THRESHOLD = 60;
-const REVEAL_WIDTH = 160; // 공유(80) + 삭제(80)
+const REVEAL_WIDTH = 160;   // 공유(80) + 삭제(80)
+const COPY_REVEAL_WIDTH = 80; // 새 명함 만들기(80)
 
 export function CardsList({
   cards,
@@ -89,8 +164,12 @@ export function CardsList({
   onSelect,
   onDeleteDirect,
   onShare,
+  onCreateFromCard,
 }: Props) {
   const [swipedCardId, setSwipedCardId] = useState<string | null>(null);
+  const [copySwipedCardId, setCopySwipedCardId] = useState<string | null>(null);
+  const [copySheetCard, setCopySheetCard] = useState<CardData | null>(null);
+  const [copyFields, setCopyFields] = useState<Set<CopyFieldKey>>(new Set());
   const touchStartX = useRef<number>(0);
   const touchCurrentX = useRef<number>(0);
   const isDragging = useRef(false);
@@ -100,6 +179,7 @@ export function CardsList({
     touchCurrentX.current = e.touches[0].clientX;
     isDragging.current = false;
     if (swipedCardId && swipedCardId !== cardId) setSwipedCardId(null);
+    if (copySwipedCardId && copySwipedCardId !== cardId) setCopySwipedCardId(null);
   }
 
   function handleTouchMove(e: React.TouchEvent) {
@@ -111,13 +191,22 @@ export function CardsList({
 
   function handleTouchEnd(cardId: string) {
     const delta = touchCurrentX.current - touchStartX.current;
-    if (delta < -SWIPE_THRESHOLD) setSwipedCardId(cardId);
-    else if (delta > 10) setSwipedCardId(null);
+    if (delta < -SWIPE_THRESHOLD) {
+      setSwipedCardId(cardId);
+      setCopySwipedCardId(null);
+    } else if (delta > SWIPE_THRESHOLD) {
+      setCopySwipedCardId(cardId);
+      setSwipedCardId(null);
+    } else {
+      setSwipedCardId(null);
+      setCopySwipedCardId(null);
+    }
   }
 
   function handleCardClick(cardId: string) {
     if (isDragging.current) return;
     if (swipedCardId === cardId) { setSwipedCardId(null); return; }
+    if (copySwipedCardId === cardId) { setCopySwipedCardId(null); return; }
     onSelect(cardId);
   }
 
@@ -135,6 +224,29 @@ export function CardsList({
     onShare(cardId);
   }
 
+  function handleOpenCopySheet(e: React.MouseEvent, card: CardData) {
+    e.stopPropagation();
+    setCopySwipedCardId(null);
+    const available = getAvailableFields(card);
+    setCopyFields(new Set(available));
+    setCopySheetCard(card);
+  }
+
+  function toggleCopyField(key: CopyFieldKey) {
+    setCopyFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function handleCopyConfirm() {
+    if (!copySheetCard) return;
+    onCreateFromCard(buildNewCard(copySheetCard, copyFields));
+    setCopySheetCard(null);
+  }
+
   return (
     <aside>
       {/* 헤더 */}
@@ -146,6 +258,19 @@ export function CardsList({
           </span>
         </div>
       </div>
+
+      {/* 슬라이드 안내 */}
+      {cards.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
+          <span className="flex items-center gap-1">
+            <ChevronRight size={12} /> 오른쪽: 명함 복사
+          </span>
+          <span className="text-slate-200">|</span>
+          <span className="flex items-center gap-1">
+            <ChevronLeft size={12} /> 왼쪽: 공유·삭제
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -175,20 +300,39 @@ export function CardsList({
               {cards.map((card, index) => {
                 const isActive = selectedId === card.id;
                 const isSwiped = swipedCardId === card.id;
+                const isCopySwiped = copySwipedCardId === card.id;
                 const isLast = index === cards.length - 1;
+
+                let translateX = 'translateX(0)';
+                if (isSwiped) translateX = `translateX(-${REVEAL_WIDTH}px)`;
+                if (isCopySwiped) translateX = `translateX(${COPY_REVEAL_WIDTH}px)`;
 
                 return (
                   <div
                     key={card.id}
                     className="relative overflow-hidden"
-                    style={{ borderBottom: isLast ? 'none' : '1px solid #CBD5E1'}}
+                    style={{ borderBottom: isLast ? 'none' : '1px solid #CBD5E1' }}
                   >
-                    {/* 스와이프 액션 버튼: 공유 + 삭제 */}
+                    {/* 왼쪽: 새 명함 만들기 버튼 (오른쪽 스와이프 시 노출) */}
+                    <div
+                      className="absolute inset-y-0 left-0 flex"
+                      style={{ width: COPY_REVEAL_WIDTH, zIndex: 0 }}
+                    >
+                      <button
+                        onClick={(e) => handleOpenCopySheet(e, card)}
+                        className="flex w-20 flex-col items-center justify-center gap-1 text-white"
+                        style={{ background: '#4caf8a' }}
+                      >
+                        <Copy size={18} />
+                        <span className="text-[11px] font-semibold leading-tight text-center">명함<br/>복사</span>
+                      </button>
+                    </div>
+
+                    {/* 오른쪽: 공유 + 삭제 버튼 (왼쪽 스와이프 시 노출) */}
                     <div
                       className="absolute inset-y-0 right-0 flex"
                       style={{ width: REVEAL_WIDTH, zIndex: 0 }}
                     >
-                      {/* 공유 버튼 */}
                       <button
                         onClick={(e) => handleShare(e, card.id)}
                         className="flex w-20 flex-col items-center justify-center gap-1 text-white"
@@ -199,7 +343,6 @@ export function CardsList({
                         </svg>
                         <span className="text-[11px] font-semibold">공유</span>
                       </button>
-                      {/* 삭제 버튼 */}
                       <button
                         onClick={(e) => handleDelete(e, card.id)}
                         className="flex w-20 flex-col items-center justify-center gap-1 text-white"
@@ -220,7 +363,7 @@ export function CardsList({
                       onClick={() => handleCardClick(card.id)}
                       className="relative z-10 flex w-full cursor-pointer items-center gap-3 bg-white px-3 py-3 transition-transform duration-200 active:bg-slate-50"
                       style={{
-                        transform: isSwiped ? `translateX(-${REVEAL_WIDTH}px)` : 'translateX(0)',
+                        transform: translateX,
                         boxShadow: isActive ? 'inset 0 0 0 2px #3182f6' : 'none',
                       }}
                     >
@@ -283,6 +426,43 @@ export function CardsList({
           )}
         </>
       )}
+
+      {/* 명함 복사 Bottom Sheet */}
+      <BottomSheet
+        isOpen={!!copySheetCard}
+        onClose={() => setCopySheetCard(null)}
+        title="이 명함을 기준으로 새 명함 만들기"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">가져올 정보를 선택하세요. 체크 해제한 항목은 새 명함에 포함되지 않습니다.</p>
+
+          <div className="space-y-2">
+            {copySheetCard && getAvailableFields(copySheetCard).map((key) => (
+              <label
+                key={key}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition hover:bg-slate-100"
+              >
+                <input
+                  type="checkbox"
+                  checked={copyFields.has(key)}
+                  onChange={() => toggleCopyField(key)}
+                  className="h-4 w-4 rounded accent-slate-900"
+                />
+                <span className="text-sm font-medium text-slate-700">{COPY_FIELD_LABELS[key]}</span>
+              </label>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCopyConfirm}
+            disabled={copyFields.size === 0}
+            className="w-full rounded-2xl bg-slate-900 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            새 명함 만들기
+          </button>
+        </div>
+      </BottomSheet>
     </aside>
   );
 }
