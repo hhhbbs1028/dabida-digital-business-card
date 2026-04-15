@@ -162,7 +162,13 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const landscapeTabsOrdered = [...BOTTOM_TABS].reverse();
 
   const landscapeContent = (
-    <div className="relative flex h-full w-full flex-row bg-black">
+    // paddingRight = env(safe-area-inset-bottom):
+    // rotate(90deg) CW → 물리 화면 하단(nav bar) = 내부 RIGHT
+    // 탭바가 내비게이션 바와 겹치지 않도록 우측에 safe area 여백 확보
+    <div
+      className="relative flex h-full w-full flex-row bg-black"
+      style={{ paddingRight: 'env(safe-area-inset-bottom)' }}
+    >
       {/* 닫기 버튼 — 내부 left-3 top-3 → 90도 CW 후 화면 우상단 (nav bar 안전 위치) */}
       <div className="absolute left-3 top-3 z-30">
         <button
