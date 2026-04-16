@@ -64,12 +64,11 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   // (가로 뷰포트면 기기가 이미 가로이므로 회전 불필요)
   const needsCssRotation = isLandscape && !isViewportLandscape;
 
-  // portrait: 바텀시트 최대 높이 / 캔버스 여백
-  const sheetMaxHeight = '52vh';
-  const sheetOpenPadding = '52vh';
-  const sheetClosedPadding = '68px';
+  // portrait: 캔버스 여백 (탭바 높이만 확보 — 플로팅 패널은 캔버스를 밀지 않음)
+  const tabBarHeight = '68px';
   const canvasTopPadding = '52px';
-  const landscapeSheetMaxHeight = '28vh'; // landscape: 패널 높이 (가로 화면 세로 여백 절약)
+  const floatingPanelMaxHeight = '50vh'; // 플로팅 패널 최대 높이 (명함 미리보기 영역 침범 최소화)
+  const landscapeSheetMaxHeight = '28vh'; // landscape 뷰포트 전용: 하단 옵션 패널 높이
 
   useEffect(() => {
     setTheme(externalTheme);
@@ -192,28 +191,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   // ── 세로 레이아웃 ────────────────────────────────────────────────
   // 세로 명함 또는 가로 명함을 세로 뷰포트에서 볼 때 모두 이 경로 사용
   // needsCssRotation=true일 때는 카드를 CSS rotate(-90deg)로 회전시켜 가로 형태로 표시
-
-  const portraitSheetContent = (
-    <div
-      ref={sheetRef}
-      className="overflow-y-auto bg-white px-4 pb-4 pt-3"
-      style={{
-        maxHeight: activeTab ? sheetMaxHeight : 0,
-        opacity: activeTab ? 1 : 0,
-        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <div className="mb-3 flex justify-center">
-        <div className="h-1 w-10 rounded-full bg-slate-200" />
-      </div>
-      {activeTab === 'layer' && (
-        <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
-      )}
-      {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-      {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-    </div>
-  );
+  // 하단 UI: 고정 탭바 + 탭 클릭 시에만 떠있는 플로팅 툴 패널 (바텀시트 아님)
 
   // CardCanvas 엘리먼트 — 회전 여부에 따라 canvasRotation prop으로 드래그 좌표 보정
   const cardCanvasElement = (
@@ -274,13 +252,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </button>
         </div>
 
-        {/* 캔버스 영역 */}
+        {/* 캔버스 영역 — 탭바 높이만큼 여백, 플로팅 패널은 캔버스 위에 떠있음 */}
         <div
           className="flex flex-1 items-center justify-center overflow-hidden px-4"
           style={{
             paddingTop: canvasTopPadding,
-            paddingBottom: activeTab ? sheetOpenPadding : sheetClosedPadding,
-            transition: 'padding-bottom 0.3s cubic-bezier(0.4,0,0.2,1)',
+            paddingBottom: tabBarHeight,
           }}
         >
           <div className="w-full max-w-2xl">
@@ -288,9 +265,35 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </div>
         </div>
 
-        {/* 바텀 시트 + 탭바 (하단) */}
+        {/* 하단 영역: 플로팅 툴 패널 + 고정 탭바
+            - 탭바: 하단 고정, 텍스트/아이콘 회전 없음
+            - 패널: 탭 클릭 시에만 탭바 바로 위에 플로팅 (바텀시트 아님)
+              · 좌우 여백 + 둥근 모서리 + 그림자로 "떠있는" 느낌
+              · 필요 높이만 차지, 최대 50vh로 미리보기 영역 침범 최소화 */}
         <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col">
-          <div className="overflow-hidden rounded-t-2xl">{portraitSheetContent}</div>
+          {/* 플로팅 툴 패널 */}
+          <div
+            className="mx-3 mb-2 overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+            style={{
+              maxHeight: activeTab ? floatingPanelMaxHeight : 0,
+              opacity: activeTab ? 1 : 0,
+              transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+            }}
+          >
+            <div
+              ref={sheetRef}
+              className="overflow-y-auto p-3"
+              style={{ maxHeight: floatingPanelMaxHeight, overscrollBehavior: 'contain' }}
+            >
+              {activeTab === 'layer' && (
+                <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+              )}
+              {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+              {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+            </div>
+          </div>
+
+          {/* 하단 탭바 — 위치 고정, 회전/이동 없음 */}
           <div className="flex items-center border-t border-slate-800 bg-black">
             <div className="flex-1 px-4 py-2">
               <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
