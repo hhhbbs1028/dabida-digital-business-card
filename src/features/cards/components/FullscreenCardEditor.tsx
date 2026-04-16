@@ -280,15 +280,39 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
               transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
             }}
           >
-            <div
-              ref={sheetRef}
-              className="overflow-y-auto p-3"
-              style={{ maxHeight: floatingPanelMaxHeight, overscrollBehavior: 'contain' }}
-            >
-              {/* needsCssRotation: 탭바 버튼과 동일하게 패널 컨텐츠 전체를 rotate(-90deg) —
-                  사용자가 머리를 왼쪽으로 기울인 가로 시점에서 자연스럽게 읽히도록 */}
+            {/* needsCssRotation 여부에 따라 스크롤/회전 구조 분기
+                - 세로(기본): 기존과 동일 — overflow-y-auto + maxHeight:50vh
+                - 가로 회전: 패널 bbox(wide × 50vh)에 맞춰 회전 wrapper의 pre-rotation
+                  치수를 swap(50vh × 100vw-24px). rotate 후 시각적 bbox가 패널과 정확히
+                  일치하여 미리보기 침범을 막고, wrapper 내부 overflow-y-auto로 스크롤 제공 */}
+            {needsCssRotation ? (
+              <div className="relative" style={{ height: floatingPanelMaxHeight }}>
+                <div
+                  ref={sheetRef}
+                  className="overflow-y-auto p-3"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: floatingPanelMaxHeight,
+                    height: 'calc(100vw - 24px)',
+                    transform: 'translate(-50%, -50%) rotate(-90deg)',
+                    transformOrigin: 'center center',
+                    overscrollBehavior: 'contain',
+                  }}
+                >
+                  {activeTab === 'layer' && (
+                    <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+                  )}
+                  {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+                  {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+                </div>
+              </div>
+            ) : (
               <div
-                style={needsCssRotation ? { transform: 'rotate(-90deg)', transformOrigin: 'center' } : undefined}
+                ref={sheetRef}
+                className="overflow-y-auto p-3"
+                style={{ maxHeight: floatingPanelMaxHeight, overscrollBehavior: 'contain' }}
               >
                 {activeTab === 'layer' && (
                   <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
@@ -296,7 +320,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
                 {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
                 {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
               </div>
-            </div>
+            )}
           </div>
 
           {/* 하단 탭바 — 위치 고정, 회전/이동 없음 */}
