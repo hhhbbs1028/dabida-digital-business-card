@@ -301,16 +301,23 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             <div className="flex">
               {BOTTOM_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
+                // needsCssRotation: 탭바 위치는 그대로 두고, 각 버튼의 아이콘+라벨 콘텐츠만
+                // rotate(-90deg) 회전 — 카드 회전 방향과 일치시켜 머리를 기울여 함께 읽도록
                 return (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => toggleTab(tab.id)}
-                    className={['flex flex-col items-center gap-0.5 px-5 py-3 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                    className={['px-5 py-3 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
                   >
-                    {tab.icon}
-                    <span className="text-[10px] font-medium">{tab.label}</span>
-                    {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+                    <div
+                      className="flex flex-col items-center gap-0.5"
+                      style={needsCssRotation ? { transform: 'rotate(-90deg)' } : undefined}
+                    >
+                      {tab.icon}
+                      <span className="text-[10px] font-medium">{tab.label}</span>
+                      {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
+                    </div>
                   </button>
                 );
               })}
