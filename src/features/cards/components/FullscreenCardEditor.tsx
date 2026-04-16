@@ -70,6 +70,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   const floatingPanelMaxHeight = '50vh'; // 플로팅 패널 최대 높이 (명함 미리보기 영역 침범 최소화)
   const landscapeSheetMaxHeight = '28vh'; // landscape 뷰포트 전용: 하단 옵션 패널 높이
 
+  // 전체화면 세로 레이아웃에서 카드 최대 너비 — 가용 높이 기반으로 계산
+  //   세로 카드(aspect 5:9): height = width × 9/5 이므로 width ≤ 가용높이 × 5/9
+  //   가용높이 ≈ 100vh − 상단(52) − 탭바(68) − 여백(16) = 100vh − 136px
+  //   min()으로 뷰포트 너비(100%)와 높이 기반 너비 중 작은 쪽 선택
+  const cardMaxWidthByHeight = 'min(100%, calc((100vh - 136px) * 5 / 9))';
+
   useEffect(() => {
     setTheme(externalTheme);
   }, [externalTheme]);
@@ -201,7 +207,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
       onPositionsChange={(positions) => handleChange({ elementPositions: positions })}
       onStickersChange={(newStickers) => handleChange({ stickers: newStickers })}
       canvasRotation={needsCssRotation ? 90 : 0}
-      maxWidthOverride={needsCssRotation ? '100%' : undefined}
+      maxWidthOverride={needsCssRotation ? '100%' : cardMaxWidthByHeight}
     />
   );
 
@@ -210,13 +216,13 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   //   inner: 회전 전 카드 박스 (aspect 9:5, width 180% = 100%×9/5)
   //          translate(-50%,-50%) rotate(-90deg)으로 outer 중앙에 정확히 끼워짐
   //   CardCanvas는 inner 내부에 100% 너비로 채움
-  // maxWidth:50%는 세로 명함 기본값과 동일한 시각 크기로 맞춤 (세로 뷰포트에서 과도하게 커지는 것 방지)
+  // maxWidth는 세로 명함과 동일하게 가용 높이 기반 — 전체화면 공간을 최대한 활용
   const rotatedCardWrapper = (
     <div
       style={{
         position: 'relative',
         width: '100%',
-        maxWidth: '50%',
+        maxWidth: cardMaxWidthByHeight,
         aspectRatio: '5 / 9',
         margin: '0 auto',
       }}
