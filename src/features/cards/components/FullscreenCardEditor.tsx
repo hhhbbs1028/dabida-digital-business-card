@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Layers, Palette, Image as ImageBg, RotateCcw } from 'lucide-react';
+import { X, Layers, Palette, Image as ImageBg } from 'lucide-react';
 import { CardCanvas } from '../../../components/business-card/CardCanvas';
 import type { CardTheme, CardContentTokens } from '../../../theme/types';
 import { LayerPanel } from './editor-tabs/LayerPanel';
@@ -163,58 +163,26 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   );
 
   // ── 가로 명함: 네이티브 가로 레이아웃 ───────────────────────────────────────
-  // 핵심 원리: 너비 기반이 아닌 높이 기반으로 카드 크기를 결정
-  //   - 컨테이너: height:100% + aspectRatio:9/5 → 가용 높이를 꽉 채우고 너비는 자동
-  //   - maxWidthOverride="100%": 카드가 컨테이너를 완전히 채움
-  //   - 패널이 열리면 flex-1이 줄어들면서 카드도 비례 축소 (overflow 없음)
+  // 구조: 상단(캔버스 + 우측 Tool Rail) + 하단(전체 너비 옵션 패널)
+  // 높이 기반 카드 사이징: height:100% + aspectRatio:9/5 → 가용 높이 채움
+  // orientation lock이 자동 가로 전환을 처리하며, 회전 안내 오버레이는 노출하지 않음
+
+  const TOOL_RAIL_WIDTH = 64; // px
 
   if (isLandscape) {
     return (
-      <div className="fixed inset-0 z-50 bg-black">
-
-        {/* ── 세로 모드: 회전 안내 (landscape:hidden = 가로 모드에서 자동 숨김) ── */}
-        <div className="landscape:hidden flex h-full flex-col items-center justify-center gap-5">
-          <div className="absolute right-3 top-3 z-30">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-              title="닫기"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <RotateCcw size={44} className="text-white/40" />
-          <div className="text-center">
-            <p className="text-sm font-semibold text-white">핸드폰을 가로로 돌려주세요</p>
-            <p className="mt-1 text-xs text-white/40">가로 명함 편집기는 가로 모드에서 사용할 수 있습니다</p>
-          </div>
-        </div>
-
-        {/* ── 가로 모드: 편집기 (portrait:hidden = 세로 모드에서 자동 숨김) ── */}
-        <div className="portrait:hidden absolute inset-0 flex flex-col">
-          {/* 닫기 버튼 — 우상단 오버레이 */}
-          <div className="absolute right-3 top-3 z-30">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
-              title="닫기"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* 캔버스 영역 — flex-1
+      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        {/* 상단: 캔버스 영역 + 우측 Tool Rail */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* 캔버스 영역 — 높이 기반 사이징
               width = min(100%, availableHeight × 1.8)
-              가로 모드: 100vh = 짧은 변(~390px) → 높이 기반으로 카드 크게 표시
-              패널 열릴 때: -28vh 추가 차감 → 카드 비례 축소, width transition으로 부드럽게 */}
-          <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
+              availableHeight = 100vh - 옵션 패널(열렸을 때 28vh) */}
+          <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
             <div
               style={{
                 width: activeTab
-                  ? 'min(100%, calc((100vh - 64px - 28vh) * 1.8))'
-                  : 'min(100%, calc((100vh - 64px) * 1.8))',
+                  ? 'min(100%, calc((100vh - 28vh) * 1.8))'
+                  : 'min(100%, calc(100vh * 1.8))',
                 aspectRatio: '9 / 5',
                 flexShrink: 0,
                 transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
@@ -230,37 +198,21 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             </div>
           </div>
 
-          {/* 옵션 패널 */}
+          {/* 우측 세로 Tool Rail — 닫기 버튼 + 탭 버튼 수직 스택 */}
           <div
-            className="shrink-0 overflow-hidden rounded-t-2xl bg-white"
-            style={{
-              maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
-              opacity: activeTab ? 1 : 0,
-              transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-            }}
+            className="flex shrink-0 flex-col items-center border-l border-slate-800 bg-black py-3"
+            style={{ width: TOOL_RAIL_WIDTH }}
           >
-            <div
-              ref={sheetRef}
-              className="overflow-y-auto px-4 pb-4 pt-3"
-              style={{ maxHeight: landscapeSheetMaxHeight, overscrollBehavior: 'contain' }}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+              title="닫기"
             >
-              <div className="mb-3 flex justify-center">
-                <div className="h-1 w-10 rounded-full bg-slate-200" />
-              </div>
-              {activeTab === 'layer' && (
-                <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
-              )}
-              {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-              {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
-            </div>
-          </div>
-
-          {/* 탭바 */}
-          <div className="flex shrink-0 items-center border-t border-slate-800 bg-black">
-            <div className="flex-1 px-3 py-1">
-              <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
-            </div>
-            <div className="flex">
+              <X size={18} />
+            </button>
+            <div className="flex-1" />
+            <div className="flex flex-col items-center gap-1">
               {BOTTOM_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -268,11 +220,13 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
                     key={tab.id}
                     type="button"
                     onClick={() => toggleTab(tab.id)}
-                    className={['flex flex-col items-center gap-0.5 px-4 py-1.5 transition', isActive ? 'text-white' : 'text-slate-500'].join(' ')}
+                    className={[
+                      'flex w-12 flex-col items-center gap-0.5 rounded-lg py-2 transition',
+                      isActive ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300',
+                    ].join(' ')}
                   >
                     {tab.icon}
                     <span className="text-[10px] font-medium">{tab.label}</span>
-                    {isActive && <span className="block h-0.5 w-4 rounded-full bg-white" />}
                   </button>
                 );
               })}
@@ -280,6 +234,30 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </div>
         </div>
 
+        {/* 하단: 전체 너비 옵션 패널 (Tool Rail과 무관하게 뷰포트 풀폭 차지) */}
+        <div
+          className="shrink-0 overflow-hidden rounded-t-2xl bg-white"
+          style={{
+            maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
+            opacity: activeTab ? 1 : 0,
+            transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
+          }}
+        >
+          <div
+            ref={sheetRef}
+            className="overflow-y-auto px-4 pb-4 pt-3"
+            style={{ maxHeight: landscapeSheetMaxHeight, overscrollBehavior: 'contain' }}
+          >
+            <div className="mb-3 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-slate-200" />
+            </div>
+            {activeTab === 'layer' && (
+              <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+            )}
+            {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+            {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+          </div>
+        </div>
       </div>
     );
   }
