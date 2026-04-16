@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Instagram, Github, Globe, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Instagram, Github, Globe, Linkedin, HardDrive, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
@@ -393,7 +393,7 @@ export function CardsList({
                           </div>
                         )}
 
-                        {(card.links?.instagram || card.links?.github || card.links?.website) && (
+                        {(card.links?.instagram || card.links?.github || card.links?.website || card.links?.linkedin || card.links?.google_drive) && (
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             {card.links.instagram && (
                               <span className="flex items-center gap-1 text-xs text-slate-300">
@@ -408,6 +408,16 @@ export function CardsList({
                             {card.links.website && (
                               <span className="flex items-center gap-1 text-xs text-slate-300">
                                 <Globe size={11} />{card.links.website}
+                              </span>
+                            )}
+                            {card.links.linkedin && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Linkedin size={11} />{card.links.linkedin}
+                              </span>
+                            )}
+                            {card.links.google_drive && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <HardDrive size={11} />{card.links.google_drive}
                               </span>
                             )}
                           </div>

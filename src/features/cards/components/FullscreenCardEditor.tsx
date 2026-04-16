@@ -74,7 +74,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   //   세로 카드(aspect 5:9): height = width × 9/5 이므로 width ≤ 가용높이 × 5/9
   //   가용높이 ≈ 100vh − 상단(52) − 탭바(68) − 여백(16) = 100vh − 136px
   //   min()으로 뷰포트 너비(100%)와 높이 기반 너비 중 작은 쪽 선택
-  const cardMaxWidthByHeight = 'min(100%, calc((100vh - 136px) * 5 / 9))';
+  const cardMaxWidthByHeight = 'min(90%, calc((100vh - 136px) * 5 / 9))';
 
   useEffect(() => {
     setTheme(externalTheme);
