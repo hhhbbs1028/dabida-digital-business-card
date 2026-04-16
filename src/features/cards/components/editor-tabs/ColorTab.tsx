@@ -104,8 +104,7 @@ export function ColorTab({ theme, onChange }: {
       {/* ── 팔레트 프리셋 ── */}
       <div>
         <div className="mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">색상 팔레트</div>
-        {/* 가로 모드에서는 10열로 펼쳐 2행 → 1행으로 높이 절감 (landscape: 변형은 Tailwind 내장) */}
-        <div className="grid grid-cols-5 gap-2 landscape:grid-cols-10">
+        <div className="grid grid-cols-5 gap-2">
           {PALETTE_IDS.map((paletteId) => {
             const isSelected = theme.paletteId === paletteId;
             const palette = COLOR_PALETTES[paletteId];
@@ -141,8 +140,7 @@ export function ColorTab({ theme, onChange }: {
       {/* ── 요소별 자유 색상 ── */}
       <div>
         <div className="mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">요소별 색상</div>
-        {/* 가로 모드에서는 2열로 배치하여 4행 → 2행으로 높이 절감 */}
-        <div className="grid grid-cols-1 gap-2 landscape:grid-cols-2">
+        <div className="space-y-2">
           {ELEMENT_COLORS.map(({ label, key }) => (
             <ColorRow
               key={key}

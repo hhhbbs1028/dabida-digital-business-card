@@ -51,13 +51,11 @@ export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabP
   };
 
   return (
-    // 가로 모드에서는 2열 그리드로 섹션을 묶어 높이를 절감
-    <div className="space-y-6 landscape:grid landscape:grid-cols-2 landscape:gap-x-5 landscape:gap-y-4 landscape:space-y-0">
+    <div className="space-y-6">
       {/* 단색 프리셋 + 자유 색상 */}
       <div>
         <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">단색</div>
-        {/* 가로 모드: 2행×4열 → 1행×8열 */}
-        <div className="grid grid-cols-4 gap-2 landscape:grid-cols-8">
+        <div className="grid grid-cols-4 gap-2">
           {SOLID_COLORS.map((color) => {
             const isSelected = currentBg.type === 'solid' && currentBg.color === color;
             const isLight = parseInt(color.slice(1, 3), 16) > 180;
@@ -117,7 +115,7 @@ export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabP
       {capabilities.allowGradient && (
         <div>
           <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">그라데이션</div>
-          <div className="grid grid-cols-3 gap-2 landscape:grid-cols-6">
+          <div className="grid grid-cols-3 gap-2">
             {Object.keys(GRADIENT_PRESETS).map((gradientId) => {
               const isSelected = currentBg.type === 'gradient' && currentBg.presetId === gradientId;
               return (
@@ -145,7 +143,7 @@ export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabP
       {capabilities.allowPattern && (
         <div>
           <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">패턴</div>
-          <div className="grid grid-cols-3 gap-2 landscape:grid-cols-6">
+          <div className="grid grid-cols-3 gap-2">
             {Object.keys(PATTERN_PRESETS).map((patternId) => {
               const isSelected = currentBg.type === 'pattern' && currentBg.patternId === patternId;
               return (

@@ -285,18 +285,23 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
               className="overflow-y-auto p-3"
               style={{ maxHeight: floatingPanelMaxHeight, overscrollBehavior: 'contain' }}
             >
-              {activeTab === 'layer' && (
-                <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
-              )}
-              {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
-              {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+              {/* needsCssRotation: 탭바 버튼과 동일하게 패널 컨텐츠 전체를 rotate(-90deg) —
+                  사용자가 머리를 왼쪽으로 기울인 가로 시점에서 자연스럽게 읽히도록 */}
+              <div
+                style={needsCssRotation ? { transform: 'rotate(-90deg)', transformOrigin: 'center' } : undefined}
+              >
+                {activeTab === 'layer' && (
+                  <LayerPanel theme={theme} stickers={stickers} data={data} onChange={handleChange} onClearStickers={() => handleChange({ stickers: [] })} />
+                )}
+                {activeTab === 'color' && <ColorTab theme={theme} onChange={handleChange} />}
+                {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} />}
+              </div>
             </div>
           </div>
 
           {/* 하단 탭바 — 위치 고정, 회전/이동 없음 */}
           <div className="flex items-center border-t border-slate-800 bg-black">
             <div className="flex-1 px-4 py-2">
-              <p className="text-[10px] text-slate-500">드래그하여 위치 조정</p>
             </div>
             <div className="flex">
               {BOTTOM_TABS.map((tab) => {
