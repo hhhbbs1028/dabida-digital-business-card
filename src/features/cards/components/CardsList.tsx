@@ -21,7 +21,9 @@ function CardThumbnail({ card }: { card: CardData }) {
   }
 
   const isPortrait = card.theme.orientation === 'portrait';
-  const RENDER_W = isPortrait ? 160 : 280;
+  // BusinessCard의 자연 maxWidth(portrait 300 / landscape 540)와 일치시켜
+  // "풀 프리뷰 → 썸네일" 단일 단계 스케일만 남도록 한다. (이중 스케일 해소)
+  const RENDER_W = isPortrait ? 300 : 540;
   const RENDER_H = isPortrait ? (RENDER_W * 9) / 5 : (RENDER_W * 5) / 9;
 
   const scale = Math.min(THUMB_W / RENDER_W, THUMB_H / RENDER_H);
