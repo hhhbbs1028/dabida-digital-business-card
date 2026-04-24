@@ -17,6 +17,11 @@ import type { CardTheme, CardContentTokens } from '../../../theme/types';
 import { LayerPanel } from './editor-tabs/LayerPanel';
 import { ColorTab } from './editor-tabs/ColorTab';
 import { BackgroundTab } from './editor-tabs/BackgroundTab';
+import {
+  FULLSCREEN_LAYOUT,
+  cardMaxWidthPortraitLayout,
+  cardMaxWidthLandscapeViewport,
+} from '../utils/fullscreenSize';
 
 type BottomTabId = 'layer' | 'color' | 'background';
 
@@ -64,17 +69,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   // (가로 뷰포트면 기기가 이미 가로이므로 회전 불필요)
   const needsCssRotation = isLandscape && !isViewportLandscape;
 
-  // portrait: 캔버스 여백 (탭바 높이만 확보 — 플로팅 패널은 캔버스를 밀지 않음)
-  const tabBarHeight = '68px';
-  const canvasTopPadding = '52px';
-  const floatingPanelMaxHeight = '50vh'; // 플로팅 패널 최대 높이 (명함 미리보기 영역 침범 최소화)
-  const landscapeSheetMaxHeight = '28vh'; // landscape 뷰포트 전용: 하단 옵션 패널 높이
-
-  // 전체화면 세로 레이아웃에서 카드 최대 너비 — 가용 높이 기반으로 계산
-  //   세로 카드(aspect 5:9): height = width × 9/5 이므로 width ≤ 가용높이 × 5/9
-  //   가용높이 ≈ 100vh − 상단(52) − 탭바(68) − 여백(16) = 100vh − 136px
-  //   min()으로 뷰포트 너비(100%)와 높이 기반 너비 중 작은 쪽 선택
-  const cardMaxWidthByHeight = 'min(90%, calc((100vh - 136px) * 5 / 9))';
+  // 레이아웃 상수는 fullscreenSize 유틸이 단일 소스. 로컬 CSS 값은 파생해서 사용.
+  const tabBarHeight = `${FULLSCREEN_LAYOUT.tabBarHeight}px`;
+  const canvasTopPadding = `${FULLSCREEN_LAYOUT.topPadding}px`;
+  const floatingPanelMaxHeight = `${FULLSCREEN_LAYOUT.floatingPanelMaxVh}vh`;
+  const landscapeSheetMaxHeight = `${FULLSCREEN_LAYOUT.landscapeSheetMaxVh}vh`;
+  const cardMaxWidthByHeight = cardMaxWidthPortraitLayout();
 
   useEffect(() => {
     setTheme(externalTheme);
@@ -112,9 +112,7 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
             <div
               style={{
-                width: activeTab
-                  ? 'min(100%, calc((100vh - 28vh) * 1.8))'
-                  : 'min(100%, calc(100vh * 1.8))',
+                width: cardMaxWidthLandscapeViewport(!!activeTab),
                 aspectRatio: '9 / 5',
                 flexShrink: 0,
                 transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
