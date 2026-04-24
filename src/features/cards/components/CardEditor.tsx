@@ -329,7 +329,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
 
           {/* 프로필 사진 */}
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">프로필 사진</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">대표 이미지</p>
             {/* 모양 선택 버튼 */}
             <div className="flex gap-3 mb-4">
               {(
