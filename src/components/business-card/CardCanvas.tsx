@@ -32,6 +32,7 @@ const LiIcon = ({ size }: { size: number }) => (
 import type { CardTheme, CardContentTokens, CardElementPositions, ElementPosition, StickerElement } from '../../theme/types';
 import { applyThemeToStyle } from '../../theme/applyTheme';
 import { resolvePositions } from '../../theme/defaultPositions';
+import { makeRenderHelpers } from '../../theme/renderHelpers';
 
 // ============================================================================
 // 위치 맵 타입
@@ -459,17 +460,13 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
 
   const bgStyle = applyThemeToStyle(theme);
 
-  const scaledFs = (base: string, baseP: string, scale = 1) =>
-    `calc(${isPortrait ? baseP : base} * ${scale})`;
-
-  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1): React.CSSProperties => ({
-    fontFamily: 'var(--card-body-font)',
-    fontWeight: 'var(--card-body-weight)',
-    color: `var(${colorVar})`,
-    fontSize: scaledFs(fs, fsP ?? fs, scale),
-    whiteSpace: 'nowrap',
-    pointerEvents: 'none',
-  });
+  // 편집 캔버스는 텍스트 요소의 pointer 이벤트를 제거해 드래그 시 선택 문제를 방지.
+  // BusinessCard(정적 뷰)와 동일한 스타일 계산식을 공유하려 renderHelpers를 사용.
+  const helpers = makeRenderHelpers(isPortrait);
+  const nameFontSize = helpers.nameFontSize;
+  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1) =>
+    helpers.textStyle(colorVar, fs, fsP, scale, true);
+  const linkStyle = (scale = 1) => helpers.linkStyle(scale, true);
 
   // 텍스트 DraggableElement의 공통 props 생성 헬퍼
   const textElemProps = (key: keyof FullPositionMap, label: string) => ({
@@ -533,7 +530,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
           fontFamily: 'var(--card-title-font)',
           fontWeight: 'var(--card-title-weight)',
           color: 'var(--card-primary)',
-          fontSize: scaledFs(isPortrait ? '1.3rem' : '1rem', '1.3rem', positions.name.fontScale ?? 1),
+          fontSize: nameFontSize(positions.name.fontScale ?? 1),
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
         }}>
@@ -565,7 +562,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 이메일 (개별) */}
       {(data.email || selected === 'email') && (
         <DraggableElement {...textElemProps('email', '이메일')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.email.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.email.fontScale ?? 1)}>
             <Mail size={9} />{data.email || '(이메일)'}
           </span>
         </DraggableElement>
@@ -574,7 +571,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 전화 (개별) */}
       {(data.phone || selected === 'phone') && (
         <DraggableElement {...textElemProps('phone', '전화')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.phone.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.phone.fontScale ?? 1)}>
             <Phone size={9} />{data.phone || '(전화)'}
           </span>
         </DraggableElement>
@@ -583,7 +580,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 인스타그램 (개별) */}
       {(data.links?.instagram || selected === 'instagram') && (
         <DraggableElement {...textElemProps('instagram', '인스타')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.instagram.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.instagram.fontScale ?? 1)}>
             <IgIcon size={9} />{data.links?.instagram || '(인스타그램)'}
           </span>
         </DraggableElement>
@@ -592,7 +589,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 깃허브 (개별) */}
       {(data.links?.github || selected === 'github') && (
         <DraggableElement {...textElemProps('github', '깃허브')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.github.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.github.fontScale ?? 1)}>
             <GhIcon size={9} />{data.links?.github || '(깃허브)'}
           </span>
         </DraggableElement>
@@ -601,7 +598,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 웹사이트 (개별) */}
       {(data.links?.website || selected === 'website') && (
         <DraggableElement {...textElemProps('website', '웹사이트')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.website.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.website.fontScale ?? 1)}>
             <Globe size={9} />{data.links?.website || '(웹사이트)'}
           </span>
         </DraggableElement>
@@ -610,7 +607,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 링크드인 (개별) */}
       {(data.links?.linkedin || selected === 'linkedin') && (
         <DraggableElement {...textElemProps('linkedin', '링크드인')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.linkedin.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.linkedin.fontScale ?? 1)}>
             <LiIcon size={9} />{data.links?.linkedin || '(링크드인)'}
           </span>
         </DraggableElement>
@@ -619,7 +616,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 구글 드라이브 (개별) */}
       {(data.links?.google_drive || selected === 'google_drive') && (
         <DraggableElement {...textElemProps('google_drive', '드라이브')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.google_drive.fontScale ?? 1) }}>
+          <span style={linkStyle(positions.google_drive.fontScale ?? 1)}>
             <HardDrive size={9} />{data.links?.google_drive || '(드라이브)'}
           </span>
         </DraggableElement>

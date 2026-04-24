@@ -15,6 +15,7 @@ import { Globe, HardDrive, Mail, Phone } from 'lucide-react';
 import type { CardTheme, CardContentTokens, ElementPosition } from '../../theme/types';
 import { resolvePositions } from '../../theme/defaultPositions';
 import { applyThemeToStyle } from '../../theme/applyTheme';
+import { makeRenderHelpers } from '../../theme/renderHelpers';
 
 // lucide-react deprecated 소셜 아이콘 → 인라인 SVG
 const IgIcon = ({ size }: { size: number }) => (
@@ -69,21 +70,7 @@ function PositionedView({ theme, data }: Props) {
 
   const shapeRadius = profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
 
-  const scaledFs = (fs: string, scale: number) =>
-    scale === 1 ? fs : `calc(${fs} * ${scale})`;
-
-  const ts = (colorVar: string, fs: string, fsP?: string, scale = 1): React.CSSProperties => ({
-    fontFamily: 'var(--card-body-font)',
-    fontWeight: 'var(--card-body-weight)',
-    color: `var(${colorVar})`,
-    fontSize: scaledFs(isPortrait ? (fsP ?? fs) : fs, scale),
-    whiteSpace: 'nowrap',
-  });
-
-  const linkStyle = (scale = 1): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: '3px',
-    ...ts('--card-text', '0.58rem', '0.7rem', scale),
-  });
+  const { textStyle: ts, linkStyle, nameFontSize } = makeRenderHelpers(isPortrait);
 
   return (
     <div className="absolute inset-0" style={bgStyle}>
@@ -113,7 +100,7 @@ function PositionedView({ theme, data }: Props) {
             fontFamily: 'var(--card-title-font)',
             fontWeight: 'var(--card-title-weight)',
             color: 'var(--card-primary)',
-            fontSize: scaledFs(isPortrait ? '1.3rem' : '1rem', pos.name.fontScale ?? 1),
+            fontSize: nameFontSize(pos.name.fontScale ?? 1),
             whiteSpace: 'nowrap',
           }}>
             {data.name || 'Your Name'}
