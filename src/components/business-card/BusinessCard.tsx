@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { Globe, HardDrive } from 'lucide-react';
+import { Globe, HardDrive, Mail, Phone } from 'lucide-react';
 import type { CardTheme, CardContentTokens, ElementPosition } from '../../theme/types';
 import { resolvePositions } from '../../theme/defaultPositions';
 import { applyThemeToStyle } from '../../theme/applyTheme';
@@ -142,8 +142,8 @@ function PositionedView({ theme, data }: Props) {
       {/* 이메일 (개별) */}
       {data.email && pos.email && (
         <AbsElem pos={pos.email}>
-          <span style={ts('--card-text', '0.58rem', '0.7rem', pos.email.fontScale ?? 1)}>
-            {data.email}
+          <span style={linkStyle(pos.email.fontScale ?? 1)}>
+            <Mail size={9} />{data.email}
           </span>
         </AbsElem>
       )}
@@ -151,8 +151,8 @@ function PositionedView({ theme, data }: Props) {
       {/* 전화 (개별) */}
       {data.phone && pos.phone && (
         <AbsElem pos={pos.phone}>
-          <span style={ts('--card-text', '0.58rem', '0.7rem', pos.phone.fontScale ?? 1)}>
-            {data.phone}
+          <span style={linkStyle(pos.phone.fontScale ?? 1)}>
+            <Phone size={9} />{data.phone}
           </span>
         </AbsElem>
       )}

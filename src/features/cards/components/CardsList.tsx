@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Instagram, Github, Globe, Linkedin, HardDrive, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Instagram, Github, Globe, Linkedin, HardDrive, Mail, Phone, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import type { CardData } from '../types';
 import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
@@ -263,7 +263,7 @@ export function CardsList({
       {cards.length > 0 && (
         <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
           <span className="flex items-center gap-1">
-            <ChevronRight size={12} /> 오른쪽: 명함 복사
+            <ChevronRight size={12} /> 오른쪽: 바이브 생성
           </span>
           <span className="text-slate-200">|</span>
           <span className="flex items-center gap-1">
@@ -324,7 +324,7 @@ export function CardsList({
                         style={{ background: '#4caf8a' }}
                       >
                         <Copy size={18} />
-                        <span className="text-[11px] font-semibold leading-tight text-center">명함<br/>복사</span>
+                        <span className="text-[11px] font-semibold leading-tight text-center">바이브<br/>생성</span>
                       </button>
                     </div>
 
@@ -386,10 +386,17 @@ export function CardsList({
                         )}
 
                         {(card.email || card.phone) && (
-                          <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-300">
-                            {card.email && <p className="truncate">{card.email}</p>}
-                            {card.email && card.phone && <span className="text-[10px] opacity-50">•</span>}
-                            {card.phone && <p className="truncate">{card.phone}</p>}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            {card.email && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Mail size={11} />{card.email}
+                              </span>
+                            )}
+                            {card.phone && (
+                              <span className="flex items-center gap-1 text-xs text-slate-300">
+                                <Phone size={11} />{card.phone}
+                              </span>
+                            )}
                           </div>
                         )}
 

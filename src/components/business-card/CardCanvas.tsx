@@ -11,7 +11,7 @@
  */
 
 import React, { useRef, useState, useCallback } from 'react';
-import { Globe, HardDrive } from 'lucide-react';
+import { Globe, HardDrive, Mail, Phone } from 'lucide-react';
 
 // lucide-react에서 deprecated된 소셜 아이콘 → 인라인 SVG로 대체
 const IgIcon = ({ size }: { size: number }) => (
@@ -565,8 +565,8 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 이메일 (개별) */}
       {(data.email || selected === 'email') && (
         <DraggableElement {...textElemProps('email', '이메일')}>
-          <span style={ts('--card-text', '0.58rem', '0.7rem', positions.email.fontScale ?? 1)}>
-            {data.email || '(이메일)'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.email.fontScale ?? 1) }}>
+            <Mail size={9} />{data.email || '(이메일)'}
           </span>
         </DraggableElement>
       )}
@@ -574,8 +574,8 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       {/* 전화 (개별) */}
       {(data.phone || selected === 'phone') && (
         <DraggableElement {...textElemProps('phone', '전화')}>
-          <span style={ts('--card-text', '0.58rem', '0.7rem', positions.phone.fontScale ?? 1)}>
-            {data.phone || '(전화)'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', ...ts('--card-text', '0.58rem', '0.7rem', positions.phone.fontScale ?? 1) }}>
+            <Phone size={9} />{data.phone || '(전화)'}
           </span>
         </DraggableElement>
       )}
