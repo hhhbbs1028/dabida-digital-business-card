@@ -13,7 +13,6 @@ import type {
   ThemePresetId,
   ColorPaletteId,
   FontSetId,
-  LayoutId,
   CardStyleTokens,
   BackgroundToken,
 } from './types';
@@ -288,24 +287,6 @@ export const THEME_PRESETS: Record<ThemePresetId, CardStyleTokens> = {
 // ============================================================================
 // Preset Metadata Maps
 // ============================================================================
-/**
- * 프리셋별 레이아웃 ID 매핑
- * minimal_ 접두사 프리셋 → minimal_01, 그 외 → split_01
- */
-export const PRESET_LAYOUT_MAP: Record<ThemePresetId, LayoutId> = {
-  minimal_light:     'minimal_01',
-  minimal_dark:      'minimal_01',
-  cool_minimal:      'minimal_01',
-  custom:            'minimal_01',
-  modern_gradient:   'split_01',
-  campus_vibrant:    'split_01',
-  tech_blue:         'split_01',
-  elegant_serif:     'split_01',
-  creative_colorful: 'split_01',
-  corporate_neutral: 'split_01',
-  warm_autumn:       'split_01',
-};
-
 /**
  * 프리셋별 기본 팔레트 ID 매핑
  */

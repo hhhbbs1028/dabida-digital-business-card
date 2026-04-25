@@ -14,7 +14,6 @@ import {
   THEME_PRESETS,
   COLOR_PALETTES,
   FONT_SETS,
-  PRESET_LAYOUT_MAP,
   PRESET_PALETTE_MAP,
   PRESET_FONT_MAP,
 } from './presets';
@@ -57,7 +56,6 @@ export function mergeTheme(
   }
 
   return {
-    layoutId: PRESET_LAYOUT_MAP[presetId],
     orientation,
     presetId,
     paletteId: paletteId ?? PRESET_PALETTE_MAP[presetId],
@@ -122,7 +120,6 @@ export function extractThemeOverrides(
  */
 export function themeToStorage(theme: CardTheme): CardThemeStorage {
   return {
-    layoutId: theme.layoutId,
     orientation: theme.orientation,
     colors: {
       primary: theme.style.primary,
@@ -152,7 +149,6 @@ export function themeToStorage(theme: CardTheme): CardThemeStorage {
  */
 export function storageToTheme(storage: CardThemeStorage): CardTheme {
   return {
-    layoutId: storage.layoutId,
     orientation: storage.orientation,
     presetId: 'custom',
     paletteId: 'slate',

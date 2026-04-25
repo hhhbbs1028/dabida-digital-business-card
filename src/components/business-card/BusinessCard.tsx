@@ -5,8 +5,7 @@
  *
  * 설계 원칙:
  * - 카드 크기는 항상 9:5 (landscape) 또는 5:9 (portrait) 고정 비율
- * - 레이아웃은 컴포넌트로, 스타일은 CSS Variables로 관리
- * - layoutId에 따라 다른 레이아웃 렌더링
+ * - 레이아웃은 절대 좌표(elementPositions) 기반, 스타일은 CSS Variables로 관리
  * - Tailwind는 구조/간격 담당, 색/폰트/배경은 CSS Variables 담당
  *
  * 텍스트 요소(이름·태그라인·소속·이메일·전화·5종 링크)의 정의는
@@ -56,7 +55,7 @@ function PositionedView({ theme, data }: Props) {
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
-  const pos = resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile);
+  const pos = resolvePositions(theme.elementPositions, orientation, hasProfile);
   const { profileShape } = theme.style;
   const shapeRadius = profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
   const helpers = makeRenderHelpers(isPortrait);

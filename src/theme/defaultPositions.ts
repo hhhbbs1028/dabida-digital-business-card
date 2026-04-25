@@ -1,4 +1,4 @@
-import type { CardElementPositions, LayoutId, CardOrientation, ElementPosition } from './types';
+import type { CardElementPositions, CardOrientation, ElementPosition } from './types';
 
 type FullPositionMap = {
   profile: ElementPosition;
@@ -22,11 +22,10 @@ const shiftY = (pos: ElementPosition, dy: number): ElementPosition => ({
 });
 
 /**
- * layoutId, orientation, hasProfile 조합에 따른 기본 절대 위치 반환.
+ * orientation, hasProfile 조합에 따른 기본 절대 위치 반환.
  * CardCanvas와 BusinessCard(PositionedView) 양쪽에서 동일하게 사용.
  */
 export function getDefaultPositions(
-  layoutId: LayoutId,
   orientation: CardOrientation,
   hasProfile: boolean,
 ): FullPositionMap {
@@ -44,15 +43,8 @@ export function getDefaultPositions(
     major   = { x: 50, y: hasProfile ? 63 : 52 };
     contact = { x: 50, y: hasProfile ? 73 : 65 };
     links   = { x: 50, y: hasProfile ? 83 : 78 };
-  } else if (layoutId === 'split_01') {
-    profile = { x: 24, y: 45, size: 32 };
-    major   = { x: 24, y: 76 };
-    name    = { x: 65, y: 20 };
-    tagline = { x: 65, y: 38 };
-    contact = { x: 65, y: 60 };
-    links   = { x: 65, y: 80 };
   } else if (hasProfile) {
-    // minimal_01 landscape with profile
+    // landscape + 프로필 있음: 좌측 프로필 / 우측 정보 컬럼
     profile = { x: 24, y: 50, size: 32 };
     name    = { x: 64, y: 20 };
     tagline = { x: 64, y: 38 };
@@ -60,7 +52,7 @@ export function getDefaultPositions(
     contact = { x: 64, y: 70 };
     links   = { x: 64, y: 84 };
   } else {
-    // minimal_01 landscape without profile
+    // landscape + 프로필 없음: 가운데 정렬 단일 컬럼
     profile = { x: 50, y: 50, size: 30 };
     name    = { x: 50, y: 20 };
     tagline = { x: 50, y: 36 };
@@ -94,11 +86,10 @@ export function getDefaultPositions(
  */
 export function resolvePositions(
   saved: CardElementPositions | undefined,
-  layoutId: LayoutId,
   orientation: CardOrientation,
   hasProfile: boolean,
 ): FullPositionMap {
-  const defaults = getDefaultPositions(layoutId, orientation, hasProfile);
+  const defaults = getDefaultPositions(orientation, hasProfile);
   if (!saved) return defaults;
 
   // 개별 위치 해석 헬퍼: 개별 저장 → 레거시 그룹 → 기본값 순으로 폴백

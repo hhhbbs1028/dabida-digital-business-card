@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { ImageIcon } from 'lucide-react';
 import type { CardTheme, CardStyleTokens } from '../../../../theme/types';
 import { GRADIENT_PRESETS, PATTERN_PRESETS } from '../../../../theme/presets';
-import { getLayoutCapabilities } from '../../../../theme/capabilities';
 import { isValidHex, saveRecentColor } from './ColorTab';
 
 const SOLID_COLORS = ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#0f172a', '#1e293b', '#334155', '#475569'];
@@ -14,7 +13,6 @@ type BackgroundTabProps = {
 };
 
 export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabProps) {
-  const capabilities = getLayoutCapabilities(theme.layoutId);
   const currentBg = theme.style.background;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [imageUploading, setImageUploading] = useState(false);
@@ -112,60 +110,56 @@ export function BackgroundTab({ theme, onChange, onUploadImage }: BackgroundTabP
       </div>
 
       {/* 그라데이션 */}
-      {capabilities.allowGradient && (
-        <div>
-          <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">그라데이션</div>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.keys(GRADIENT_PRESETS).map((gradientId) => {
-              const isSelected = currentBg.type === 'gradient' && currentBg.presetId === gradientId;
-              return (
-                <button
-                  key={gradientId}
-                  type="button"
-                  onClick={() => applyStyle({ background: { type: 'gradient', presetId: gradientId } })}
-                  className={[
-                    'h-16 w-full rounded-2xl border-2 transition',
-                    isSelected
-                      ? 'border-slate-900 ring-2 ring-slate-900 ring-offset-2'
-                      : 'border-slate-200 hover:border-slate-400',
-                  ].join(' ')}
-                  style={{ backgroundImage: GRADIENT_PRESETS[gradientId] }}
-                >
-                  {isSelected && <span className="text-white drop-shadow">✓</span>}
-                </button>
-              );
-            })}
-          </div>
+      <div>
+        <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">그라데이션</div>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.keys(GRADIENT_PRESETS).map((gradientId) => {
+            const isSelected = currentBg.type === 'gradient' && currentBg.presetId === gradientId;
+            return (
+              <button
+                key={gradientId}
+                type="button"
+                onClick={() => applyStyle({ background: { type: 'gradient', presetId: gradientId } })}
+                className={[
+                  'h-16 w-full rounded-2xl border-2 transition',
+                  isSelected
+                    ? 'border-slate-900 ring-2 ring-slate-900 ring-offset-2'
+                    : 'border-slate-200 hover:border-slate-400',
+                ].join(' ')}
+                style={{ backgroundImage: GRADIENT_PRESETS[gradientId] }}
+              >
+                {isSelected && <span className="text-white drop-shadow">✓</span>}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* 패턴 */}
-      {capabilities.allowPattern && (
-        <div>
-          <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">패턴</div>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.keys(PATTERN_PRESETS).map((patternId) => {
-              const isSelected = currentBg.type === 'pattern' && currentBg.patternId === patternId;
-              return (
-                <button
-                  key={patternId}
-                  type="button"
-                  onClick={() => applyStyle({ background: { type: 'pattern', patternId } })}
-                  className={[
-                    'h-16 w-full rounded-2xl border-2 bg-white transition',
-                    isSelected
-                      ? 'border-slate-900 ring-2 ring-slate-900 ring-offset-2'
-                      : 'border-slate-200 hover:border-slate-400',
-                  ].join(' ')}
-                  style={{ backgroundImage: PATTERN_PRESETS[patternId] }}
-                >
-                  {isSelected && <span className="text-slate-900">✓</span>}
-                </button>
-              );
-            })}
-          </div>
+      <div>
+        <div className="mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">패턴</div>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.keys(PATTERN_PRESETS).map((patternId) => {
+            const isSelected = currentBg.type === 'pattern' && currentBg.patternId === patternId;
+            return (
+              <button
+                key={patternId}
+                type="button"
+                onClick={() => applyStyle({ background: { type: 'pattern', patternId } })}
+                className={[
+                  'h-16 w-full rounded-2xl border-2 bg-white transition',
+                  isSelected
+                    ? 'border-slate-900 ring-2 ring-slate-900 ring-offset-2'
+                    : 'border-slate-200 hover:border-slate-400',
+                ].join(' ')}
+                style={{ backgroundImage: PATTERN_PRESETS[patternId] }}
+              >
+                {isSelected && <span className="text-slate-900">✓</span>}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* 이미지 배경 */}
       {onUploadImage && (

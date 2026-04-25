@@ -8,15 +8,6 @@
  */
 
 // ============================================================================
-// Layout ID
-// ============================================================================
-/**
- * 레이아웃 식별자
- * 각 레이아웃은 고유한 컴포넌트로 구현됨
- */
-export type LayoutId = 'minimal_01' | 'split_01';
-
-// ============================================================================
 // Theme Preset ID
 // ============================================================================
 /**
@@ -226,7 +217,6 @@ export type CardOrientation = 'landscape' | 'portrait';
  * 실제 적용된 값(색상, 폰트, 배경 등)만 직접 저장
  */
 export interface CardThemeStorage {
-  layoutId: LayoutId;
   orientation: CardOrientation;
   colors: {
     primary: string;
@@ -257,7 +247,6 @@ export interface CardThemeStorage {
  * 레이아웃 + 스타일 토큰 조합
  */
 export interface CardTheme {
-  layoutId: LayoutId;
   orientation: CardOrientation;
   presetId: ThemePresetId;
   paletteId: ColorPaletteId;

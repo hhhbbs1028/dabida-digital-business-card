@@ -383,7 +383,7 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
 
   const [positions, setPositions] = useState<FullPositionMap>(
-    () => resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile) as FullPositionMap,
+    () => resolvePositions(theme.elementPositions, orientation, hasProfile) as FullPositionMap,
   );
   const [selected, setSelected] = useState<string | null>(null);
   const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
@@ -391,8 +391,8 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const stickerDragOffset = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
   React.useEffect(() => {
-    setPositions(resolvePositions(theme.elementPositions, theme.layoutId, orientation, hasProfile) as FullPositionMap);
-  }, [theme.elementPositions, theme.layoutId, orientation, hasProfile]);
+    setPositions(resolvePositions(theme.elementPositions, orientation, hasProfile) as FullPositionMap);
+  }, [theme.elementPositions, orientation, hasProfile]);
 
   React.useEffect(() => {
     setStickers(theme.stickers ?? []);
