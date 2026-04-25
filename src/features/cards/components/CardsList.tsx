@@ -5,6 +5,8 @@ import { BusinessCard } from '../../../components/business-card/BusinessCard';
 import { storageToTheme, mergeTheme } from '../../../theme/mergeTheme';
 import type { CardContentTokens } from '../../../theme/types';
 import { BottomSheet } from '../../../shared/ui/BottomSheet';
+import { computeCardLevel } from '../levels/computeCardLevel';
+import { CardLevelBadge } from './CardLevelBadge';
 
 const THUMB_W = 100;
 const THUMB_H = 65;
@@ -376,8 +378,9 @@ export function CardsList({
 
                       {/* 중앙: 텍스트 정보 */}
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <div className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-slate-900">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-slate-900">
                           <p className="truncate">{card.display_name || '이름 없음'}</p>
+                          <CardLevelBadge level={computeCardLevel(card)} size="sm" />
                           {card.organization && (
                             <p className="truncate text-xs text-slate-500">{card.organization}</p>
                           )}
