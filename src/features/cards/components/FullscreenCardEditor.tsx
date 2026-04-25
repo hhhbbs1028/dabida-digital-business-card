@@ -109,7 +109,14 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
       <div className="fixed inset-0 z-50 flex flex-col bg-black">
         {/* 상단: 캔버스 영역 + 우측 Tool Rail */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
+          <div
+            className="flex min-w-0 flex-1 items-center justify-center overflow-hidden p-2"
+            style={{
+              // 가로 뷰포트에서 좌측 노치/시스템 영역 회피
+              paddingLeft: 'calc(0.5rem + env(safe-area-inset-left))',
+              paddingTop: 'calc(0.5rem + env(safe-area-inset-top))',
+            }}
+          >
             <div
               style={{
                 width: cardMaxWidthLandscapeViewport(!!activeTab),
@@ -129,9 +136,15 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </div>
 
           {/* 우측 Tool Rail — 닫기 + 탭 버튼 수직 스택 */}
+          {/* 상단 status bar / 우측 노치(가로 모드)와 겹치지 않도록 safe-area 합산 */}
           <div
-            className="flex shrink-0 flex-col items-center border-l border-slate-800 bg-black py-3"
-            style={{ width: TOOL_RAIL_WIDTH }}
+            className="flex shrink-0 flex-col items-center border-l border-slate-800 bg-black"
+            style={{
+              width: `calc(${TOOL_RAIL_WIDTH}px + env(safe-area-inset-right))`,
+              paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
+              paddingBottom: '0.75rem',
+              paddingRight: 'env(safe-area-inset-right)',
+            }}
           >
             <button
               type="button"
@@ -164,12 +177,13 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
           </div>
         </div>
 
-        {/* 하단 전체 너비 옵션 패널 */}
+        {/* 하단 전체 너비 옵션 패널 — 시스템 하단 nav bar 위에 떠야 하므로 safe-area-inset-bottom 확보 */}
         <div
           className="shrink-0 overflow-hidden rounded-t-2xl bg-white"
           style={{
-            maxHeight: activeTab ? landscapeSheetMaxHeight : 0,
+            maxHeight: activeTab ? `calc(${landscapeSheetMaxHeight} + env(safe-area-inset-bottom))` : 0,
             opacity: activeTab ? 1 : 0,
+            paddingBottom: 'env(safe-area-inset-bottom)',
             transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
           }}
         >
@@ -244,24 +258,30 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
   return (
     <div className="fixed inset-0 z-50">
       <div className="relative flex h-full w-full flex-col bg-black">
-        {/* 닫기 버튼 — 우상단 */}
-        <div className="absolute right-3 top-3 z-30">
+        {/* 닫기 버튼 — 우상단. status bar / 노치 영역 회피를 위해 safe-area 합산 */}
+        <div
+          className="absolute z-30"
+          style={{
+            top: 'calc(0.75rem + env(safe-area-inset-top))',
+            right: 'calc(0.75rem + env(safe-area-inset-right))',
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+            className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
             title="닫기"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* 캔버스 영역 — 탭바 높이만큼 여백, 플로팅 패널은 캔버스 위에 떠있음 */}
+        {/* 캔버스 영역 — 상단 status bar + 하단 탭바·시스템 nav bar를 모두 고려한 안전 영역 확보 */}
         <div
           className="flex flex-1 items-center justify-center overflow-hidden px-4"
           style={{
-            paddingTop: canvasTopPadding,
-            paddingBottom: tabBarHeight,
+            paddingTop: `calc(${canvasTopPadding} + env(safe-area-inset-top))`,
+            paddingBottom: `calc(${tabBarHeight} + env(safe-area-inset-bottom))`,
           }}
         >
           <div className="w-full max-w-2xl">
@@ -327,8 +347,12 @@ export function FullscreenCardEditor({ theme: externalTheme, data, onThemeChange
             )}
           </div>
 
-          {/* 하단 탭바 — 위치 고정, 회전/이동 없음 */}
-          <div className="flex items-center border-t border-slate-800 bg-black">
+          {/* 하단 탭바 — 위치 고정, 회전/이동 없음.
+              시스템 하단 nav bar(홈바)와 겹치면 탭이 눌리지 않으므로 safe-area 합산 */}
+          <div
+            className="flex items-center border-t border-slate-800 bg-black"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
             <div className="flex-1 px-4 py-2">
             </div>
             <div className="flex">
