@@ -120,6 +120,8 @@ export function BusinessCard({ theme, data, className, style }: Props) {
         aspectRatio: isPortrait ? '5 / 9' : '9 / 5',
         maxWidth: isPortrait ? '300px' : '540px',
         position: 'relative',
+        // cqw 기반 폰트·아이콘 단위가 카드 폭을 참조하도록 컨테이너 쿼리 컨텍스트 형성.
+        containerType: 'inline-size',
         borderColor: 'var(--card-border, #e2e8f0)',
         ...style,
       }}

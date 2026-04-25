@@ -368,7 +368,11 @@ type Props = {
   onStickersChange?: (stickers: StickerElement[]) => void;
   className?: string;
   canvasRotation?: number;
-  /** 카드 루트 div의 maxWidth를 재정의. 기본값: portrait='50%', landscape='75%' */
+  /**
+   * 카드 루트 div의 maxWidth를 재정의.
+   * 기본값: portrait `'min(100%, 300px)'`, landscape `'min(100%, 540px)'`
+   * — BusinessCard 절대 폭과 일치하여 cqw 기반 폰트가 모든 진입점에서 동일 비율을 유지.
+   */
   maxWidthOverride?: string;
 };
 
@@ -471,8 +475,10 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
       className={`mx-auto w-full overflow-hidden rounded-2xl border shadow-md ${className ?? ''}`}
       style={{
         aspectRatio: isPortrait ? '5 / 9' : '9 / 5',
-        maxWidth: maxWidthOverride ?? (isPortrait ? '50%' : '75%'),
+        maxWidth: maxWidthOverride ?? (isPortrait ? 'min(100%, 300px)' : 'min(100%, 540px)'),
         position: 'relative',
+        // cqw 기반 폰트·아이콘 단위가 카드 폭을 참조하도록 컨테이너 쿼리 컨텍스트 형성.
+        containerType: 'inline-size',
         ...bgStyle,
         borderColor: 'var(--card-border, #e2e8f0)',
       }}
