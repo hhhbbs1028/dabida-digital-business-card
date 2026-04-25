@@ -82,7 +82,7 @@ type CopyFieldKey =
   | 'email' | 'phone'
   | 'links.instagram' | 'links.github' | 'links.website'
   | 'links.linkedin' | 'links.google_drive'
-  | 'profile_url' | 'theme';
+  | 'profile_url';
 
 const COPY_FIELD_LABELS: Record<CopyFieldKey, string> = {
   display_name: '이름',
@@ -96,7 +96,6 @@ const COPY_FIELD_LABELS: Record<CopyFieldKey, string> = {
   'links.linkedin': 'LinkedIn',
   'links.google_drive': 'Google Drive',
   profile_url: '프로필 사진',
-  theme: '스타일/테마',
 };
 
 function getAvailableFields(card: CardData): CopyFieldKey[] {
@@ -105,7 +104,7 @@ function getAvailableFields(card: CardData): CopyFieldKey[] {
     'email', 'phone',
     'links.instagram', 'links.github', 'links.website',
     'links.linkedin', 'links.google_drive',
-    'profile_url', 'theme',
+    'profile_url',
   ];
   return all.filter((key) => {
     if (key === 'display_name') return !!card.display_name;
@@ -119,11 +118,11 @@ function getAvailableFields(card: CardData): CopyFieldKey[] {
     if (key === 'links.linkedin') return !!card.links.linkedin;
     if (key === 'links.google_drive') return !!card.links.google_drive;
     if (key === 'profile_url') return !!card.profile_url;
-    if (key === 'theme') return !!card.theme;
     return false;
   });
 }
 
+// 테마는 사용자가 선택할 수 없는 고정 항목으로, 항상 원본 카드의 테마를 그대로 복사한다.
 function buildNewCard(base: CardData, selected: Set<CopyFieldKey>): Omit<CardData, 'id'> {
   return {
     display_name: selected.has('display_name') ? base.display_name : '',
@@ -139,7 +138,7 @@ function buildNewCard(base: CardData, selected: Set<CopyFieldKey>): Omit<CardDat
       google_drive: selected.has('links.google_drive') ? base.links.google_drive : '',
     },
     profile_url: selected.has('profile_url') ? base.profile_url : null,
-    theme: selected.has('theme') ? base.theme : null,
+    theme: base.theme,
   };
 }
 
