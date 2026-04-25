@@ -49,6 +49,7 @@ export async function getPublicCard(
 
 export async function saveReceivedCardFromPublicCard(
   input: ReceivedCardInput,
+  options?: { excludeReceiverResume?: boolean },
 ): Promise<ReceivedCard> {
   // contactsApi.createReceivedCard 를 직접 쓰지 않는 이유:
   // - 순환 의존을 피하고, 공유 플로우에 특화된 에러 메시지/로깅을 남기기 위함
@@ -134,6 +135,10 @@ export async function saveReceivedCardFromPublicCard(
                 ...(receiverCard.links.instagram && { instagram: receiverCard.links.instagram }),
                 ...(receiverCard.links.github && { github: receiverCard.links.github }),
                 ...(receiverCard.links.website && { website: receiverCard.links.website }),
+                ...(receiverCard.links.linkedin && { linkedin: receiverCard.links.linkedin }),
+                ...(!options?.excludeReceiverResume && receiverCard.links.google_drive && {
+                  google_drive: receiverCard.links.google_drive,
+                }),
               },
               theme: receiverCard.theme ?? null,
               profile_url: receiverCard.profile_url ?? null,

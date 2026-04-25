@@ -3,8 +3,10 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import { CardPreview } from '../features/cards/components/CardPreview';
 import type { CardData } from '../features/cards/types';
+import { getMyCards } from '../features/cards/api/cardsApi';
 import { getPublicCard, saveReceivedCardFromPublicCard } from '../features/share/api/shareApi';
 import { useToast } from '../shared/ui/Toast';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
 
 type RouteParams = {
   cardId: string;
@@ -22,6 +24,9 @@ export function PublicCardPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
+  // 수신자(로그인 사용자)의 첫 명함에 이력서가 있는지. 양방향 교환 시 분기에 사용.
+  const [myFirstCardHasResume, setMyFirstCardHasResume] = useState(false);
+  const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
 
   // URL의 exclude 파라미터를 콤마 분리 형식으로 파싱 (예: ?exclude=resume,phone)
   const excludeResume = useMemo(() => {
@@ -29,6 +34,27 @@ export function PublicCardPage() {
     if (!raw) return false;
     return raw.split(',').map((s) => s.trim()).includes('resume');
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!user) {
+      setMyFirstCardHasResume(false);
+      return;
+    }
+    let ignore = false;
+    void (async () => {
+      try {
+        const myCards = await getMyCards();
+        if (ignore) return;
+        const first = myCards[0];
+        setMyFirstCardHasResume(!!first?.links?.google_drive);
+      } catch (err) {
+        console.error('[PublicCardPage] 내 명함 조회 오류:', err);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!cardId) {
@@ -143,7 +169,53 @@ export function PublicCardPage() {
     }
   }, [cardId, card, user, authLoading, searchParams, navigate, showToast, autoSaving]);
 
-  const handleSave = async () => {
+  const performSave = async (opts: { excludeReceiverResume: boolean }) => {
+    if (!cardId || !card) return;
+    setSaving(true);
+    try {
+      await saveReceivedCardFromPublicCard(
+        {
+          source_card_id: cardId,
+          snapshot: {
+            display_name: card.display_name,
+            headline: card.headline,
+            organization: card.organization,
+            email: card.email,
+            phone: card.phone,
+            links: {
+              instagram: card.links.instagram,
+              github: card.links.github,
+              website: card.links.website,
+              linkedin: card.links.linkedin,
+              google_drive: card.links.google_drive,
+            },
+            theme: card.theme ?? null,
+            profile_url: card.profile_url ?? null,
+            logo_url: card.logo_url ?? null,
+          },
+          tags: [],
+          folder_id: null,
+          memo: '',
+        },
+        opts,
+      );
+
+      showToast('받은 명함에 저장했어요.', 'success');
+      navigate('/app?tab=received');
+    } catch (err: any) {
+      console.error('[PublicCardPage] 받은 명함 저장 오류:', err);
+      if (err?.code === 'DUPLICATE_RECEIVED_CARD') {
+        showToast('이미 저장된 명함이에요.', 'info');
+        navigate('/app?tab=received');
+      } else {
+        showToast(err?.message ?? '명함을 저장하는 중 오류가 발생했어요.', 'error');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = () => {
     if (!cardId || !card) return;
 
     if (!user) {
@@ -159,43 +231,12 @@ export function PublicCardPage() {
       return;
     }
 
-    setSaving(true);
-    try {
-      await saveReceivedCardFromPublicCard({
-        source_card_id: cardId,
-        snapshot: {
-          display_name: card.display_name,
-          headline: card.headline,
-          organization: card.organization,
-          email: card.email,
-          phone: card.phone,
-          links: {
-            instagram: card.links.instagram,
-            github: card.links.github,
-            website: card.links.website,
-          },
-          theme: card.theme ?? null,
-          profile_url: card.profile_url ?? null,
-          logo_url: card.logo_url ?? null,
-        },
-        tags: [],
-        folder_id: null,
-        memo: '',
-      });
-
-      showToast('받은 명함에 저장했어요.', 'success');
-      navigate('/app?tab=received');
-    } catch (err: any) {
-      console.error('[PublicCardPage] 받은 명함 저장 오류:', err);
-      if (err?.code === 'DUPLICATE_RECEIVED_CARD') {
-        showToast('이미 저장된 명함이에요.', 'info');
-        navigate('/app?tab=received');
-      } else {
-        showToast(err?.message ?? '명함을 저장하는 중 오류가 발생했어요.', 'error');
-      }
-    } finally {
-      setSaving(false);
+    if (myFirstCardHasResume) {
+      setResumeConfirmOpen(true);
+      return;
     }
+
+    void performSave({ excludeReceiverResume: false });
   };
 
   if (loading || (autoSaving && user)) {
@@ -302,6 +343,22 @@ export function PublicCardPage() {
           </div>
         </div>
       </main>
+
+      <ConfirmDialog
+        isOpen={resumeConfirmOpen}
+        title="내 이력서도 함께 전달할까요?"
+        message="받은 명함을 저장하면 상대방도 내 명함을 받아요. 내 명함의 이력서를 함께 전달할지 선택해주세요."
+        confirmLabel="이력서 제외"
+        cancelLabel="함께 전달"
+        onConfirm={() => {
+          setResumeConfirmOpen(false);
+          void performSave({ excludeReceiverResume: true });
+        }}
+        onCancel={() => {
+          setResumeConfirmOpen(false);
+          void performSave({ excludeReceiverResume: false });
+        }}
+      />
     </div>
   );
 }
