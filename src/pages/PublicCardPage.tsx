@@ -23,6 +23,13 @@ export function PublicCardPage() {
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
 
+  // URL의 exclude 파라미터를 콤마 분리 형식으로 파싱 (예: ?exclude=resume,phone)
+  const excludeResume = useMemo(() => {
+    const raw = searchParams.get('exclude');
+    if (!raw) return false;
+    return raw.split(',').map((s) => s.trim()).includes('resume');
+  }, [searchParams]);
+
   useEffect(() => {
     if (!cardId) {
       setError('잘못된 링크입니다.');
@@ -35,7 +42,7 @@ export function PublicCardPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getPublicCard(cardId);
+        const data = await getPublicCard(cardId, { excludeResume });
         if (!ignore) {
           if (!data) {
             setError('명함을 찾을 수 없어요.');
@@ -61,7 +68,7 @@ export function PublicCardPage() {
     return () => {
       ignore = true;
     };
-  }, [cardId]);
+  }, [cardId, excludeResume]);
 
   const previewCard: Omit<CardData, 'id'> | null = useMemo(() => {
     if (!card) return null;
@@ -104,6 +111,8 @@ export function PublicCardPage() {
                 instagram: card.links.instagram,
                 github: card.links.github,
                 website: card.links.website,
+                linkedin: card.links.linkedin,
+                google_drive: card.links.google_drive,
               },
               theme: card.theme ?? null,
               profile_url: card.profile_url ?? null,

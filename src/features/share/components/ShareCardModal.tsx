@@ -1,13 +1,15 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { Capacitor } from '@capacitor/core';
 import { Clipboard } from '@capacitor/clipboard';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useToast } from '../../../shared/ui/Toast';
+import { BottomSheet } from '../../../shared/ui/BottomSheet';
 
 type Props = {
   cardId: string;
+  hasResume?: boolean;
   onClose: () => void;
 };
 
@@ -22,14 +24,31 @@ function getAppOrigin() {
   return '';
 }
 
-export function ShareCardModal({ cardId, onClose }: Props) {
+export function ShareCardModal({ cardId, hasResume = false, onClose }: Props) {
   const { showToast } = useToast();
   const qrRef = useRef<HTMLDivElement>(null);
   const origin = getAppOrigin();
+  // 이력서 포함 여부. 모달이 열릴 때마다 BottomSheet으로 다시 묻는다.
+  const [includeResume, setIncludeResume] = useState(true);
+  const [resumeSheetOpen, setResumeSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasResume) {
+      setResumeSheetOpen(true);
+      setIncludeResume(true);
+    } else {
+      setResumeSheetOpen(false);
+    }
+  }, [hasResume, cardId]);
+
   const shareUrl = useMemo(() => {
     if (!origin) return '';
-    return `${origin}/c/${cardId}`;
-  }, [origin, cardId]);
+    const base = `${origin}/c/${cardId}`;
+    if (hasResume && !includeResume) {
+      return `${base}?exclude=resume`;
+    }
+    return base;
+  }, [origin, cardId, hasResume, includeResume]);
 
   const handleCopy = async () => {
     if (!shareUrl) return;
@@ -135,6 +154,28 @@ export function ShareCardModal({ cardId, onClose }: Props) {
         </p>
       </div>
 
+      {hasResume && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-700">
+              이력서 {includeResume ? '포함' : '제외'} 공유 중
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {includeResume
+                ? '받는 사람도 이력서 링크를 볼 수 있어요.'
+                : '이력서 링크는 받는 사람에게 보이지 않아요.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setResumeSheetOpen(true)}
+            className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            변경
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         {/* 왼쪽: QR 코드 */}
         <div className="space-y-3">
@@ -200,6 +241,40 @@ export function ShareCardModal({ cardId, onClose }: Props) {
           닫기
         </button>
       </div>
+
+      <BottomSheet
+        isOpen={resumeSheetOpen}
+        onClose={() => setResumeSheetOpen(false)}
+        title="이력서를 포함해서 공유할까요?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-slate-500">
+            이 명함의 Pro 정보(이력서 링크)는 받는 사람도 함께 받게 돼요. 어떻게 공유할지 선택해주세요.
+          </p>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIncludeResume(true);
+                setResumeSheetOpen(false);
+              }}
+              className="w-full rounded-2xl bg-primary-500 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-600"
+            >
+              포함해서 공유
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIncludeResume(false);
+                setResumeSheetOpen(false);
+              }}
+              className="w-full rounded-2xl bg-slate-100 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+            >
+              제외하고 공유
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

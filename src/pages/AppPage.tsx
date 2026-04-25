@@ -877,7 +877,11 @@ export function AppPage() {
         title="명함 공유"
       >
         {shareTargetCardId && (
-          <ShareCardModal cardId={shareTargetCardId} onClose={() => setShareTargetCardId(null)} />
+          <ShareCardModal
+            cardId={shareTargetCardId}
+            hasResume={!!cards.find((c) => c.id === shareTargetCardId)?.links?.google_drive}
+            onClose={() => setShareTargetCardId(null)}
+          />
         )}
       </FullScreenModal>
 

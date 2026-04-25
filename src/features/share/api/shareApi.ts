@@ -7,7 +7,10 @@ export type PublicCard = CardData & {
   is_public?: boolean;
 };
 
-export async function getPublicCard(cardId: string): Promise<PublicCard | null> {
+export async function getPublicCard(
+  cardId: string,
+  options?: { excludeResume?: boolean },
+): Promise<PublicCard | null> {
   const { data, error } = await supabase
     .from('cards')
     .select('*')
@@ -34,6 +37,8 @@ export async function getPublicCard(cardId: string): Promise<PublicCard | null> 
       instagram: data.links?.instagram ?? '',
       github: data.links?.github ?? '',
       website: data.links?.website ?? '',
+      linkedin: data.links?.linkedin ?? '',
+      google_drive: options?.excludeResume ? '' : (data.links?.google_drive ?? ''),
     },
     theme: data.theme ?? null,
     is_public: (data as any).is_public ?? true,
