@@ -497,7 +497,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Google Drive</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">이력서</label>
             <input
               className={inputClass}
               value={value.links.google_drive}

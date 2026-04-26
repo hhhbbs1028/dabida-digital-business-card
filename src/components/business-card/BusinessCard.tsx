@@ -55,7 +55,7 @@ function PositionedView({ theme, data }: Props) {
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
-  const pos = resolvePositions(theme.elementPositions, orientation, hasProfile, data);
+  const pos = resolvePositions(theme.elementPositions, orientation, hasProfile);
   const { profileShape } = theme.style;
   const shapeRadius = profileShape === 'circle' ? '50%' : profileShape === 'rounded' ? '12px' : '0';
   const helpers = makeRenderHelpers(isPortrait);

@@ -380,10 +380,11 @@ export function CardsList({
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-slate-900">
                           <p className="truncate">{card.display_name || '이름 없음'}</p>
                           <CardLevelBadge level={computeCardLevel(card)} size="sm" />
-                          {card.organization && (
-                            <p className="truncate text-xs text-slate-500">{card.organization}</p>
-                          )}
                         </div>
+                        
+                        {card.organization && (
+                          <p className="truncate text-xs text-slate-500">{card.organization}</p>
+                        )}
 
                         {card.headline && (
                           <p className="truncate text-xs text-slate-500">{card.headline}</p>

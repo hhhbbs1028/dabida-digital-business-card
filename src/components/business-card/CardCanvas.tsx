@@ -383,18 +383,16 @@ export function CardCanvas({ theme, data, onPositionsChange, onStickersChange, c
   const hasProfile = !!data.profileUrl && theme.style.profileShape !== 'none';
 
   const [positions, setPositions] = useState<FullPositionMap>(
-    () => resolvePositions(theme.elementPositions, orientation, hasProfile, data) as FullPositionMap,
+    () => resolvePositions(theme.elementPositions, orientation, hasProfile) as FullPositionMap,
   );
   const [selected, setSelected] = useState<string | null>(null);
   const [stickers, setStickers] = useState<StickerElement[]>(theme.stickers ?? []);
   // 스티커 드래그 클릭 오프셋 추적 (클릭 시 점프 방지)
   const stickerDragOffset = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
-  // 텍스트 길이 변동에 따라 미저장 요소의 기본 x좌표가 좌측 정렬 방향으로 재보정되도록
-  // data까지 의존성으로 포함. 저장된 위치는 resolvePositions 내부에서 항상 우선된다.
   React.useEffect(() => {
-    setPositions(resolvePositions(theme.elementPositions, orientation, hasProfile, data) as FullPositionMap);
-  }, [theme.elementPositions, orientation, hasProfile, data]);
+    setPositions(resolvePositions(theme.elementPositions, orientation, hasProfile) as FullPositionMap);
+  }, [theme.elementPositions, orientation, hasProfile]);
 
   React.useEffect(() => {
     setStickers(theme.stickers ?? []);
