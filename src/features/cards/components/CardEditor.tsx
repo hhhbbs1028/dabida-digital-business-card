@@ -555,6 +555,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
           </div>
 
           <div className="flex items-center gap-2">
+            {/* 위치 초기화 버튼 */}
             {hasPositions && (
               <button
                 type="button"
@@ -566,6 +567,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
               </button>
             )}
 
+            {/* 전체화면 버튼 */}
             <button
               type="button"
               onClick={() => setIsCanvasFullscreen(true)}
