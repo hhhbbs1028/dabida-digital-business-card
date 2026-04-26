@@ -18,8 +18,6 @@ export type CardData = {
   profile_url?: string | null;
   logo_url?: string | null;
   card_image_url?: string | null;
-  // 앞면 테마 (DB 저장 포맷). NULL이면 기본 테마로 렌더링.
+  // 명함 테마 (DB 저장 포맷). NULL이면 기본 테마로 렌더링.
   theme: CardThemeStorage | null;
-  // 뒷면 테마. NULL이면 뒷면 없음.
-  back_theme?: CardThemeStorage | null;
 };

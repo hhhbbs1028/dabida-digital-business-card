@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCcw, Maximize2, RefreshCw } from 'lucide-react';
+import { RotateCcw, Maximize2 } from 'lucide-react';
 import { FullscreenCardEditor } from './FullscreenCardEditor';
 import { CardPreview } from './CardPreview';
 import type { CardData } from '../types';
@@ -80,22 +80,6 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  // 뒷면 관련 상태 — 앞면과 독립적으로 별도 기본 테마로 초기화
-  const [showBack, setShowBack] = useState(false);
-  const [backTheme, setBackTheme] = useState<CardTheme>(
-    () => (initialValue?.back_theme && (initialValue.back_theme as any).colors
-      ? storageToTheme(initialValue.back_theme)
-      : mergeTheme('minimal_light')),
-  );
-  const [flipping, setFlipping] = useState(false);
-
-  const handleFlip = useCallback(() => {
-    setFlipping(true);
-    setTimeout(() => {
-      setShowBack((prev) => !prev);
-      setFlipping(false);
-    }, 220);
-  }, []);
   const [isDirty, setIsDirty] = useState(false);
   const hydratedRef = useRef(false);
   const lastSavedRef = useRef<string>('');
@@ -165,12 +149,8 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
       };
       let restoredTheme = (rest.theme ? storageToTheme(rest.theme as CardThemeStorage) : null) ?? mergeTheme('minimal_light');
       restoredTheme = withNormalizedProfileShape(restoredTheme, !!rest.profile_url);
-      const restoredBackTheme = rest.back_theme && (rest.back_theme as any).colors
-        ? storageToTheme(rest.back_theme as CardThemeStorage)
-        : mergeTheme('minimal_light');
       setValue(newValue);
       setTheme(restoredTheme);
-      setBackTheme(restoredBackTheme);
       lastSavedRef.current = JSON.stringify({ v: newValue, t: restoredTheme });
     } else {
       const defaultTheme = mergeTheme('minimal_light');
@@ -244,7 +224,6 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
         id: currentId,
         ...value,
         theme: themeToStorage(theme),
-        back_theme: themeToStorage(backTheme),
       });
       lastSavedRef.current = JSON.stringify({ v: value, t: theme });
       setSaveStatus('saved');
@@ -512,39 +491,11 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
     if (tab === 'style') {
       return (
         <div className="space-y-4">
-          {/* 앞/뒷면 전환 */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => { if (showBack) handleFlip(); }}
-              className={[
-                'flex-1 rounded-xl border-2 py-2.5 text-sm font-medium transition',
-                !showBack
-                  ? 'border-slate-900 bg-slate-50 text-slate-900'
-                  : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300',
-              ].join(' ')}
-            >
-              앞면
-            </button>
-            <button
-              type="button"
-              onClick={() => { if (!showBack) handleFlip(); }}
-              className={[
-                'flex-1 rounded-xl border-2 py-2.5 text-sm font-medium transition',
-                showBack
-                  ? 'border-slate-900 bg-slate-50 text-slate-900'
-                  : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300',
-              ].join(' ')}
-            >
-              뒷면
-            </button>
-          </div>
-
           {/* 캔버스 하단 버튼 행 */}
           <div className="flex flex-col gap-2">
             <div>
               <p className="mt-0.5 text-[11px] text-slate-400">
-                {showBack ? '뒷면의 ' : '앞면의 '}색상, 폰트 등을 변경하고 이미지를 추가할 수 있습니다.
+                색상, 폰트 등을 변경하고 이미지를 추가할 수 있습니다.
               </p>
             </div>
             <button
@@ -552,7 +503,7 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
               onClick={() => setShowThemeEditor(true)}
               className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100"
             >
-              {showBack ? '뒷면 스타일 편집' : '앞면 스타일 편집'}
+              스타일 편집
             </button>
           </div>
 
@@ -579,12 +530,9 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
         (부모의 CSS transform이 fixed 포지셔닝 기준을 바꾸는 문제 방지) */}
     {isCanvasFullscreen && createPortal(
       <FullscreenCardEditor
-        theme={showBack ? backTheme : theme}
+        theme={theme}
         data={themePreviewData}
-        onThemeChange={(newTheme) => {
-          if (showBack) setBackTheme(newTheme);
-          else setTheme(newTheme);
-        }}
+        onThemeChange={setTheme}
         onClose={() => setIsCanvasFullscreen(false)}
       />,
       document.body,
@@ -602,73 +550,41 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">미리보기</p>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              {showBack ? '뒷면 — 드래그하여 위치 조정' : '앞면 — 실제 명함이 이렇게 보입니다'}
+              실제 명함이 이렇게 보입니다
             </p>
           </div>
-          {/* 앞/뒷면 전환 버튼 */}
-          <button
-            type="button"
-            onClick={handleFlip}
-            className={[
-              'flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
-              showBack
-                ? 'border-slate-900 bg-slate-900 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-            ].join(' ')}
-            title={showBack ? '앞면 보기' : '뒷면 보기'}
-          >
-            <RefreshCw size={12} />
-            {showBack ? '앞면' : '뒷면'}
-          </button>
         </div>
 
         <div className="sticky top-6">
-          {/* 플립 애니메이션 컨테이너 */}
-          <div
-            style={{
-              transition: 'transform 0.22s ease, opacity 0.22s ease',
-              transform: flipping ? 'rotateY(90deg)' : 'rotateY(0deg)',
-              opacity: flipping ? 0 : 1,
-            }}
-          >
-            <div className="relative">
-              <CardCanvas
-                theme={showBack ? backTheme : theme}
-                data={themePreviewData}
-                onPositionsChange={(positions) => {
-                  if (showBack) {
-                    setBackTheme((prev) => ({ ...prev, elementPositions: positions }));
-                  } else {
-                    setTheme((prev) => ({ ...prev, elementPositions: positions }));
-                  }
-                }}
-                onStickersChange={(stickers) => {
-                  if (showBack) {
-                    setBackTheme((prev) => ({ ...prev, stickers }));
-                  } else {
-                    setTheme((prev) => ({ ...prev, stickers }));
-                  }
-                }}
-              />
-              {hasPositions && !showBack && (
-                <button
-                  type="button"
-                  onClick={() => setTheme((prev) => ({ ...prev, elementPositions: undefined }))}
-                  className="absolute bottom-10 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
-                  title="위치를 기본값으로 초기화"
-                >
-                  <RotateCcw size={14} />
-                </button>
-              )}
+          <div className="relative">
+            <CardCanvas
+              theme={theme}
+              data={themePreviewData}
+              onPositionsChange={(positions) =>
+                setTheme((prev) => ({ ...prev, elementPositions: positions }))
+              }
+              onStickersChange={(stickers) =>
+                setTheme((prev) => ({ ...prev, stickers }))
+              }
+            />
+            {hasPositions && (
               <button
                 type="button"
-                onClick={() => setIsCanvasFullscreen(true)}
-                className="absolute bottom-0 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
-                title="전체화면으로 보기"
+                onClick={() => setTheme((prev) => ({ ...prev, elementPositions: undefined }))}
+                className="absolute bottom-10 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                title="위치를 기본값으로 초기화"
               >
-                <Maximize2 size={14} />
+                <RotateCcw size={14} />
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsCanvasFullscreen(true)}
+              className="absolute bottom-0 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
+              title="전체화면으로 보기"
+            >
+              <Maximize2 size={14} />
+            </button>
           </div>
         </div>
       </div>
@@ -763,12 +679,9 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
 
     <ThemeEditor
       isOpen={showThemeEditor}
-      theme={showBack ? backTheme : theme}
+      theme={theme}
       data={value}
-      onChange={(newTheme) => {
-        if (showBack) setBackTheme(newTheme);
-        else setTheme(newTheme);
-      }}
+      onChange={setTheme}
       onClose={() => setShowThemeEditor(false)}
     />
     </>

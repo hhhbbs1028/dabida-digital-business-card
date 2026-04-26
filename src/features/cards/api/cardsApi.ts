@@ -38,7 +38,6 @@ function normalizeCard(row: any): CardData {
     profile_url: row.profile_url ?? null,
     logo_url: row.logo_url ?? null,
     theme: row.theme ?? null,
-    back_theme: row.back_theme ?? null,
   };
 }
 
@@ -83,7 +82,6 @@ export async function createCard(card: Omit<CardData, 'id'>): Promise<CardData> 
       phone: card.phone,
       links: buildLinks(card.links),
       theme: card.theme ?? null,
-      back_theme: card.back_theme ?? null,
       profile_url: card.profile_url ?? null,
     } as any)
     .select('*')
@@ -110,7 +108,6 @@ export async function updateCard(card: CardData): Promise<CardData> {
       phone: card.phone,
       links: buildLinks(card.links),
       theme: card.theme ?? null,
-      back_theme: card.back_theme ?? null,
       profile_url: card.profile_url ?? null,
     } as any)
     .eq('id', card.id)

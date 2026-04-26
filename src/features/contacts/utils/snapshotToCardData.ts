@@ -18,6 +18,5 @@ export function snapshotToCardData(snapshot: ReceivedCardSnapshot): Omit<CardDat
     profile_url: snapshot.profile_url ?? null,
     logo_url:    snapshot.logo_url    ?? null,
     theme:       snapshot.theme       ?? null,
-    back_theme:  snapshot.back_theme  ?? null,
   };
 }
