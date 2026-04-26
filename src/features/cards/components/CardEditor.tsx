@@ -553,6 +553,28 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
               실제 명함이 이렇게 보입니다
             </p>
           </div>
+
+          <div className="flex items-center gap-2">
+            {hasPositions && (
+              <button
+                type="button"
+                onClick={() => setTheme((prev) => ({ ...prev, elementPositions: undefined }))}
+                className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                title="위치를 기본값으로 초기화"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsCanvasFullscreen(true)}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
+              title="전체화면으로 보기"
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="sticky top-6">
@@ -567,24 +589,6 @@ export function CardEditor({ initialValue, onSave, onSaved, onDirtyChange, avata
                 setTheme((prev) => ({ ...prev, stickers }))
               }
             />
-            {hasPositions && (
-              <button
-                type="button"
-                onClick={() => setTheme((prev) => ({ ...prev, elementPositions: undefined }))}
-                className="absolute bottom-10 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-red-200 hover:text-red-500"
-                title="위치를 기본값으로 초기화"
-              >
-                <RotateCcw size={14} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsCanvasFullscreen(true)}
-              className="absolute bottom-0 right-0 z-10 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
-              title="전체화면으로 보기"
-            >
-              <Maximize2 size={14} />
-            </button>
           </div>
         </div>
       </div>
