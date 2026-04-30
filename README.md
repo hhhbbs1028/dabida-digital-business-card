@@ -17,7 +17,7 @@ Dabida는 명함을 디지털로 공유하고, 커뮤니티 기능을 통해 네
 
 ### 사전 요구사항
 - Node.js 18 이상
-- npm 또는 yarn
+- pnpm 10 이상 (`npm install -g pnpm`)
 - Supabase 계정 및 프로젝트
 
 ### 설치 방법
@@ -30,7 +30,7 @@ cd dabida-digital-business-card
 
 2. **의존성 설치**
 ```bash
-npm install
+pnpm install
 ```
 
 3. **환경 변수 설정**
@@ -46,14 +46,14 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 
 4. **개발 서버 실행**
 ```bash
-npm run dev
+pnpm dev
 ```
 
 개발 서버는 기본적으로 `http://localhost:5173`에서 실행됩니다.
 
 HTTPS를 사용하려면:
 ```bash
-npm run dev:https
+pnpm dev:https
 ```
 
 ## 🔧 Supabase 설정
@@ -123,10 +123,11 @@ dabida_digital_business_card/
 
 ## 📝 스크립트
 
-- `npm run dev` - 개발 서버 실행 (HTTP)
-- `npm run dev:https` - 개발 서버 실행 (HTTPS)
-- `npm run build` - 프로덕션 빌드
-- `npm run preview` - 빌드 결과 미리보기
+- `pnpm dev` - 개발 서버 실행 (HTTP)
+- `pnpm dev:https` - 개발 서버 실행 (HTTPS)
+- `pnpm build` - 프로덕션 빌드
+- `pnpm preview` - 빌드 결과 미리보기
+- `pnpm android` - 안드로이드 빌드 + 동기화 + 실행
 
 ## 📚 문서
 

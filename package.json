@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "dev:https": "cross-env VITE_USE_HTTPS=true vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync:android": "npm run build && npx cap sync android",
+    "sync:android": "pnpm build && npx cap sync android",
     "open:android": "npx cap open android",
-    "android": "npm run build && npx cap sync android && npx cap run android"
+    "android": "pnpm build && npx cap sync android && npx cap run android"
   },
   "keywords": [],
   "author": "",

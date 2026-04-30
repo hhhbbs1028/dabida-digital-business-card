@@ -87,7 +87,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ### 개발 서버 실행
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ### 테스트 플로우

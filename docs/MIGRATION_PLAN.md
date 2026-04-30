@@ -247,7 +247,7 @@ src/
 After each step:
 - [ ] All imports resolve correctly
 - [ ] TypeScript compiles without errors
-- [ ] Application runs (`npm run dev`)
+- [ ] Application runs (`pnpm dev`)
 - [ ] No broken routes
 - [ ] No console errors
 
