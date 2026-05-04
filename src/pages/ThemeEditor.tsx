@@ -19,6 +19,7 @@ import { supabase } from '../shared/infrastructure/supabaseClient';
 import { setBackInterceptor } from '../shared/utils/backIntercept';
 import { ColorTab } from '../features/cards/components/editor-tabs/ColorTab';
 import { BackgroundTab } from '../features/cards/components/editor-tabs/BackgroundTab';
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog';
 
 type Props = {
   isOpen: boolean;
@@ -678,46 +679,73 @@ function StickerTab({
 export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClose }: Props) {
   const [theme, setTheme] = useState<CardTheme>(initialTheme);
   const [activeTab, setActiveTab] = useState<TabId>('preset');
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+  // 열릴 때 진입 시점의 theme 스냅샷 저장 (저장 취소 시 롤백 기준)
+  const initialThemeRef = useRef<CardTheme>(initialTheme);
 
   // 열릴 때마다 부모의 최신 theme으로 동기화 (CardEditor 캔버스에서 변경된 내용 반영)
   useEffect(() => {
     if (isOpen) {
       setTheme(initialTheme);
+      initialThemeRef.current = initialTheme;
+      setShowCloseConfirm(false);
     }
   // isOpen이 true로 바뀔 때만 동기화 (편집 중 덮어쓰기 방지)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // 최신 theme·콜백을 ref로 유지 (back interceptor에서 사용)
-  const themeRef = useRef(theme);
-  themeRef.current = theme;
+  // 최신 콜백을 ref로 유지 (back interceptor에서 사용)
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  // 진입 시점과 다르면 변경사항 있음
+  const isDirty = JSON.stringify(theme) !== JSON.stringify(initialThemeRef.current);
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+
+  // X / 백버튼 등에서 호출되는 닫기 시도. dirty면 확인 다이얼로그, 아니면 즉시 닫기.
+  const requestClose = () => {
+    if (isDirtyRef.current) {
+      setShowCloseConfirm(true);
+    } else {
+      onCloseRef.current();
+    }
+  };
+
   // 하드웨어 뒤로가기 인터셉터 등록
   useEffect(() => {
-    setBackInterceptor(() => {
-      onChangeRef.current(themeRef.current);
-      onCloseRef.current();
-    });
+    if (!isOpen) return;
+    setBackInterceptor(() => requestClose());
     // 네이티브 환경이 아닌 경우 대비해 Capacitor 리스너도 등록
     if (!Capacitor.isNativePlatform()) return () => setBackInterceptor(null);
-    const listener = CapApp.addListener('backButton', () => {
-      onChangeRef.current(themeRef.current);
-      onCloseRef.current();
-    });
+    const listener = CapApp.addListener('backButton', () => requestClose());
     return () => {
       setBackInterceptor(null);
       listener.then((h) => h.remove());
     };
-  }, []);
+  }, [isOpen]);
 
   const handleChange = (partial: Partial<CardTheme>) => {
     const next = { ...theme, ...partial };
     setTheme(next);
     onChange(next);
+  };
+
+  // 변경사항 유지하고 닫기
+  const handleConfirmSave = () => {
+    setShowCloseConfirm(false);
+    onCloseRef.current();
+  };
+
+  // 진입 시점 스냅샷으로 롤백한 뒤 닫기
+  const handleConfirmDiscard = () => {
+    onChangeRef.current(initialThemeRef.current);
+    setTheme(initialThemeRef.current);
+    setShowCloseConfirm(false);
+    onCloseRef.current();
   };
 
   const handleUploadImage = async (file: File): Promise<string> => {
@@ -756,60 +784,72 @@ export function ThemeEditor({ isOpen, theme: initialTheme, data, onChange, onClo
   };
 
   return (
-    <FullScreenModal isOpen={isOpen} title="스타일 편집" onClose={onClose}>
-      <div className="flex h-full flex-col">
-        {/* 카드 미리보기 */}
-        <div className="flex items-center justify-center border-b border-slate-100 bg-white px-4 py-4">
-          <div className="w-full max-w-sm">
-            <CardCanvas
-              theme={theme}
-              data={previewData}
-              onPositionsChange={(positions) => {
-                setTheme((prev) => {
-                  const next = { ...prev, elementPositions: positions };
-                  onChange(next);
-                  return next;
-                });
-              }}
-              onStickersChange={(stickers) => {
-                setTheme((prev) => {
-                  const next = { ...prev, stickers };
-                  onChange(next);
-                  return next;
-                });
-              }}
-            />
+    <>
+      <FullScreenModal isOpen={isOpen} title="스타일 편집" onClose={requestClose}>
+        <div className="flex h-full flex-col">
+          {/* 카드 미리보기 */}
+          <div className="flex items-center justify-center border-b border-slate-100 bg-white px-4 py-4">
+            <div className="w-full max-w-sm">
+              <CardCanvas
+                theme={theme}
+                data={previewData}
+                onPositionsChange={(positions) => {
+                  setTheme((prev) => {
+                    const next = { ...prev, elementPositions: positions };
+                    onChange(next);
+                    return next;
+                  });
+                }}
+                onStickersChange={(stickers) => {
+                  setTheme((prev) => {
+                    const next = { ...prev, stickers };
+                    onChange(next);
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 탭 네비게이션 */}
+          <div className="flex shrink-0 border-b border-slate-200 bg-white">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={[
+                  'flex-1 py-3 text-[13px] font-medium transition',
+                  activeTab === tab.id
+                    ? 'border-b-2 border-slate-900 text-slate-900'
+                    : 'text-slate-400 hover:text-slate-600',
+                ].join(' ')}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 탭 콘텐츠 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
+            {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
+            {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} onUploadFont={handleUploadFont} />}
+            {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
+            {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
           </div>
         </div>
+      </FullScreenModal>
 
-        {/* 탭 네비게이션 */}
-        <div className="flex shrink-0 border-b border-slate-200 bg-white">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={[
-                'flex-1 py-3 text-[13px] font-medium transition',
-                activeTab === tab.id
-                  ? 'border-b-2 border-slate-900 text-slate-900'
-                  : 'text-slate-400 hover:text-slate-600',
-              ].join(' ')}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* 탭 콘텐츠 */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'preset'     && <PresetTab     theme={theme} onChange={handleChange} hasProfileUrl={!!previewData.profileUrl} />}
-          {activeTab === 'color'      && <ColorTab      theme={theme} onChange={handleChange} />}
-          {activeTab === 'font'       && <FontTab       theme={theme} onChange={handleChange} onUploadFont={handleUploadFont} />}
-          {activeTab === 'background' && <BackgroundTab theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} />}
-          {activeTab === 'sticker'    && <StickerTab    theme={theme} onChange={handleChange} onUploadImage={handleUploadImage} data={previewData} />}
-        </div>
-      </div>
-    </FullScreenModal>
+      <ConfirmDialog
+        isOpen={showCloseConfirm}
+        title="저장하지 않은 변경사항"
+        message="스타일 변경사항을 저장할까요?"
+        confirmLabel="저장"
+        cancelLabel="저장 취소"
+        onConfirm={handleConfirmSave}
+        onCancel={handleConfirmDiscard}
+      />
+    </>
   );
 }

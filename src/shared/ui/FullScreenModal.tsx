@@ -8,6 +8,11 @@ type Props = {
   children: React.ReactNode;
 };
 
+// 중첩된 모달이 닫히면서 호출하는 history.back()이
+// 부모 모달의 popstate 리스너를 트리거해 부모까지 닫히는 문제를 막기 위한 플래그.
+// cleanup에서 history.back() 직전에 true로 설정하고, 이어서 발생하는 popstate 한 번을 무시한다.
+let suppressNextPopstate = false;
+
 export function FullScreenModal({ isOpen, onClose, title, children }: Props) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -30,7 +35,13 @@ export function FullScreenModal({ isOpen, onClose, title, children }: Props) {
 
     // 웹 뒤로가기: 히스토리에 더미 상태를 push해두고 popstate 시 닫기
     history.pushState({ modalOpen: true }, '');
-    const handlePopState = () => onCloseRef.current();
+    const handlePopState = () => {
+      if (suppressNextPopstate) {
+        suppressNextPopstate = false;
+        return;
+      }
+      onCloseRef.current();
+    };
     window.addEventListener('popstate', handlePopState);
 
     // 네이티브 뒤로가기 (Capacitor)
@@ -41,7 +52,10 @@ export function FullScreenModal({ isOpen, onClose, title, children }: Props) {
       setBackInterceptor(null);
       // 닫힐 때 더미 상태가 남아있으면 제거
       if (history.state?.modalOpen) {
+        suppressNextPopstate = true;
         history.back();
+        // 안전망: popstate가 발생하지 않으면 다음 tick에 플래그 자동 해제
+        setTimeout(() => { suppressNextPopstate = false; }, 0);
       }
     };
   }, [isOpen]);
