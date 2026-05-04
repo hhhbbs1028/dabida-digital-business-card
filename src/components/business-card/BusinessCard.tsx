@@ -13,11 +13,12 @@
  * 래퍼(`AbsElem`)와 프로필·스티커 정적 렌더만 담당한다.
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import type { CardTheme, CardContentTokens, ElementPosition } from '../../theme/types';
 import { resolvePositions } from '../../theme/defaultPositions';
 import { applyThemeToStyle } from '../../theme/applyTheme';
-import { makeRenderHelpers } from '../../theme/renderHelpers';
+import { getRenderedLeftX, makeRenderHelpers } from '../../theme/renderHelpers';
+import { useTextWidthPct } from './useTextWidthPct';
 import {
   TEXT_ELEMENTS,
   shouldRenderInStatic,
@@ -35,22 +36,42 @@ type Props = {
 // PositionedView — elementPositions가 저장된 카드의 정적 뷰 렌더러
 // ============================================================================
 
-function AbsElem({ pos, children }: { pos: ElementPosition; children: React.ReactNode }) {
+/**
+ * 좌측 정렬 텍스트 래퍼.
+ * - 저장 좌표(pos.x)는 항상 요소 중심(centerX) 기준 — 변경하지 않는다.
+ * - 렌더링 시점에만 leftX = clamp(centerX − widthPct/2, 0, 95) 로 변환.
+ * - widthPct 는 ResizeObserver 로 실측한 실제 텍스트 폭(컨테이너 폭 대비 %).
+ */
+function LeftAnchoredText({
+  pos,
+  containerRef,
+  children,
+}: {
+  pos: ElementPosition;
+  containerRef: React.RefObject<HTMLElement | null>;
+  children: React.ReactNode;
+}) {
+  const [ref, widthPct] = useTextWidthPct(containerRef);
+  const leftX = getRenderedLeftX(pos.x, widthPct);
   return (
-    <div style={{
-      position: 'absolute',
-      left: `${pos.x}%`,
-      top: `${pos.y}%`,
-      transform: 'translate(-50%, -50%)',
-      opacity: pos.opacity ?? 1,
-      zIndex: pos.zIndex != null ? pos.zIndex : undefined,
-    }}>
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute',
+        left: `${leftX}%`,
+        top: `${pos.y}%`,
+        transform: 'translateY(-50%)',
+        opacity: pos.opacity ?? 1,
+        zIndex: pos.zIndex != null ? pos.zIndex : undefined,
+      }}
+    >
       {children}
     </div>
   );
 }
 
 function PositionedView({ theme, data }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bgStyle = applyThemeToStyle(theme);
   const orientation = theme.orientation ?? 'landscape';
   const isPortrait = orientation === 'portrait';
@@ -61,8 +82,8 @@ function PositionedView({ theme, data }: Props) {
   const helpers = makeRenderHelpers(isPortrait);
 
   return (
-    <div className="absolute inset-0" style={bgStyle}>
-      {/* 프로필 */}
+    <div ref={containerRef} className="absolute inset-0" style={bgStyle}>
+      {/* 프로필 — 이미지 요소는 기존처럼 center 기준 렌더 유지 */}
       {hasProfile && pos.profile && (
         <div style={{
           position: 'absolute',
@@ -81,21 +102,21 @@ function PositionedView({ theme, data }: Props) {
         </div>
       )}
 
-      {/* 텍스트 요소 — cardElements.TEXT_ELEMENTS의 단일 정의를 따름 */}
+      {/* 텍스트 요소 — left 기준 렌더로 좌측 정렬되어 보이도록 변환 */}
       {TEXT_ELEMENTS.map((def) => {
         const elemPos = pos[def.key];
         if (!elemPos) return null;
         if (!shouldRenderInStatic(def, data)) return null;
         const value = resolveElementValue(def, data, false);
         return (
-          <AbsElem key={def.key} pos={elemPos}>
+          <LeftAnchoredText key={def.key} pos={elemPos} containerRef={containerRef}>
             {def.render({
               helpers,
               fontScale: elemPos.fontScale ?? 1,
               value,
               isEditing: false,
             })}
-          </AbsElem>
+          </LeftAnchoredText>
         );
       })}
     </div>

@@ -119,3 +119,25 @@ export function makeRenderHelpers(isPortrait: boolean): RenderHelpers {
 
   return { scaledFs, textStyle, linkStyle, nameFontSize, iconSize };
 }
+
+// ============================================================================
+// 좌표 변환 — center 기준 → left 기준 (렌더 전용)
+// ============================================================================
+//
+// ElementPosition.x 는 항상 "요소 중심 %" 의미를 갖는다(드래그·저장 모두 동일).
+// 텍스트 요소만 시각적으로 좌측 정렬되어 보이도록 렌더 시점에만 left 좌표로 변환.
+//
+//   leftX = centerX − widthPct / 2
+//
+// widthPct 는 ResizeObserver 로 측정한 실제 텍스트 폭(카드 폭 대비 %)이며,
+// 측정 전에는 0 으로 시작해 첫 layout effect 에서 즉시 갱신된다.
+// 최종 left 값은 카드 안전 영역(0~95%) 으로 clamp.
+
+const RENDERED_LEFT_MAX_PCT = 95;
+
+export function getRenderedLeftX(centerX: number, widthPct: number): number {
+  const leftX = centerX - widthPct / 2;
+  if (leftX < 0) return 0;
+  if (leftX > RENDERED_LEFT_MAX_PCT) return RENDERED_LEFT_MAX_PCT;
+  return leftX;
+}
